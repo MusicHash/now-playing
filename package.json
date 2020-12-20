@@ -1,0 +1,25 @@
+{
+  "name": "now-playing",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/now-playing.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MusicHash/now-playing.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/MusicHash/now-playing/issues"
+  },
+  "homepage": "https://github.com/MusicHash/now-playing#readme",
+  "dependencies": {
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1",
+    "scrapa": "^0.1.0",
+    "spotify-web-api-node": "^5.0.0"
+  }
+}
