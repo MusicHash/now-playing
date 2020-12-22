@@ -42,6 +42,8 @@ const replacePlayList = async function (playlist, tracks) {
             console.debug(['[replacePlayList]', 'NOT FOUND', q]);
             // ? retry?
         }
+
+        return null;
     };
 
     let tracksList = [];
