@@ -17,6 +17,7 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
         console.debug(['FOUND, adding', q, playlist])
 
         let addToPlaylist = await Spotify.addTracksToPlaylist(playlistID, [songID], 0);
+        await updatePlaylistDescription(playlistID);
     } else {
         console.debug(['END - NOT FOUND', q, playlist, tracks])
     }
@@ -66,12 +67,21 @@ const replacePlayList = async function (playlist, tracks) {
     }
 
     let replaceItemsInPlaylist = await Spotify.replaceTracksInPlaylist(playlistID, tracksList);
+    await updatePlaylistDescription(playlistID);
 
 };
+
+const updatePlaylistDescription = async function (playlistID) {
+    return await Spotify.playlistUpdateDetails(playlistID, {
+        description: 'Last 200 Tracks. LAST UPDATE: {now}'.replace('{now}', new Date().toLocaleString('en-GB'))
+    });
+};
+
 
 const slicePlaylist = async function (playlist, limit) {
     let playlistID = _getPlaylistID(playlist);
 
+    await updatePlaylistDescription(playlistID);
     return await Spotify.slicePlaylist(playlistID, limit);
 };
 

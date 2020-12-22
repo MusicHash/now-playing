@@ -277,6 +277,21 @@ class Spotify {
     }
 
 
+    async playlistUpdateDetails(playlistID, props = {}) {
+        return await this.api
+            .changePlaylistDetails(playlistID, {
+                ...props
+            })
+            .then((data) => {
+                console.log(['[playlistUpdateDetails]', 'Playlist details updated.', data.body]);
+                return data.body;
+            })
+            .catch((err) => {
+                console.log('[playlistUpdateDetails] Something went wrong!', err);
+            });
+    }
+
+
     _extractUriFromTracks(tracks) {
         let output = {};
 
