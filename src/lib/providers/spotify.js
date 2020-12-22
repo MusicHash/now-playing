@@ -126,21 +126,27 @@ class Spotify {
     }
 
 
-    async addTracksToPlaylist(playlistID, listOfTracks = [], position = 0) {
-        let trackFromPlaylist = await this.findTrackInPlaylist(listOfTracks[0], playlistID);
+    async addTracksToPlaylist(playlistID, listOfTracks = [], position = 0, handleDuplicates = true) {
+        
+        if (true === handleDuplicates) {
+            let trackFromPlaylist = await this.findTrackInPlaylist(listOfTracks[0], playlistID);
 
-        // unique only, skip
-        if (-1 !== trackFromPlaylist) {
-            // already first, check position
-            if (0 < trackFromPlaylist.position) {
-                await this.reorderTracksInPlaylist(playlistID, 1, trackFromPlaylist.position, 0);
-                console.debug(['Track already exists, bumping to be first.', playlistID, trackFromPlaylist.position, listOfTracks[0], trackFromPlaylist.name]);
-            } else {
-                console.debug(['Track already exists and first in playlist - SKIPPING!', playlistID, listOfTracks[0], trackFromPlaylist.name]);
+            // unique only, skip
+            if (-1 !== trackFromPlaylist) {
+                // already first, check position
+                if (0 < trackFromPlaylist.position) {
+                    await this.reorderTracksInPlaylist(playlistID, 1, trackFromPlaylist.position, 0);
+                    console.debug(['Track already exists, bumping to be first.', playlistID, trackFromPlaylist.position, listOfTracks[0], trackFromPlaylist.name]);
+                } else {
+                    console.debug(['Track already exists and first in playlist - SKIPPING!', playlistID, listOfTracks[0], trackFromPlaylist.name]);
+                }
+
+                return true;
             }
-            
-            return true;
+
         }
+
+        console.log(['ADDING THE FOLLOWING TRACK TO LIST:', listOfTracks]);
 
         return await this.api.addTracksToPlaylist(playlistID, listOfTracks, {
                 position
@@ -241,12 +247,33 @@ class Spotify {
 
     // replace complete list of tracks
     async slicePlaylist(playlistID, limit = 100) {
-        let playlist = await this.getPlaylistTracksAllPages(playlistID, limit);
-        let tracksList = playlist.items.map((item) => item.track.uri);
-        
-        tracksList = tracksList.splice(0, limit);
+        let maxBatchSize = (100 < limit) ? 100 : limit;
 
-        return await this.replaceTracksInPlaylist(playlistID, tracksList);
+        let playlist = await this.getPlaylistTracksAllPages(playlistID, maxBatchSize);
+        let tracksListRaw = playlist.items.map((item) => item.track.uri);
+        let tracksList = [...new Set(tracksListRaw)]; // removed duplicates
+
+        // cap limit is not above total
+        limit = (tracksList.length < limit) ? Number(tracksList.length) : limit;
+
+        // cut array to length.
+        let shorterTracksList = tracksList.slice(0, maxBatchSize);
+        let totalPages = Math.ceil(limit / maxBatchSize);
+        
+        await this.replaceTracksInPlaylist(playlistID, shorterTracksList);
+        
+        if (playlist.limit < limit) {
+            for (let pageNumber = 1, lastPage = totalPages-1; pageNumber <= lastPage; pageNumber++) {
+                
+                let batchSize = (pageNumber === lastPage) ? (limit - (maxBatchSize * pageNumber)) : maxBatchSize;
+                let offset = maxBatchSize * pageNumber;
+                let tracksListSliced = tracksList.slice(offset, offset + batchSize);
+                
+                await this.addTracksToPlaylist(playlistID, tracksListSliced, offset, false);
+            }
+        }
+
+        return Promise.resolve();
     }
 
 
