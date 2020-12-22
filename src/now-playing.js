@@ -1,6 +1,6 @@
 const express = require('express');
 
-const { refreshAllStations, refreshAllCharts } = require('./lib/fetch_sources');
+const { refreshAllStations, refreshChart } = require('./lib/fetch_sources');
 require('dotenv').config();
 const Spotify = require('./lib/providers/spotify');
 
@@ -12,8 +12,8 @@ const triggerRefreshAllStations = function() {
     let scan = refreshAllStations().then(body => console.log(body));
 };
 
-const triggerRefreshAllCharts = function () {
-    let scan = refreshAllCharts().then(body => console.log(body));
+const triggerRefreshChart = function (chart) {
+    let scan = refreshChart(chart).then(body => console.log(body));
 };
 
 const app = express();
@@ -34,9 +34,11 @@ app.get('/refresh_playlists_manually', (req, res) => {
     res.send('Success, triggerRefreshAllStations!');
 });
 
-app.get('/refresh_charts_manually', (req, res) => {
-    triggerRefreshAllCharts();
-    res.send('Success, triggerRefreshAllCharts!');
+app.get('/refresh_charts_manually/:chart', (req, res) => {
+    let chart = req.params.chart;
+    
+    triggerRefreshChart(chart);
+    res.send(['Success, triggerRefreshAllCharts!', chart]);
 });
 
 app.listen(process.env.EXPRESS_PORT, () =>

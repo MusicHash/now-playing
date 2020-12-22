@@ -4,8 +4,6 @@ const { updatePlayList, replacePlayList } = require('./playlist');
 const { stations, charts } = require('../../config/sources');
 
 const refreshAllStations = async function() {
-    let queueSources = [];
-
     for (let stationIdx in stations) {
         let props = stations[stationIdx];
 
@@ -21,25 +19,28 @@ const refreshAllStations = async function() {
 };
 
 
-const refreshAllCharts = async function () {
-    let queueSources = [];
+const refreshChart = async function (chartIdx) {
+    let chart = charts[chartIdx];
 
-    for (let chartIdx in charts) {
-        let props = charts[chartIdx];
+    if (!chart) {
+        console.error('[refreshChart] Invalid chart:', chart);
 
-        getCurrentTracks({
-            scraper: props.scraper,
-            parser: props.parser
-        })
-        .then(async tracks => {
-            await replacePlayList(chartIdx, tracks);
-        })
-        .catch(err => console.debug(err));
+        return;
     }
+
+    getCurrentTracks({
+        scraper: chart.scraper,
+        parser: chart.parser
+    })
+    .then(async tracks => {
+        await replacePlayList(chartIdx, tracks);
+    })
+    .catch(err => console.debug(err));
+    
 };
 
 
 module.exports = {
     refreshAllStations,
-    refreshAllCharts
+    refreshChart
 };
