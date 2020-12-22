@@ -41,6 +41,16 @@ app.get('/refresh_charts_manually/:chart', (req, res) => {
     res.send(['Success, triggerRefreshAllCharts!', chart]);
 });
 
+
+app.get('/playlist/slice/:playlist/:limit', async (req, res) => {
+    let playlist = req.params.playlist;
+    let limit = req.params.limit;
+
+    await Spotify.slicePlaylist(playlist, limit);
+    res.send(['Success, Spotify.slicePlaylist!', playlist, limit]);
+});
+
+
 app.listen(process.env.EXPRESS_PORT, () =>
     console.log(
         `HTTP Server up. Now go to http://localhost:${process.env.EXPRESS_PORT}/login in your browser.`

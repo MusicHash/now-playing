@@ -227,15 +227,26 @@ class Spotify {
 
     // replace complete list of tracks
     async replaceTracksInPlaylist(playlistID, tracksList = []) {
-        console.log(JSON.stringify(tracksList));
         return await this.api
             .replaceTracksInPlaylist(playlistID, tracksList)
             .then((data) => {
+                console.log(['[replaceTracksInPlaylist]', 'Replaced playlist, snapshot:', data.body]);
                 return data.body;
             })
             .catch((err) => {
                 console.log('[reorderTracksInPlaylist] Something went wrong!', err);
             });
+    }
+
+
+    // replace complete list of tracks
+    async slicePlaylist(playlistID, limit = 100) {
+        let playlist = await this.getPlaylistTracksAllPages(playlistID, limit);
+        let tracksList = playlist.items.map((item) => item.track.uri);
+        
+        tracksList = tracksList.splice(0, limit);
+
+        return await this.replaceTracksInPlaylist(playlistID, tracksList);
     }
 
 
