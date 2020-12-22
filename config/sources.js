@@ -1,5 +1,5 @@
 
-module.exports = {
+const charts = {
     'xm-hits1': {
 
         now_playing: {
@@ -10,7 +10,7 @@ module.exports = {
             type: 'get',
             url: '',
         },
-        
+
         parser: {
             type: 'json',
 
@@ -23,3 +23,13 @@ module.exports = {
     },
 
 };
+
+const stations = {
+
+
+};
+
+module.exports = {
+    charts,
+    stations
+}

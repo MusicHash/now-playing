@@ -1,6 +1,6 @@
 const express = require('express');
 
-const { fetchAllSources } = require('./lib/fetch_sources');
+const { refreshAllStations, refreshAllCharts } = require('./lib/fetch_sources');
 require('dotenv').config();
 const Spotify = require('./lib/providers/spotify');
 
@@ -8,8 +8,12 @@ Spotify.connect().then(() => {
     console.log('Spotify inited');
 })
 
-const refreshSources = function() {
-    let scan = fetchAllSources().then(body => console.log(body));
+const triggerRefreshAllStations = function() {
+    let scan = refreshAllStations().then(body => console.log(body));
+};
+
+const triggerRefreshAllCharts = function () {
+    let scan = refreshAllCharts().then(body => console.log(body));
 };
 
 const app = express();
@@ -26,8 +30,13 @@ app.get('/spotify/auth/redirect', (req, res) => {
 });
 
 app.get('/refresh_playlists_manually', (req, res) => {
-    refreshSources();
-    res.send('Success!');
+    triggerRefreshAllStations();
+    res.send('Success, triggerRefreshAllStations!');
+});
+
+app.get('/refresh_charts_manually', (req, res) => {
+    triggerRefreshAllCharts();
+    res.send('Success, triggerRefreshAllCharts!');
 });
 
 app.listen(process.env.EXPRESS_PORT, () =>
@@ -38,7 +47,7 @@ app.listen(process.env.EXPRESS_PORT, () =>
 
 
 setInterval(() => {
-    refreshSources();
+    triggerRefreshAllStations();
 
     console.log('[AUTO REFRESH] 39s');
 }, 39 * 1000);

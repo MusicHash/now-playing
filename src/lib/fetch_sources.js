@@ -1,24 +1,38 @@
 const { getCurrentTracks } = require('./tracks');
-const { updatePlayList } = require('./playlist');
+const { updatePlayList, replacePlayList } = require('./playlist');
 
-const sources = require('../../config/sources');
+const { stations, charts } = require('../../config/sources');
 
-const fetchAllSources = async function () {
+const refreshAllStations = async function() {
     let queueSources = [];
 
-    //listofsources = {
-    //    'xm-hits1': sources['xm-hits1']
-    //}
-
-    for (let sourceIdx in sources) {
-        let props = sources[sourceIdx];
+    for (let stationIdx in stations) {
+        let props = stations[stationIdx];
 
         getCurrentTracks({
             scraper: props.scraper,
             parser: props.parser
         })
         .then(async tracks => {
-            await updatePlayList(sourceIdx, tracks);
+            await updatePlayList(stationIdx, tracks);
+        })
+        .catch(err => console.debug(err));
+    }
+};
+
+
+const refreshAllCharts = async function () {
+    let queueSources = [];
+
+    for (let chartIdx in charts) {
+        let props = charts[chartIdx];
+
+        getCurrentTracks({
+            scraper: props.scraper,
+            parser: props.parser
+        })
+        .then(async tracks => {
+            await replacePlayList(chartIdx, tracks);
         })
         .catch(err => console.debug(err));
     }
@@ -26,5 +40,6 @@ const fetchAllSources = async function () {
 
 
 module.exports = {
-    fetchAllSources,
+    refreshAllStations,
+    refreshAllCharts
 };

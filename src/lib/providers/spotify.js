@@ -22,7 +22,12 @@ class Spotify {
 
         this.api
             .authorizationCodeGrant(code)
-            .then(data => {
+            .then(async data => {
+                if (data.body['expires_in'] < 1500) {
+                    console.info('[authorizationCodeGrant] Too short, renewing...');
+                    const data = await this.api.refreshAccessToken();
+                }
+
                 const accessToken = data.body['access_token'];
                 const refreshToken = data.body['refresh_token'];
                 const expiresIn = data.body['expires_in'];
@@ -34,7 +39,7 @@ class Spotify {
                 console.log('refresh_token:', refreshToken);
 
                 console.log(`Sucessfully retreived access token. Expires in ${expiresIn} s.`);
-                res.send('Success! You can now close the window.');
+                res.send('Success! You can now close the window. <a href="/spotify/login">Re-login!</a>');
 
                 setInterval(async () => {
                     const data = await this.api.refreshAccessToken();
@@ -90,14 +95,11 @@ class Spotify {
                 clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
                 redirectUri: process.env.SPTOFIY_CALLBACK_ENDPOINT
             });
-
             
             this.setAccessToken(process.env.SPOTIFY_ACCESS_TOKEN);
             this.setRefreshToken(process.env.SPOTIFY_REFRESH_TOKEN);
-            
 
             // Retrieve an access token
-            
             this.api.clientCredentialsGrant()
                 .then((data) => {
                     this.api.setAccessToken(data.body['access_token']); //
@@ -111,14 +113,16 @@ class Spotify {
     }
 
 
-    async search(q) {
-        return await this.api.searchTracks(q)
-            .then((data) => {
-                return data.body;
-            })
-            .catch((err) => {
-                console.error(err);
-            });
+    async searchTracks(q, limit = 1) {
+        return await this.api.searchTracks(q, {
+            limit
+        })
+        .then((data) => {
+            return data.body;
+        })
+        .catch((err) => {
+            console.error(err);
+        });
     }
 
 
@@ -130,7 +134,7 @@ class Spotify {
             // already first, check position
             if (0 < trackFromPlaylist.position) {
                 await this.reorderTracksInPlaylist(playlistID, 1, trackFromPlaylist.position, 0);
-                console.debug(['Track already exists, bumping to be first.', playlistID, listOfTracks[0], trackFromPlaylist.name]);
+                console.debug(['Track already exists, bumping to be first.', playlistID, trackFromPlaylist.position, listOfTracks[0], trackFromPlaylist.name]);
             } else {
                 console.debug(['Track already exists and first in playlist - SKIPPING!', playlistID, listOfTracks[0], trackFromPlaylist.name]);
             }
@@ -139,8 +143,8 @@ class Spotify {
         }
 
         return await this.api.addTracksToPlaylist(playlistID, listOfTracks, {
-            position
-        })
+                position
+            })
             .then((data) => {
                 let body = data.body;
 
@@ -153,14 +157,15 @@ class Spotify {
 
 
     async findTrackInPlaylist(trackID, playlistID) {
-        let tracks = await this.getPlaylistTracks(playlistID);
-        let uriTracks = this._extractUriFromTracks(tracks);
+        let playlistTracks = await this.getPlaylistTracksAllPages(playlistID);
+        let uriTracks = this._extractUriFromTracks(playlistTracks);
         
-        return (undefined !== uriTracks[trackID]) ? uriTracks[trackID] : -1;
+        return (undefined !== uriTracks[trackID]) ? uriTracks[trackID] : - 1;
     }
 
 
-    async getPlaylistTracks(playlistID, offset = 0, limit = 10, fields = 'items(track(uri,name))') {
+    // getter for the playlist tracks
+    async getPlaylistTracks(playlistID, limit = 100, offset = 0, fields = 'tracks(offset,total,items(track(uri,name)))') {
         return await this.api
             .getPlaylistTracks(playlistID, {
                 offset,
@@ -173,9 +178,37 @@ class Spotify {
             .catch((err) => {
                 console.log('[getPlaylistTracks] Something went wrong!', err);
             });
+
     }
 
 
+    // getter for the playlist tracks
+    async getPlaylistTracksAllPages(playlistID, limit = 100, offset = 0, fields = 'limit,offset,total,items(track(uri,name))') {
+        let firstPage = await this.getPlaylistTracks(playlistID, limit, offset, fields);
+        let totalPages = Math.ceil(firstPage.total / limit);
+        
+        let allPagesPromise = Array.from(new Array(totalPages-1), (_, index) => index+1).map(
+            pageNumber => this.getPlaylistTracks(playlistID, limit, limit * pageNumber, fields)
+                .catch(
+                    (err) => console.error('[getPlaylistAllPages] paged request failed.', err)
+                )
+        );
+
+        return await Promise.all(allPagesPromise)
+            .then((playlists) => {
+                playlists.forEach((playlist, idx) => {
+                    firstPage.items.push(...playlist.items);
+                });
+
+                return firstPage;
+            }).catch((err) => {
+                // there was an error
+                console.error('[getPlaylistAllPages] Global fetch failed', err);
+            });
+    }
+
+
+    // re-order a a track in a list
     async reorderTracksInPlaylist(playlistID, rangeLength = 1, rangeStart = 0, insertBefore = 0) {
         let options = {
             range_length: rangeLength
@@ -191,6 +224,19 @@ class Spotify {
             });
     }
 
+
+    // replace complete list of tracks
+    async replaceTracksInPlaylist(playlistID, tracksList = []) {
+        console.log(JSON.stringify(tracksList));
+        return await this.api
+            .replaceTracksInPlaylist(playlistID, tracksList)
+            .then((data) => {
+                return data.body;
+            })
+            .catch((err) => {
+                console.log('[reorderTracksInPlaylist] Something went wrong!', err);
+            });
+    }
 
 
     _extractUriFromTracks(tracks) {
