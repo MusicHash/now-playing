@@ -1,7 +1,10 @@
 const express = require('express');
 
 const { refreshAllStations, refreshChart } = require('./lib/fetch_sources');
+const { slicePlaylist } = require('./lib/playlist');
+
 require('dotenv').config();
+
 const Spotify = require('./lib/providers/spotify');
 
 Spotify.connect().then(() => {
@@ -18,23 +21,23 @@ const triggerRefreshChart = function (chart) {
 
 const app = express();
 
-app.get('/spotify/login', (req, res) => {
+app.get('/spotify/login', async (req, res) => {
     res.redirect(Spotify.createAuthorizeURL());
 });
 
-app.get('/spotify/auth/redirect', (req, res) => {
+app.get('/spotify/auth/redirect', async (req, res) => {
     const error = req.query.error;
     const code = req.query.code;
 
     Spotify.auth(code, error, res);
 });
 
-app.get('/refresh_playlists_manually', (req, res) => {
+app.get('/refresh_playlists_manually', async (req, res) => {
     triggerRefreshAllStations();
     res.send('Success, triggerRefreshAllStations!');
 });
 
-app.get('/refresh_charts_manually/:chart', (req, res) => {
+app.get('/refresh_charts_manually/:chart', async (req, res) => {
     let chart = req.params.chart;
     
     triggerRefreshChart(chart);
@@ -46,8 +49,8 @@ app.get('/playlist/slice/:playlist/:limit', async (req, res) => {
     let playlist = req.params.playlist;
     let limit = req.params.limit;
 
-    await Spotify.slicePlaylist(playlist, limit);
-    res.send(['Success, Spotify.slicePlaylist!', playlist, limit]);
+    await slicePlaylist(playlist, limit);
+    res.send(['Success, slicePlaylist!', playlist, limit]);
 });
 
 

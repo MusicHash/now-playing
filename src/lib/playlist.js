@@ -69,6 +69,13 @@ const replacePlayList = async function (playlist, tracks) {
 
 };
 
+const slicePlaylist = async function (playlist, limit) {
+    let playlistID = _getPlaylistID(playlist);
+
+    return await Spotify.slicePlaylist(playlistID, limit);
+};
+
+
 const _getPlaylistID = function(source) {
     let playlists = JSON.parse(process.env.SPOTIFY_PLAYLIST_MAP);
 
@@ -88,5 +95,6 @@ const _cleanNames = function(str) {
 
 module.exports = {
     updatePlayList,
-    replacePlayList
+    replacePlayList,
+    slicePlaylist,
 };
