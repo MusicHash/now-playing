@@ -191,7 +191,7 @@ class Spotify {
     // getter for the playlist tracks
     async getPlaylistTracksAllPages(playlistID, limit = 100, offset = 0, fields = 'limit,offset,total,items(track(uri,name))') {
         let firstPage = await this.getPlaylistTracks(playlistID, limit, offset, fields);
-        let totalPages = Math.ceil(firstPage.total / limit);
+        let totalPages = Math.ceil((firstPage.total || 1) / limit);
         
         let allPagesPromise = Array.from(new Array(totalPages-1), (_, index) => index+1).map(
             pageNumber => this.getPlaylistTracks(playlistID, limit, limit * pageNumber, fields)
@@ -240,7 +240,7 @@ class Spotify {
                 return data.body;
             })
             .catch((err) => {
-                console.log('[reorderTracksInPlaylist] Something went wrong!', err);
+                console.log('[replaceTracksInPlaylist] Something went wrong!', err);
             });
     }
 
