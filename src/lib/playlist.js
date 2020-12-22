@@ -35,7 +35,7 @@ const replacePlayList = async function (playlist, tracks) {
         if (0 < search.tracks.items.length) {
             let songID = search.tracks.items[0].uri;
 
-            console.debug(['[replacePlayList]', 'FOUND item for q: ', q, songID]);
+            //console.debug(['[replacePlayList]', 'FOUND item for q: ', q, songID]);
 
             return songID;
         } else {
@@ -79,6 +79,8 @@ const _getPlaylistID = function(source) {
 const _cleanNames = function(str) {
     return str
         .replace(/\s\([^)]+\)$/, '') // removes, last part (.*)$
+        .replace('feat.', '')
+        .replace('&', '')
         .replace(/-/g, ' ')    
         .replace(/(\/)/g, ' ')
         .replace(/\s+/g, ' ');
