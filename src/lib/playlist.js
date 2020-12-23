@@ -97,8 +97,8 @@ const _cleanNames = function(str) {
     return str
         .replace(/\s\([^)]+\)$/, '') // removes, last part (.*)$
         .replace(/( עם |feat\.|Ft\.|Featuring)/g, '')
-        .replace(/(&| x |,)/, '')
-        .replace(/(-|–)/g, ' ')    
+        .replace(/(&|,)/, '')
+        .replace(/( x |-|–)/g, ' ')    
         .replace(/(\/)/g, ' ')
         .replace(/\s+/g, ' ');
 };
