@@ -96,7 +96,7 @@ const _getPlaylistID = function(source) {
 const _cleanNames = function(str) {
     return str
         .replace(/\s\([^)]+\)$/, '') // removes, last part (.*)$
-        .replace(/(feat\.|Featuring)/g, '')
+        .replace(/( עם |feat\.|Featuring)/g, '')
         .replace(/(&| x |,)/, '')
         .replace(/(-|–)/g, ' ')    
         .replace(/(\/)/g, ' ')
