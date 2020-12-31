@@ -39,7 +39,7 @@ class Spotify {
                 console.log('refresh_token:', refreshToken);
 
                 console.log(`Sucessfully retreived access token. Expires in ${expiresIn} s.`);
-                res.send('Success! You can now close the window. <a href="/spotify/login">Re-login!</a>');
+                res.send('Success! You can now close the window.');
 
                 setInterval(async () => {
                     const data = await this.api.refreshAccessToken();

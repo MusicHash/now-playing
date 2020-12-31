@@ -40,7 +40,27 @@ const refreshChart = async function (chartIdx) {
 };
 
 
+const refreshChartAll = async function () {
+    let delaySeconds = 60,
+        chartEnumeration = 1;
+
+    for (let chartIdx in charts) {
+
+        let delayBySeconds = (delaySeconds * chartEnumeration);
+
+        setTimeout(() => {
+            refreshChart(chartIdx);
+        }, delayBySeconds * 1000);
+
+        console.debug(`Queued chart ${chartIdx} for update in ${delayBySeconds}s`);
+
+        chartEnumeration++;
+    }
+};
+
+
 module.exports = {
     refreshAllStations,
-    refreshChart
+    refreshChart,
+    refreshChartAll,
 };

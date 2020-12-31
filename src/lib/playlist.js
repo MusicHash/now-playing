@@ -1,5 +1,6 @@
 const Spotify = require('./providers/spotify');
 const { decodeHTMLEntities } = require('../utils/strings');
+const { stations } = require('../../config/sources');
 
 const updatePlayList = async function (playlist, tracks, firstSongOnly) {
     console.debug(['START updatePlayList', playlist, tracks])
@@ -86,6 +87,27 @@ const slicePlaylist = async function (playlist, limit) {
 };
 
 
+const sliceAllPlaylists = async function (limit = 200) {
+    let delaySeconds = 5,
+        chartEnumeration = 1;
+
+    for (let stationIdx in stations) {
+
+        let delayBySeconds = (delaySeconds * chartEnumeration);
+
+        setTimeout(() => {
+            slicePlaylist(stationIdx, limit);
+        }, delayBySeconds * 1000);
+
+        console.debug(`Queued station ${stationIdx} for slice in ${delayBySeconds}s`);
+
+        chartEnumeration++;
+    }
+
+    
+};
+
+
 const _getPlaylistID = function(source) {
     let playlists = JSON.parse(process.env.SPOTIFY_PLAYLIST_MAP);
 
@@ -128,4 +150,5 @@ module.exports = {
     updatePlayList,
     replacePlayList,
     slicePlaylist,
+    sliceAllPlaylists,
 };

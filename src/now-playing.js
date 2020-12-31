@@ -1,7 +1,7 @@
 const express = require('express');
 
-const { refreshAllStations, refreshChart } = require('./lib/fetch_sources');
-const { slicePlaylist } = require('./lib/playlist');
+const { refreshAllStations, refreshChart, refreshChartAll } = require('./lib/fetch_sources');
+const { slicePlaylist, sliceAllPlaylists } = require('./lib/playlist');
 
 require('dotenv').config();
 
@@ -11,12 +11,20 @@ Spotify.connect().then(() => {
     console.log('Spotify inited');
 })
 
-const triggerRefreshAllStations = function() {
-    let scan = refreshAllStations().then(body => console.log(body));
+const triggerRefreshAllStations = function () {
+    let res = refreshAllStations().then(body => console.log(body));
+};
+
+const triggerRefreshChartAll = function () {
+    let res = refreshChartAll().then(body => console.log(body));
 };
 
 const triggerRefreshChart = function (chart) {
-    let scan = refreshChart(chart).then(body => console.log(body));
+    let res = refreshChart(chart).then(body => console.log(body));
+};
+
+const triggerSliceAllPlaylist = function (chart) {
+    let res = sliceAllPlaylists().then(body => console.log(body));
 };
 
 const app = express();
@@ -32,6 +40,21 @@ app.get('/spotify/auth/redirect', async (req, res) => {
     Spotify.auth(code, error, res);
 });
 
+app.get('/actions', async (req, res) => {
+    let links = {
+        '/spotify/login': 'Re-Login',
+        '/refresh_playlists_manually': 'Refresh Stations (all)',
+        '/playlist/refresh_charts/all': 'Refresh Charts - in batches (all)',
+        '/playlist/slice/all': 'Shorten the playlist to limit (all)',
+    };
+
+    let html = Object.keys(links).map(function (result, item) {
+        return `<li><a href="${result}">${links[result]}</a></li>`;
+    }, 0).join("\r\n");
+
+    res.send(`<ul>${html}</ul>`);
+});
+
 app.get('/refresh_playlists_manually', async (req, res) => {
     triggerRefreshAllStations();
     res.send('Success, triggerRefreshAllStations!');
@@ -41,9 +64,13 @@ app.get('/refresh_charts_manually/:chart', async (req, res) => {
     let chart = req.params.chart;
     
     triggerRefreshChart(chart);
-    res.send(['Success, triggerRefreshAllCharts!', chart]);
+    res.send(['Success, triggerRefreshChart!', chart]);
 });
 
+app.get('/playlist/refresh_charts/all', async (req, res) => {
+    triggerRefreshChartAll();
+    res.send(['Success, Queued ALL charts for refresh. (triggerRefreshChartAll)']);
+});
 
 app.get('/playlist/slice/:playlist/:limit', async (req, res) => {
     let playlist = req.params.playlist;
@@ -53,6 +80,10 @@ app.get('/playlist/slice/:playlist/:limit', async (req, res) => {
     res.send(['Success, slicePlaylist!', playlist, limit]);
 });
 
+app.get('/playlist/slice/all', async (req, res) => {
+    triggerSliceAllPlaylist();
+    res.send(['Success, Queued ALL playlists for slice. (sliceAllPlaylist)']);
+});
 
 app.listen(process.env.EXPRESS_PORT, () =>
     console.log(
