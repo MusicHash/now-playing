@@ -743,7 +743,7 @@ const us997Stations = {
 const eco99Stations = {
     'eco99fm-live-radio': {
         scraper: {
-            type: 'get',
+            type: 'headless',
             url: 'aHR0cHM6Ly9lY285OWZtLm1hYXJpdi5jby5pbC9saXZlLXJhZGlv',
         },
 
