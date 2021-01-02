@@ -1,12 +1,5 @@
-// eco - https://spoti.fi/3rg4ggz
 
-//http://digital.100fm.co.il/#top40
-// http://digital.100fm.co.il/label/Ch0-100fm.xml
-// http://digital.100fm.co.il/label/Ch1-Hits.xml
-// http://digital.100fm.co.il/label/Ch7-Top40.xml
-// http://digital.100fm.co.il/label/Ch8-Number1.xml
-// http://digital.100fm.co.il/label/Ch26-Cafe.xml
-// http://digital.100fm.co.il/label/Ch5-Israeli.xml
+// Charts
 
 const shzmCharts = {
     'shzm-rising-uk': {
@@ -880,6 +873,32 @@ const europaPlusStations = {
     },
 };
 
+const dorognoeStations = {
+    'dorognoe-ru-live': {
+        spotify: {
+            playlist: 'https://spoti.fi/3516HtY',
+        },
+
+        scraper: {
+            type: 'headless',
+            url: 'aHR0cHM6Ly9kb3JvZ25vZS5ydS8=',
+        },
+
+        now_playing: {
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: (35) * 1000,
+        },
+
+        parser: {
+            type: 'html',
+
+            fields: {
+                artist: '.mp-reading .mp-reading__artist',
+                title: '.mp-reading .mp-reading__song'
+            },
+        },
+    },
+};
 
 
 const charts = {
@@ -902,6 +921,7 @@ const stations = {
     ...eco99Stations,
     ...z100Stations,
     ...europaPlusStations,
+    ...dorognoeStations,
 };
 
 module.exports = {
