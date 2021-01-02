@@ -503,6 +503,37 @@ const z100Charts = {
     },
 };
 
+const europaPlusCharts = {
+    'euplus-ru-top': {
+        spotify: {
+            playlist: 'https://spoti.fi/3rMaJA5',
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cHM6Ly9ldXJvcGFwbHVzLnJ1L3BsYXlsaXN0P2NhdGVnb3J5PXRvcDQw',
+        },
+
+        now_playing: {
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: (35) * 1000,
+        },
+
+        parser: {
+            type: 'html',
+
+            options: {
+                reverse: true,
+            },
+            
+            fields: {
+                artist: '.song.song_hit .song__name > div > a:first-child',
+                title: '.song.song_hit .song__name > p'
+            },
+        },
+    },
+};
+
 // stations
 
 const capitalfmStations = {
@@ -827,7 +858,8 @@ const charts = {
     ...billboardCharts,
     ...kanCharts,
     ...bpCharts,
-    ...z100Charts
+    ...z100Charts,
+    ...europaPlusCharts,
 };
 
 const stations = {
