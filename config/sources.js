@@ -792,6 +792,34 @@ const z100Stations = {
 };
 
 
+const europaPlusStations = {
+    'euplus-ru-live': {
+        spotify: {
+            playlist: 'https://spoti.fi/2MssWCM',
+        },
+
+        scraper: {
+            type: 'headless',
+            url: 'aHR0cHM6Ly9ldXJvcGFwbHVzLnJ1L2xpdmU=',
+        },
+
+        now_playing: {
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: (35) * 1000,
+        },
+
+        parser: {
+            type: 'html',
+
+            fields: {
+                artist: '.mp-song .mp-song__info-artist',
+                title: '.mp-song__info-track-name'
+            },
+        },
+    },
+};
+
+
 
 const charts = {
     ...shzmCharts,
@@ -811,6 +839,7 @@ const stations = {
     ...us997Stations,
     ...eco99Stations,
     ...z100Stations,
+    ...europaPlusStations,
 };
 
 module.exports = {
