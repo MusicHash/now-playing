@@ -525,10 +525,40 @@ const europaPlusCharts = {
             options: {
                 reverse: true,
             },
-            
+
             fields: {
-                artist: '.song.song_hit .song__name > div > a:first-child',
-                title: '.song.song_hit .song__name > p'
+                artist: '.song .song__name > div > a:first-child',
+                title: '.song .song__name > p'
+            },
+        },
+    },
+
+
+    'euplus-ru-new': {
+        spotify: {
+            playlist: 'https://spoti.fi/3o9gtBY',
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cHM6Ly9ldXJvcGFwbHVzLnJ1L3BsYXlsaXN0P2NhdGVnb3J5PW5vdmVsdGllcw==',
+        },
+
+        now_playing: {
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: (35) * 1000,
+        },
+
+        parser: {
+            type: 'html',
+
+            options: {
+                reverse: true,
+            },
+
+            fields: {
+                artist: '.song .song__name > div > a:first-child',
+                title: '.song .song__name > p'
             },
         },
     },
