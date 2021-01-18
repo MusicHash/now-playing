@@ -92,8 +92,27 @@ app.listen(process.env.EXPRESS_PORT, () =>
 );
 
 
+// triggers
+
+// now playing, stations songs
 setInterval(() => {
     triggerRefreshAllStations();
 
-    console.log('[AUTO REFRESH] 39s');
-}, 39 * 1000);
+    console.log('[AUTO REFRESH] STATIONS 45s');
+}, 45 * 1000);
+
+
+// update charts once a day
+setInterval(() => {
+    triggerRefreshChartAll();
+
+    console.log('[AUTO REFRESH] CHARTS - once every 24 hours');
+}, 24 * 60 * 60 * 1000);
+
+
+// Shorten all playlists to 220 rows
+setInterval(() => {
+    triggerSliceAllPlaylist();
+
+    console.log('[AUTO REFRESH] SHORTEN ALL PLAYLISTS, every 4 hours');
+}, 4 * 60 * 60 * 1000);
