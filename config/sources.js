@@ -1,6 +1,5 @@
 
 // Charts
-
 const shzmCharts = {
     'shzm-rising-uk': {
         spotify: {

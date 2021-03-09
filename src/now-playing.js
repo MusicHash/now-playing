@@ -116,3 +116,4 @@ setInterval(() => {
 
     console.log('[AUTO REFRESH] SHORTEN ALL PLAYLISTS, every 4 hours');
 }, 4 * 60 * 60 * 1000);
+
