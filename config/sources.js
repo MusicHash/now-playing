@@ -763,7 +763,7 @@ const fm100Stations = {
 const us997Stations = {
     '99-mow': {
         spotify: {
-            playlist: 'https://spoti.fi/2J8FD4q'
+            playlist: 'https://spoti.fi/2PPx3ul'
         },
 
         now_playing: {
