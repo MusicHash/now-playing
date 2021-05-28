@@ -1,4 +1,4 @@
-var terminate = function(server, options = { coredump: false, timeout: 500 }) {
+const terminate = function(server, options = { coredump: false, timeout: 500 }) {
     return function(code, exceptionStack, exceptionType) {
         // Exit wrapper
         const exit = (exitCode) => {
