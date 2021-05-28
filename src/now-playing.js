@@ -1,5 +1,6 @@
 const http = require('http');
 const express = require('express');
+const { terminate } = require('./utils/terminate');
 
 const { refreshAllStations, refreshChart, refreshChartAll } = require('./lib/fetch_sources');
 const { slicePlaylist, sliceAllPlaylists } = require('./lib/playlist');
