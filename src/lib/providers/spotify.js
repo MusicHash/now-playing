@@ -106,7 +106,7 @@ class Spotify {
                     resolve(true);
                 })
                 .catch((err) => {
-                    console.error('Something went wrong when retrieving an access token', error);
+                    console.error('Something went wrong when retrieving an access token', err);
                     reject(err);
                 });
         });
