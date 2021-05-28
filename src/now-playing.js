@@ -96,6 +96,19 @@ const server = http
     )
     .on('close', () => console.log('Closed HTTP Server!'));
 
+// Handle exit process
+const exitHandler = terminate(server, {
+    coredump: false,
+});
+
+// Start reading from stdin so we don't exit.
+process.stdin.resume();
+
+['SIGTERM', 'SIGINT', 'SIGUSR1', 'SIGUSR2', 'SIGHUP', 'uncaughtException', 'unhandledRejection'].forEach((eventType) => {
+    process.on(eventType, exitHandler.bind(null, eventType));
+});
+
+
 // triggers
 
 // now playing, stations songs
