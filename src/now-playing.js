@@ -1,3 +1,4 @@
+const http = require('http');
 const express = require('express');
 
 const { refreshAllStations, refreshChart, refreshChartAll } = require('./lib/fetch_sources');
@@ -85,12 +86,14 @@ app.get('/playlist/slice/all', async (req, res) => {
     res.send(['Success, Queued ALL playlists for slice. (sliceAllPlaylist)']);
 });
 
-app.listen(process.env.EXPRESS_PORT, () =>
-    console.log(
-        `HTTP Server up. Now go to http://localhost:${process.env.EXPRESS_PORT}/login in your browser.`
+const server = http
+    .createServer(app)
+    .listen(process.env.EXPRESS_PORT, () =>
+        console.log(
+            `HTTP Server up. Now go to http://localhost:${process.env.EXPRESS_PORT}/login in your browser.`
+        )
     )
-);
-
+    .on('close', () => console.log('Closed HTTP Server!'));
 
 // triggers
 
