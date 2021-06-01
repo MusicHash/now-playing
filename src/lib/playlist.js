@@ -10,19 +10,23 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
         title = tracks.fields[0] && tracks.fields[0].title || '';
 
     let q = _cleanNames(decodeHTMLEntities([artist, title].join(' - ')));
-    let search = await Spotify.searchTracks(q);
 
-    if (0 < search.tracks.items.length) {
-        let songID = search.tracks.items[0].uri;
+    try {
+        let search = await Spotify.searchTracks(q);
 
-        console.debug(['FOUND, adding', q, playlist])
+        if (0 < search.tracks.items.length) {
+            let songID = search.tracks.items[0].uri;
 
-        let addToPlaylist = await Spotify.addTracksToPlaylist(playlistID, [songID], 0);
-        await updatePlaylistDescription(playlistID);
-    } else {
-        console.debug(['END - NOT FOUND', q, playlist, tracks])
+            console.debug(['FOUND, adding', q, playlist])
+
+            let addToPlaylist = await Spotify.addTracksToPlaylist(playlistID, [songID], 0);
+            await updatePlaylistDescription(playlistID);
+        } else {
+            console.debug(['END - NOT FOUND', q, playlist, tracks])
+        }
+    } catch (e) {
+        console.error(['updatePlayList exception', e]);
     }
-    
 };
 
 
@@ -50,40 +54,51 @@ const replacePlayList = async function (playlist, tracks) {
 
     let tracksList = [];
 
-    for (let i = 0, len = tracks.fields.length; i < len; i++) {
-        let artist = tracks.fields[i] && tracks.fields[i].artist || '',
-            title = tracks.fields[i] && tracks.fields[i].title || '';
+    try {
+        for (let i = 0, len = tracks.fields.length; i < len; i++) {
+            let artist = tracks.fields[i] && tracks.fields[i].artist || '',
+                title = tracks.fields[i] && tracks.fields[i].title || '';
 
-        let q = _cleanNames(decodeHTMLEntities([artist, title].join(' - ')));
-        let trackFound = await extractURI(q);
+            let q = _cleanNames(decodeHTMLEntities([artist, title].join(' - ')));
+            let trackFound = await extractURI(q);
 
-        if (null !== trackFound) {
-            tracksList.push(trackFound);
-        } else {
-            // skip?
-            // ? retry?
+            if (null !== trackFound) {
+                tracksList.push(trackFound);
+            } else {
+                // skip?
+                // ? retry?
+            }
+            
+            
         }
-        
-        
+
+        let replaceItemsInPlaylist = await Spotify.replaceTracksInPlaylist(playlistID, tracksList);
+        await updatePlaylistDescription(playlistID);
+    } catch (e) {
+        console.error(['replacePlayList exception', e]);
     }
-
-    let replaceItemsInPlaylist = await Spotify.replaceTracksInPlaylist(playlistID, tracksList);
-    await updatePlaylistDescription(playlistID);
-
 };
 
 const updatePlaylistDescription = async function (playlistID) {
-    return await Spotify.playlistUpdateDetails(playlistID, {
-        description: 'Last 200 Tracks. LAST UPDATE: {now}'.replace('{now}', _now())
-    });
+    try {
+        await Spotify.playlistUpdateDetails(playlistID, {
+            description: 'Last 200 Tracks. LAST UPDATE: {now}'.replace('{now}', _now())
+        });
+    } catch (e) {
+        console.error(['updatePlaylistDescription exception', e]);
+    }
 };
 
 
 const slicePlaylist = async function (playlist, limit) {
     let playlistID = _getPlaylistID(playlist);
 
-    await updatePlaylistDescription(playlistID);
-    return await Spotify.slicePlaylist(playlistID, limit);
+    try {
+        await updatePlaylistDescription(playlistID);
+        await Spotify.slicePlaylist(playlistID, limit);
+    } catch (e) {
+        console.error(['slicePlaylist exception', e]);
+    }
 };
 
 
@@ -103,8 +118,6 @@ const sliceAllPlaylists = async function (limit = 200) {
 
         chartEnumeration++;
     }
-
-    
 };
 
 
