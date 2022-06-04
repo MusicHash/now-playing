@@ -824,7 +824,7 @@ const z100Stations = {
 
         scraper: {
             type: 'get',
-            url: 'aHR0cHM6Ly93ZWJhcGkucmFkaW9lZGl0LmloZWFydC5jb20vZ3JhcGhxbD9vcGVyYXRpb25OYW1lPUdldEN1cnJlbnRUcmFjayZ2YXJpYWJsZXM9eyJzbHVnIjoid2h0ei1mbSJ9JmV4dGVuc2lvbnM9eyJwZXJzaXN0ZWRRdWVyeSI6eyJ2ZXJzaW9uIjoxLCJzaGEyNTZIYXNoIjoiMTc3OThiNzEyODNkOWQ4OGI3Y2E2NjEwNGRlZmQwNWQyOGY1NDcwMDcyYTllNjNmYmUyNDgyNjU2ZmQ0NzU4YiJ9fQ==',
+            url: 'aHR0cHM6Ly93ZWJhcGkucmFkaW9lZGl0LmloZWFydC5jb20vZ3JhcGhxbD9vcGVyYXRpb25OYW1lPUdldEN1cnJlbnRseVBsYXlpbmdTb25ncyZ2YXJpYWJsZXM9eyJzbHVnIjoid2h0ei1mbSIsInBhZ2luZyI6eyJ0YWtlIjozfX0mZXh0ZW5zaW9ucz17InBlcnNpc3RlZFF1ZXJ5Ijp7InZlcnNpb24iOjEsInNoYTI1Nkhhc2giOiIzODY3NjNjMTcxNDUwNTY3MTMzMjdjZGRlYzg5MGNkOWQ0ZmVhNzU1OGVmYzU2ZDA5YjdjZDQxNjdlZWY2MDYwIn19',
         },
 
         now_playing: {
@@ -837,8 +837,8 @@ const z100Stations = {
             type: 'json',
 
             fields: {
-                artist: 'data.sites.find.stream.amp.currentTrack.artist.artistName',
-                title: 'data.sites.find.stream.amp.currentTrack.title'
+                artist: 'data.sites.find.stream.amp.currentlyPlaying.tracks.0.artist.artistName',
+                title: 'data.sites.find.stream.amp.currentlyPlaying.tracks.0.title'
             },
         },
     },
