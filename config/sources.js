@@ -561,7 +561,7 @@ const europaPlusCharts = {
 const capitalfmStations = {
     'capitalfm-now': {
         spotify: {
-            playlist: 'https://spoti.fi/38I635V',
+            playlist: 'https://spoti.fi/3xaI9Mk',
         },
 
         now_playing: {
