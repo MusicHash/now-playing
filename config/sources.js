@@ -588,7 +588,7 @@ const capitalfmStations = {
 const xmStations = {
     'xm-hits1': {
         spotify: {
-            playlist: 'https://spoti.fi/3atpaTI'
+            playlist: 'https://spoti.fi/3zfSpFI'
         },
 
         now_playing: {
