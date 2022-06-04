@@ -615,7 +615,7 @@ const xmStations = {
 
     'xm-the-pulse': {
         spotify: {
-            playlist: 'https://spoti.fi/3p91VlP'
+            playlist: 'https://spoti.fi/3zfTJIM'
         },
 
         now_playing: {
