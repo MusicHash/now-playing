@@ -1,7 +1,7 @@
-import { getCurrentTracks } from './tracks';
-import { updatePlayList, replacePlayList } from './playlist';
+import { getCurrentTracks } from './tracks.js';
+import { updatePlayList, replacePlayList } from './playlist.js';
 
-import { stations, charts } from '../../config/sources';
+import { stations, charts } from '../../config/sources.js';
 
 const refreshAllStations = async function() {
     for (let stationIdx in stations) {

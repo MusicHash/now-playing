@@ -1,6 +1,6 @@
-import Spotify from './providers/spotify';
-import { decodeHTMLEntities } from '../utils/strings';
-import { stations } from '../../config/sources';
+import Spotify from './providers/spotify.js';
+import { decodeHTMLEntities } from '../utils/strings.js';
+import { stations } from '../../config/sources.js';
 
 const updatePlayList = async function (playlist, tracks, firstSongOnly) {
     console.debug(['START updatePlayList', playlist, tracks])

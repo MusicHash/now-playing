@@ -1,11 +1,11 @@
 import http from 'http';
 import express from 'express';
-import { terminate } from './utils/terminate';
+import { terminate } from './utils/terminate.js';
 
-import { refreshAllStations, refreshChart, refreshChartAll } from './lib/fetch_sources';
-import { slicePlaylist, sliceAllPlaylists } from './lib/playlist';
+import { refreshAllStations, refreshChart, refreshChartAll } from './lib/fetch_sources.js';
+import { slicePlaylist, sliceAllPlaylists } from './lib/playlist.js';
 
-import Spotify from './lib/providers/spotify';
+import Spotify from './lib/providers/spotify.js';
 
 import dotenv from 'dotenv';
 dotenv.config();
