@@ -19,6 +19,6 @@ const decodeHTMLEntities = function(text) {
     return text;
 }
 
-module.exports = {
+export {
     decodeHTMLEntities
 }

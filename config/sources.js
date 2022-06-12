@@ -923,7 +923,7 @@ const stations = {
     ...dorognoeStations,
 };
 
-module.exports = {
+export {
     charts,
     stations
 };

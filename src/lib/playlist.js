@@ -1,6 +1,6 @@
-const Spotify = require('./providers/spotify');
-const { decodeHTMLEntities } = require('../utils/strings');
-const { stations } = require('../../config/sources');
+import Spotify from './providers/spotify';
+import { decodeHTMLEntities } from '../utils/strings';
+import { stations } from '../../config/sources';
 
 const updatePlayList = async function (playlist, tracks, firstSongOnly) {
     console.debug(['START updatePlayList', playlist, tracks])
@@ -159,10 +159,9 @@ const _now = function(timezone = 'Asia/Jerusalem') {
 };
 
 
-module.exports = {
+export {
     updatePlayList,
     replacePlayList,
     slicePlaylist,
     sliceAllPlaylists,
 };
-

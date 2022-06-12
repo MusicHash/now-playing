@@ -1,4 +1,4 @@
-const { scrape, parse } = require('scrapa');
+import { scrape, parse } from 'scrapa';
 
 const getCurrentTracks = async function({ scraper, parser }) {
     let body = await scrape({
@@ -18,6 +18,6 @@ const getCurrentTracks = async function({ scraper, parser }) {
 };
 
 
-module.exports = {
+export {
     getCurrentTracks,
 };

@@ -1,7 +1,7 @@
-const { getCurrentTracks } = require('./tracks');
-const { updatePlayList, replacePlayList } = require('./playlist');
+import { getCurrentTracks } from './tracks';
+import { updatePlayList, replacePlayList } from './playlist';
 
-const { stations, charts } = require('../../config/sources');
+import { stations, charts } from '../../config/sources';
 
 const refreshAllStations = async function() {
     for (let stationIdx in stations) {
@@ -59,9 +59,8 @@ const refreshChartAll = async function () {
 };
 
 
-module.exports = {
+export {
     refreshAllStations,
     refreshChart,
     refreshChartAll,
 };
-

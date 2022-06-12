@@ -25,8 +25,8 @@ const terminate = function(server, options = { coredump: false, timeout: 500 }) 
 
         setTimeout(exit, options.timeout).unref();
     }
-}
+};
 
-module.exports = {
+export {
     terminate,
 };

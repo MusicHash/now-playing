@@ -1,4 +1,4 @@
-const SpotifyWebApi = require('spotify-web-api-node');
+import SpotifyWebApi from 'spotify-web-api-node';
 
 const scopes = [
         'user-top-read',
@@ -307,4 +307,4 @@ class Spotify {
 
 }
 
-module.exports = new Spotify();
+export default new Spotify();

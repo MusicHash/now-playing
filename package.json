@@ -3,8 +3,11 @@
   "version": "1.0.0",
   "description": "",
   "main": "src/now-playing.js",
+  "type": "module",
   "scripts": {
-    "test": "jest"
+    "test": "node --experimental-vm-modules node_modules/.bin/jest",
+    "start": "NODE_OPTIONS='--experimental-specifier-resolution=node' node ./src/now-playing.js",
+    "coverage": "jest --collect-coverage"
   },
   "repository": {
     "type": "git",
@@ -17,10 +20,9 @@
   },
   "homepage": "https://github.com/MusicHash/now-playing#readme",
   "dependencies": {
-    "pm2": "^5.2.0",
     "dotenv": "^16.0.1",
     "express": "^4.18.1",
-    "scrapa": "^0.1.5",
+    "scrapa": "^0.1.7",
     "spotify-web-api-node": "^5.0.2"
   },
   "devDependencies": {

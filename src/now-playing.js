@@ -1,13 +1,15 @@
-const http = require('http');
-const express = require('express');
-const { terminate } = require('./utils/terminate');
+import http from 'http';
+import express from 'express';
+import { terminate } from './utils/terminate';
 
-const { refreshAllStations, refreshChart, refreshChartAll } = require('./lib/fetch_sources');
-const { slicePlaylist, sliceAllPlaylists } = require('./lib/playlist');
+import { refreshAllStations, refreshChart, refreshChartAll } from './lib/fetch_sources';
+import { slicePlaylist, sliceAllPlaylists } from './lib/playlist';
 
-require('dotenv').config();
+import Spotify from './lib/providers/spotify';
 
-const Spotify = require('./lib/providers/spotify');
+import dotenv from 'dotenv';
+dotenv.config();
+
 
 Spotify.connect().then(() => {
     console.log('Spotify inited');
