@@ -707,6 +707,63 @@ const glzStations = {
     },
 };
 
+
+const fm88Stations = {
+    '88fm-live': {
+        spotify: {
+            playlist: 'https://spoti.fi/3Hi5xfJ'
+        },
+
+        now_playing: {
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: (35) * 1000
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cHM6Ly9lcGctb3V0LXMzLWJ1Y2tldC00Mi5zMy1ldS13ZXN0LTEuYW1hem9uYXdzLmNvbS84OGZtX2VwZy54bWw=',
+        },
+
+        parser: {
+            type: 'xml',
+
+            fields: {
+                title: 'track.name',
+                artist: 'track.artist'
+            },
+        },
+    },
+};
+
+
+const fm91Stations = {
+    '91fm-live': {
+        spotify: {
+            playlist: 'https://spoti.fi/3xwUKdc'
+        },
+
+        now_playing: {
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: (35) * 1000
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cHM6Ly9lcGctb3V0LXMzLWJ1Y2tldC00Mi5zMy1ldS13ZXN0LTEuYW1hem9uYXdzLmNvbS85MWZtX2VwZy54bWw=',
+        },
+
+        parser: {
+            type: 'xml',
+
+            fields: {
+                title: 'track.name',
+                artist: 'track.artist'
+            },
+        },
+    },
+};
+
+
 const fm100Stations = {
     '100fm-ch91-hot': {
         spotify: {
@@ -747,6 +804,89 @@ const fm100Stations = {
         scraper: {
             type: 'get',
             url: 'dHRwczovL2VwZy1vdXQtczMtYnVja2V0LTQyLnMzLWV1LXdlc3QtMS5hbWF6b25hd3MuY29tLzEwMGZtX2VwZy54bWw=',
+        },
+
+        parser: {
+            type: 'xml',
+
+            fields: {
+                title: 'track.name',
+                artist: 'track.artist'
+            },
+        },
+    },
+};
+
+
+const fm102Stations = {
+    '102fm-live': {
+        spotify: {
+            playlist: 'https://spoti.fi/3O8W3FG'
+        },
+
+        now_playing: {
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: (35) * 1000
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cHM6Ly9lcGctb3V0LXMzLWJ1Y2tldC00Mi5zMy1ldS13ZXN0LTEuYW1hem9uYXdzLmNvbS8xMDJmbV9lcGcueG1s',
+        },
+
+        parser: {
+            type: 'xml',
+
+            fields: {
+                title: 'track.name',
+                artist: 'track.artist'
+            },
+        },
+    },
+};
+
+const fm103Stations = {
+    '103fm-live': {
+        spotify: {
+            playlist: 'https://spoti.fi/3zwgcl3'
+        },
+
+        now_playing: {
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: (35) * 1000
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cHM6Ly9lcGctb3V0LXMzLWJ1Y2tldC00Mi5zMy1ldS13ZXN0LTEuYW1hem9uYXdzLmNvbS8xMDNmbV9lcGcueG1s',
+        },
+
+        parser: {
+            type: 'xml',
+
+            fields: {
+                title: 'track.name',
+                artist: 'track.artist'
+            },
+        },
+    },
+
+};
+
+const fm1075Stations = {
+    '107.5fm-live': {
+        spotify: {
+            playlist: 'https://spoti.fi/3Qv4oFQ'
+        },
+
+        now_playing: {
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: (35) * 1000
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cHM6Ly9lcGctb3V0LXMzLWJ1Y2tldC00Mi5zMy1ldS13ZXN0LTEuYW1hem9uYXdzLmNvbS8xMDc1Zm1fZXBnLnhtbA==',
         },
 
         parser: {
@@ -906,23 +1046,33 @@ const dorognoeStations = {
 
 
 const charts = {
+    // IL
+    ...kanCharts,
     ...shzmCharts,
+
+    // World
     ...bigtopCharts,
     ...billboardCharts,
-    ...kanCharts,
     ...bpCharts,
     ...z100Charts,
     ...europaPlusCharts,
 };
 
 const stations = {
+    // IL
+    ...glzStations,
+    ...fm88Stations,
+    ...fm91Stations,
+    ...eco99Stations,
+    ...fm100Stations,
+    ...fm102Stations,
+    ...fm103Stations,
+
+    // World
     ...capitalfmStations,
     ...xmStations,
     ...virginStations,
-    ...glzStations,
-    ...fm100Stations,
     ...us997Stations,
-    ...eco99Stations,
     ...z100Stations,
     ...europaPlusStations,
     ...dorognoeStations,
