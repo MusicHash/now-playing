@@ -795,9 +795,13 @@ const us997Stations = {
 
 const eco99Stations = {
     'eco99fm-live-radio': {
+        spotify: {
+            playlist: 'https://spoti.fi/3mKh3a1',
+        },
+
         scraper: {
-            type: 'headless',
-            url: 'aHR0cHM6Ly9lY285OWZtLm1hYXJpdi5jby5pbC9saXZlLXJhZGlv',
+            type: 'get',
+            url: 'aHR0cHM6Ly9maXJlc3RvcmUuZ29vZ2xlYXBpcy5jb20vdjEvcHJvamVjdHMvZWNvLTk5LXByb2R1Y3Rpb24vZGF0YWJhc2VzLyhkZWZhdWx0KS9kb2N1bWVudHMvc3RyZWFtZWRfY29udGVudA==',
         },
 
         now_playing: {
@@ -806,11 +810,11 @@ const eco99Stations = {
         },
 
         parser: {
-            type: 'html',
+            type: 'json',
 
             fields: {
-                artist: '.cover-details-box .artist-name',
-                title: '.cover-details-box .song-name'
+                artist: 'documents.0.fields.artist_name.stringValue',
+                title: 'documents.0.fields.song_name.stringValue'
             },
         },
     },
