@@ -746,7 +746,7 @@ const fm100Stations = {
 
         scraper: {
             type: 'get',
-            url: 'aHR0cDovL2RpZ2l0YWwuMTAwZm0uY28uaWwvbGFiZWwvQ2gwLTEwMGZtLnhtbA==',
+            url: 'dHRwczovL2VwZy1vdXQtczMtYnVja2V0LTQyLnMzLWV1LXdlc3QtMS5hbWF6b25hd3MuY29tLzEwMGZtX2VwZy54bWw=',
         },
 
         parser: {
