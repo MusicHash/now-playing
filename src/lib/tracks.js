@@ -4,7 +4,8 @@ const getCurrentTracks = async function({ scraper, parser }) {
     let body = await scrape({
         url: Buffer.from(scraper.url, 'base64').toString('ascii'),
         type: scraper.type,
-        regExp: scraper.regExp
+        regExp: scraper.regExp,
+        payload: scraper.payload || {},
     });
 
     let parsed = await parse({

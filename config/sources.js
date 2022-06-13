@@ -852,8 +852,9 @@ const europaPlusStations = {
         },
 
         scraper: {
-            type: 'headless',
-            url: 'aHR0cHM6Ly9ldXJvcGFwbHVzLnJ1L2xpdmU=',
+            type: 'websocket',
+            url: 'd3NzOi8vbWV0YWRhdGF3cy5ob3N0aW5ncmFkaW8ucnUv',
+            payload: {"fetch":{"current":["ep"]}}
         },
 
         now_playing: {
@@ -862,11 +863,11 @@ const europaPlusStations = {
         },
 
         parser: {
-            type: 'html',
+            type: 'json',
 
             fields: {
-                artist: '.mp-song .mp-song__info-artist',
-                title: '.mp-song__info-track-name'
+                artist: 'ep.current.title',
+                title: 'ep.current.artist'
             },
         },
     },
