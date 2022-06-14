@@ -1,7 +1,7 @@
 import { scrape, parse } from 'scrapa';
 
 const getCurrentTracks = async function({ scraper, parser }) {
-    let body = await scrape({
+    let scrapeResponse = await scrape({
         url: Buffer.from(scraper.url, 'base64').toString('ascii'),
         type: scraper.type,
         regExp: scraper.regExp,
@@ -9,7 +9,7 @@ const getCurrentTracks = async function({ scraper, parser }) {
     });
 
     let parsed = await parse({
-        body,
+        body: scrapeResponse.body(),
         type: parser.type,
         fields: parser.fields,
         options: parser.options
