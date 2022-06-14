@@ -25,7 +25,7 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
             console.debug(['END - NOT FOUND', q, playlist, tracks])
         }
     } catch (e) {
-        console.error(['updatePlayList exception', e]);
+        console.error(['updatePlayList exception', playlist, e]);
     }
 };
 
