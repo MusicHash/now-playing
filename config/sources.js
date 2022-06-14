@@ -936,7 +936,7 @@ const us997Stations = {
 const eco99Stations = {
     'eco99fm-live-radio': {
         spotify: {
-            playlist: 'https://spoti.fi/3mKh3a1',
+            playlist: 'https://spoti.fi/3NM3XFc',
         },
 
         scraper: {
