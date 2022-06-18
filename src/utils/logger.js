@@ -115,6 +115,10 @@ class Logger {
             return;
         }
 
+        if (typeof log === 'object' && log !== null) {
+            log.severity = severity.toUpperCase();
+        }
+
         this._loggerInstance[severity](log);
         // console[severity]([severity, log.join(', ')]); // eslint-disable-line no-console
 
