@@ -1,4 +1,7 @@
-import { scrape, parse } from 'scrapa';
+import { scrape, parse, setLogger } from 'scrapa';
+import logger from '../utils/logger.js';
+
+setLogger(logger);
 
 const getCurrentTracks = async function({ scraper, parser }) {
     let scrapeResponse = await scrape({
