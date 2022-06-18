@@ -14,23 +14,23 @@ dotenv.config();
 
 
 Spotify.connect().then(() => {
-    logger.info('Spotify inited');
+    logger.info({message: 'Spotify initialized successfully'});
 })
 
 const triggerRefreshAllStations = function () {
-    let res = refreshAllStations().then(body => logger.info(body));
+    let res = refreshAllStations().then(body => logger.info({method: 'triggerRefreshAllStations', message: body}));
 };
 
 const triggerRefreshChartAll = function () {
-    let res = refreshChartAll().then(body => logger.info(body));
+    let res = refreshChartAll().then(body => logger.info({method: 'triggerRefreshChartAll', message: body}));
 };
 
 const triggerRefreshChart = function (chart) {
-    let res = refreshChart(chart).then(body => logger.info(body));
+    let res = refreshChart(chart).then(body => logger.info({method: 'triggerRefreshChart', chart, message: body}));
 };
 
 const triggerSliceAllPlaylist = function (chart) {
-    let res = sliceAllPlaylists().then(body => logger.info(body));
+    let res = sliceAllPlaylists().then(body => logger.info({method: 'triggerSliceAllPlaylist', chart, message: body}));
 };
 
 const app = express();
@@ -94,11 +94,11 @@ app.get('/playlist/slice/all', async (req, res) => {
 const server = http
     .createServer(app)
     .listen(process.env.EXPRESS_PORT, () =>
-        logger.info(
-            `HTTP Server up. Now go to http://localhost:${process.env.EXPRESS_PORT}/login in your browser.`
-        )
+        logger.info({
+            message: `HTTP Server up. Now go to http://localhost:${process.env.EXPRESS_PORT}/login in your browser`
+        })
     )
-    .on('close', () => logger.info('Closed HTTP Server!'));
+    .on('close', () => logger.info({message: 'Closed HTTP Server!'}));
 
 // Handle exit process
 const exitHandler = terminate(server, {
@@ -119,7 +119,7 @@ process.stdin.resume();
 setInterval(() => {
     triggerRefreshAllStations();
 
-    logger.info('[AUTO REFRESH] STATIONS 45s');
+    logger.info({message: '[AUTO REFRESH] STATIONS 45s'});
 }, 45 * 1000);
 
 
@@ -127,7 +127,7 @@ setInterval(() => {
 setInterval(() => {
     triggerRefreshChartAll();
 
-    logger.info('[AUTO REFRESH] CHARTS - once every 24 hours');
+    logger.info({message: '[AUTO REFRESH] CHARTS - once every 24 hours'});
 }, 24 * 60 * 60 * 1000);
 
 
@@ -135,5 +135,5 @@ setInterval(() => {
 setInterval(() => {
     triggerSliceAllPlaylist();
 
-    logger.info('[AUTO REFRESH] SHORTEN ALL PLAYLISTS, every 4 hours');
+    logger.info({message: '[AUTO REFRESH] SHORTEN ALL PLAYLISTS, every 4 hours'});
 }, 4 * 60 * 60 * 1000);

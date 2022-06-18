@@ -3,6 +3,9 @@ import { updatePlayList, replacePlayList } from './playlist.js';
 
 import { stations, charts } from '../../config/sources.js';
 
+import logger from '../utils/logger.js';
+
+
 const refreshAllStations = async function() {
     for (let stationIdx in stations) {
         let props = stations[stationIdx];
@@ -14,7 +17,11 @@ const refreshAllStations = async function() {
         .then(async tracks => {
             await updatePlayList(stationIdx, tracks);
         })
-        .catch(err => console.debug(err));
+        .catch(err => logger.error({
+            method: 'refreshAllStations',
+            error: 'Failed to refresh stations',
+            message: err,
+        }));
     }
 };
 
@@ -23,7 +30,11 @@ const refreshChart = async function (chartIdx) {
     let chart = charts[chartIdx];
 
     if (!chart) {
-        console.error('[refreshChart] Invalid chart:', chart);
+        logger.error({
+            method: 'refreshChart',
+            message: 'Invalid chart',
+            chart,
+        });
 
         return;
     }
@@ -35,7 +46,11 @@ const refreshChart = async function (chartIdx) {
     .then(async tracks => {
         await replacePlayList(chartIdx, tracks);
     })
-    .catch(err => console.debug(err));
+    .catch(err => logger.error({
+        method: 'refreshChart',
+        error: 'Failed to refresh charts',
+        message: err,
+    }));
     
 };
 
@@ -52,7 +67,10 @@ const refreshChartAll = async function () {
             refreshChart(chartIdx);
         }, delayBySeconds * 1000);
 
-        console.debug(`Queued chart ${chartIdx} for update in ${delayBySeconds}s`);
+        logger.debug({
+            method: 'refreshChartAll',
+            message: `Queued chart ${chartIdx} for update in ${delayBySeconds}s`,
+        });
 
         chartEnumeration++;
     }

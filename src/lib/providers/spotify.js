@@ -17,7 +17,11 @@ class Spotify {
     async auth(code, error, res) {
 
         if (error) {
-            logger.error('Callback Error:', error);
+            logger.error({
+                error: 'Callback Error',
+                message: error
+            });
+
             res.send(`Callback Error: ${error}`);
             return;
         }
@@ -26,7 +30,7 @@ class Spotify {
             .authorizationCodeGrant(code)
             .then(async data => {
                 if (data.body['expires_in'] < 1500) {
-                    logger.info('[authorizationCodeGrant] Too short, renewing...');
+                    logger.info({method: '[authorizationCodeGrant]', message: 'Too short, renewing...'});
                     const data = await this.api.refreshAccessToken();
                 }
 
@@ -37,23 +41,28 @@ class Spotify {
                 this.setAccessToken(accessToken);
                 this.setRefreshToken(refreshToken);
 
-                logger.info('access_token:', accessToken);
-                logger.info('refresh_token:', refreshToken);
+                logger.info({method: 'auth', 'access_token': accessToken});
+                logger.info({method: 'auth', 'refresh_token': refreshToken});
 
-                logger.info(`Sucessfully retreived access token. Expires in ${expiresIn} s.`);
+                logger.info({method: 'auth', message: `Sucessfully retreived access token. Expires in ${expiresIn} s.`});
                 res.send('Success! You can now close the window.');
 
                 setInterval(async () => {
                     const data = await this.api.refreshAccessToken();
                     const accessToken = data.body['access_token'];
 
-                    logger.info('The access token has been refreshed!');
-                    logger.info('access_token:', accessToken);
+                    logger.info({method: 'auth', message: 'The access token has been refreshed!'});
+                    logger.info({method: 'auth', 'access_token': accessToken});
                     this.setAccessToken(accessToken);
                 }, expiresIn / 2 * 1000);
             })
             .catch((err) => {
-                logger.error('Error getting Tokens:', err);
+                logger.error({
+                    method: 'auth',
+                    error: 'Error getting Tokens',
+                    message: err
+                });
+
                 res.send(`Error getting Tokens: ${err}`);
             });
     }
@@ -76,13 +85,19 @@ class Spotify {
     async refreshAccessToken() {
         return this.api.refreshAccessToken()
             .then((data) => {
-                logger.info('The access token has been refreshed!');
+                logger.info({
+                    method: 'refreshAccessToken',
+                    message: 'The access token has been refreshed!'
+                });
 
                 // Save the access token so that it's used in future calls
                 this.api.setAccessToken(data.body['access_token']);
             })
             .catch((err) => {
-                logger.info('Could not refresh access token', err);
+                logger.error({
+                    error: 'Could not refresh access token',
+                    message: err
+                });
             });
     }
 
@@ -108,7 +123,11 @@ class Spotify {
                     resolve(true);
                 })
                 .catch((err) => {
-                    logger.error('Something went wrong when retrieving an access token', err);
+                    logger.error({
+                        error: 'Something went wrong when retrieving an access token',
+                        message: err
+                    });
+
                     reject(err);
                 });
         });
@@ -123,7 +142,11 @@ class Spotify {
             return data.body;
         })
         .catch((err) => {
-            logger.error(err);
+            logger.error({
+                error: 'Search failed',
+                query: q,
+                message: err
+            });
         });
     }
 
@@ -138,9 +161,20 @@ class Spotify {
                 // already first, check position
                 if (0 < trackFromPlaylist.position) {
                     await this.reorderTracksInPlaylist(playlistID, 1, trackFromPlaylist.position, 0);
-                    logger.debug(['Track already exists, bumping to be first.', playlistID, trackFromPlaylist.position, listOfTracks[0], trackFromPlaylist.name]);
+                    logger.debug({
+                        description: 'Track already exists, bumping to be first.',
+                        playlistID,
+                        trackPosition: trackFromPlaylist.position,
+                        id: listOfTracks[0],
+                        name: trackFromPlaylist.name
+                    });
                 } else {
-                    logger.debug(['Track already exists and first in playlist - SKIPPING!', playlistID, listOfTracks[0], trackFromPlaylist.name]);
+                    logger.debug({
+                        description: 'Track already exists and first in playlist - SKIPPING!',
+                        playlistID,
+                        id: listOfTracks[0],
+                        name: trackFromPlaylist.name
+                    });
                 }
 
                 return true;
@@ -148,7 +182,7 @@ class Spotify {
 
         }
 
-        logger.info(['ADDING THE FOLLOWING TRACK TO LIST:', listOfTracks]);
+        logger.info({description: 'ADDING THE FOLLOWING TRACK TO LIST:', trackID: listOfTracks});
 
         return await this.api.addTracksToPlaylist(playlistID, listOfTracks, {
                 position
@@ -159,7 +193,12 @@ class Spotify {
                 return true;
             })
             .catch((err) => {
-                logger.error(err);
+                logger.error({
+                    method: 'addTracksToPlaylist',
+                    description: 'Failed to add track to playlist',
+                    playlistID,
+                    message: err
+                });
             });
     }
 
@@ -183,9 +222,14 @@ class Spotify {
             .then((data) => {
                 return data.body;
             })
-            .catch((err) => {
-                logger.info('[getPlaylistTracks] Something went wrong!', err);
-            });
+            .catch(
+                (err) => {
+                    logger.info({
+                        method: 'getPlaylistTracks',
+                        error: 'Something went wrong!',
+                        message: err
+                    });
+                });
 
     }
 
@@ -198,7 +242,11 @@ class Spotify {
         let allPagesPromise = Array.from(new Array(totalPages-1), (_, index) => index+1).map(
             pageNumber => this.getPlaylistTracks(playlistID, limit, limit * pageNumber, fields)
                 .catch(
-                    (err) => logger.error('[getPlaylistAllPages] paged request failed.', err)
+                    (err) => logger.error({
+                        method: 'getPlaylistAllPages',
+                        error: 'paged request failed',
+                        message: err
+                    })
                 )
         );
 
@@ -209,10 +257,16 @@ class Spotify {
                 });
 
                 return firstPage;
-            }).catch((err) => {
-                // there was an error
-                logger.error('[getPlaylistAllPages] Global fetch failed', err);
-            });
+            }).catch(
+                (err) => {
+                    // there was an error
+                    logger.error({
+                        method: 'getPlaylistAllPages',
+                        playlistID,
+                        error: 'Global fetch failed',
+                        message: err
+                    });
+                })
     }
 
 
@@ -228,7 +282,12 @@ class Spotify {
                 return data.body;
             })
             .catch((err) => {
-                logger.info('[reorderTracksInPlaylist] Something went wrong!', err);
+                logger.error({
+                    method: 'reorderTracksInPlaylist',
+                    playlistID,
+                    error: 'Something went wrong!',
+                    message: err
+                });
             });
     }
 
@@ -238,11 +297,22 @@ class Spotify {
         return await this.api
             .replaceTracksInPlaylist(playlistID, tracksList)
             .then((data) => {
-                logger.info(['[replaceTracksInPlaylist]', 'Replaced playlist, snapshot:', data.body]);
+                logger.info({
+                    method: 'replaceTracksInPlaylist',
+                    playlistID,
+                    description: 'Replaced playlist, snapshot:',
+                    message: data.body
+                });
+
                 return data.body;
             })
             .catch((err) => {
-                logger.info('[replaceTracksInPlaylist] Something went wrong!', err);
+                logger.error({
+                    method: 'replaceTracksInPlaylist',
+                    playlistID,
+                    error: 'Something went wrong!',
+                    message: err
+                });
             });
     }
 
@@ -285,11 +355,22 @@ class Spotify {
                 ...props
             })
             .then((data) => {
-                logger.info(['[playlistUpdateDetails]', 'Playlist details updated.', data.body]);
+                logger.info({
+                    method: 'playlistUpdateDetails',
+                    description: 'Playlist details updated.',
+                    playlistID,
+                    message: data.body
+                });
+
                 return data.body;
             })
             .catch((err) => {
-                logger.info('[playlistUpdateDetails] Something went wrong!', err);
+                logger.error({
+                    method: 'playlistUpdateDetails',
+                    error: 'Something went wrong!',
+                    playlistID,
+                    message: err
+                });
             });
     }
 
