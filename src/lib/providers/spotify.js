@@ -10,11 +10,9 @@ const scopes = [
     ];
 
 class Spotify {
+    api = null;
 
-
-    constructor() {
-        this.api = null;
-    }
+    constructor() {}
 
 
     async auth(code, error, res) {
