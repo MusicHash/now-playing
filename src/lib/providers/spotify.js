@@ -34,7 +34,7 @@ class Spotify {
 
             if (authorizationCode.body.expires_in < 1500) {
                 logger.info({method: 'authorizationCode', message: 'Too short, renewing...'});
-                const data = await this.api.refreshAccessToken();
+                authorizationCode = await this.api.refreshAccessToken();
             }
 
             const accessToken = authorizationCode.body.access_token;
@@ -62,7 +62,7 @@ class Spotify {
                 logger.info({
                     method: 'auth',
                     access_token: accessToken,
-                    message: 'The access token has been refreshed!'
+                    message: 'The access token has been refreshed!',
                 });
 
             }, expiresIn / 2 * 1000);
