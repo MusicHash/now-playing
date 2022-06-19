@@ -15,21 +15,23 @@ class Logger {
      */
     static LOG_LEVEL(level = 'DEBUG') {
         switch (level.toString().toUpperCase()) {
-            case 'OFF':
-                return logger.OFF;
-
             case 'DEBUG':
-                return logger.DEBUG;
+                return pino.levels.values.debug;
 
             case 'INFO':
-                return logger.INFO;
+                return pino.levels.values.info;
 
             case 'WARN':
-                return logger.WARN;
+                return pino.levels.values.warn;
 
             case 'ERROR':
+                return pino.levels.values.error;
+
+            case 'FATAL':
+                return pino.levels.values.fatal;
+
             default:
-                return logger.ERROR;
+                return pino.levels.values.trace;
         }
     }
 
