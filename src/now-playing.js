@@ -14,7 +14,9 @@ dotenv.config();
 
 
 Spotify.connect().then(() => {
-    logger.info({message: 'Spotify initialized successfully'});
+    logger.info({
+        message: 'Spotify initialized successfully'
+    });
 })
 
 const triggerRefreshAllStations = function () {

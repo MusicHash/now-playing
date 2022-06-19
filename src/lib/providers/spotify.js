@@ -46,7 +46,7 @@ class Spotify {
         if (error) {
             logger.error({
                 error: 'Callback Error',
-                message: error
+                message: error,
             });
 
             res.send(`Callback Error: ${error}`);
