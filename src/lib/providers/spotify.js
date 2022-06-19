@@ -25,9 +25,6 @@ class Spotify {
             redirectUri: process.env.SPTOFIY_CALLBACK_ENDPOINT
         });
 
-        this.setAccessToken(process.env.SPOTIFY_ACCESS_TOKEN);
-        this.setRefreshToken(process.env.SPOTIFY_REFRESH_TOKEN);
-
         try {
             // Retrieve an access token
             const token = await this.api.clientCredentialsGrant();
