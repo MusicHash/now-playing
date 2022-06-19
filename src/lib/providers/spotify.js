@@ -14,6 +14,33 @@ class Spotify {
     constructor() {}
 
 
+    async connect() {
+        if (null !== this.api) {
+            return true;
+        }
+
+        this.api = new SpotifyWebApi({
+            clientId: process.env.SPOTIFY_CLIENT_ID,
+            clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
+            redirectUri: process.env.SPTOFIY_CALLBACK_ENDPOINT
+        });
+
+        this.setAccessToken(process.env.SPOTIFY_ACCESS_TOKEN);
+        this.setRefreshToken(process.env.SPOTIFY_REFRESH_TOKEN);
+
+        try {
+            // Retrieve an access token
+            const token = await this.api.clientCredentialsGrant();
+            this.api.setAccessToken(token.body.access_token); //
+        } catch(err) {
+            logger.error({
+                error: 'Something went wrong when retrieving an access token',
+                message: err,
+            });
+        }
+    }
+
+
     async auth(code, error, res) {
 
         if (error) {
@@ -112,33 +139,6 @@ class Spotify {
         }
         
         return token;
-    }
-
-
-    async connect() {
-        if (null !== this.api) {
-            return true;
-        }
-
-        this.api = new SpotifyWebApi({
-            clientId: process.env.SPOTIFY_CLIENT_ID,
-            clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
-            redirectUri: process.env.SPTOFIY_CALLBACK_ENDPOINT
-        });
-
-        this.setAccessToken(process.env.SPOTIFY_ACCESS_TOKEN);
-        this.setRefreshToken(process.env.SPOTIFY_REFRESH_TOKEN);
-
-        try {
-            // Retrieve an access token
-            const token = await this.api.clientCredentialsGrant();
-            this.api.setAccessToken(token.body.access_token); //
-        } catch(err) {
-            logger.error({
-                error: 'Something went wrong when retrieving an access token',
-                message: err,
-            });
-        }
     }
 
 
