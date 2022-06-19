@@ -1,22 +1,25 @@
+import logger from "./logger";
+
+
 const terminate = function(server, options = { coredump: false, timeout: 500 }) {
     return function(code, exceptionStack, exceptionType) {
         // Exit wrapper
         const exit = (exitCode) => {
-            console.log('Done, Exiting Process...');
+            logger.info('Done, Exiting Process...');
             options.coredump ? process.abort() : process.exit(exitCode);
         }
 
-        console.log('got %s, starting shutdown process', code);
+        logger.info('got %s, starting shutdown process', code);
 
         if (!server.listening) exit(0);
-        console.log('Closing HTTP Server...');
+        logger.info('Closing HTTP Server...');
 
         // TODO disconnect from databases, HTTP server, etc..
         // https://nodejs.org/api/http.html#http_server_close_callback
         // https://nodejs.org/api/net.html#net_server_close_callback
         server.close(err => {
             if (err) {
-                console.error(err);
+                logger.error(err);
                 return exit(1);
             }
 

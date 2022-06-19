@@ -10,9 +10,12 @@ const scopes = [
     ];
 
 class Spotify {
+
+
     constructor() {
         this.api = null;
     }
+
 
     async auth(code, error, res) {
 
@@ -26,46 +29,55 @@ class Spotify {
             return;
         }
 
-        this.api
-            .authorizationCodeGrant(code)
-            .then(async data => {
-                if (data.body['expires_in'] < 1500) {
-                    logger.info({method: '[authorizationCodeGrant]', message: 'Too short, renewing...'});
-                    const data = await this.api.refreshAccessToken();
-                }
+        try {
+            const authorizationCode = await this.api.authorizationCodeGrant(code);
 
-                const accessToken = data.body['access_token'];
-                const refreshToken = data.body['refresh_token'];
-                const expiresIn = data.body['expires_in'];
+            if (authorizationCode.body.expires_in < 1500) {
+                logger.info({method: 'authorizationCode', message: 'Too short, renewing...'});
+                const data = await this.api.refreshAccessToken();
+            }
+
+            const accessToken = authorizationCode.body.access_token;
+            const refreshToken = authorizationCode.body.refresh_token;
+            const expiresIn = authorizationCode.body.expires_in;
+
+            this.setAccessToken(accessToken);
+            this.setRefreshToken(refreshToken);
+
+            logger.info({
+                method: 'auth',
+                access_token: accessToken,
+                refresh_token: refreshToken,
+                message: `Sucessfully retreived access token. Expires in ${expiresIn} s.`
+            });
+
+            res.send('Success! You can now close the window.');
+
+            setInterval(async () => {
+                const token = await this.api.refreshAccessToken();
+                const accessToken = token.body.access_token;
 
                 this.setAccessToken(accessToken);
-                this.setRefreshToken(refreshToken);
 
-                logger.info({method: 'auth', 'access_token': accessToken});
-                logger.info({method: 'auth', 'refresh_token': refreshToken});
-
-                logger.info({method: 'auth', message: `Sucessfully retreived access token. Expires in ${expiresIn} s.`});
-                res.send('Success! You can now close the window.');
-
-                setInterval(async () => {
-                    const data = await this.api.refreshAccessToken();
-                    const accessToken = data.body['access_token'];
-
-                    logger.info({method: 'auth', message: 'The access token has been refreshed!'});
-                    logger.info({method: 'auth', 'access_token': accessToken});
-                    this.setAccessToken(accessToken);
-                }, expiresIn / 2 * 1000);
-            })
-            .catch((err) => {
-                logger.error({
+                logger.info({
                     method: 'auth',
-                    error: 'Error getting Tokens',
-                    message: err
+                    access_token: accessToken,
+                    message: 'The access token has been refreshed!'
                 });
 
-                res.send(`Error getting Tokens: ${err}`);
+            }, expiresIn / 2 * 1000);
+
+        } catch (err) {
+            logger.error({
+                method: 'auth',
+                error: 'Error getting Tokens',
+                message: err,
             });
+
+            res.send(`Error getting Tokens: ${err}`);
+        }
     }
+
 
     setAccessToken(accessToken) {
         return this.api.setAccessToken(accessToken);
@@ -78,81 +90,79 @@ class Spotify {
 
 
     createAuthorizeURL() {
-        return this.api.createAuthorizeURL(scopes, 'new')
+        return this.api.createAuthorizeURL(scopes, 'new');
     }
 
     
     async refreshAccessToken() {
-        return this.api.refreshAccessToken()
-            .then((data) => {
-                logger.info({
-                    method: 'refreshAccessToken',
-                    message: 'The access token has been refreshed!'
-                });
+        let token = {};
+        
+        try {
+            token = await this.api.refreshAccessToken();
 
-                // Save the access token so that it's used in future calls
-                this.api.setAccessToken(data.body['access_token']);
-            })
-            .catch((err) => {
-                logger.error({
-                    error: 'Could not refresh access token',
-                    message: err
-                });
+            // Save the access token so that it's used in future calls
+            this.api.setAccessToken(token.body.access_token);
+
+            logger.info({
+                method: 'refreshAccessToken',
+                message: 'The access token has been refreshed!',
             });
+        } catch (err) {
+            logger.error({
+                error: 'Could not refresh access token',
+                message: err,
+            });
+        }
+        
+        return token;
     }
 
+
     async connect() {
-        return new Promise((resolve, reject) => {
-            if (null !== this.api) {
-                return resolve();
-            }
+        if (null !== this.api) {
+            return true;
+        }
 
-            this.api = new SpotifyWebApi({
-                clientId: process.env.SPOTIFY_CLIENT_ID,
-                clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
-                redirectUri: process.env.SPTOFIY_CALLBACK_ENDPOINT
-            });
-            
-            this.setAccessToken(process.env.SPOTIFY_ACCESS_TOKEN);
-            this.setRefreshToken(process.env.SPOTIFY_REFRESH_TOKEN);
-
-            // Retrieve an access token
-            this.api.clientCredentialsGrant()
-                .then((data) => {
-                    this.api.setAccessToken(data.body['access_token']); //
-                    resolve(true);
-                })
-                .catch((err) => {
-                    logger.error({
-                        error: 'Something went wrong when retrieving an access token',
-                        message: err
-                    });
-
-                    reject(err);
-                });
+        this.api = new SpotifyWebApi({
+            clientId: process.env.SPOTIFY_CLIENT_ID,
+            clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
+            redirectUri: process.env.SPTOFIY_CALLBACK_ENDPOINT
         });
+
+        this.setAccessToken(process.env.SPOTIFY_ACCESS_TOKEN);
+        this.setRefreshToken(process.env.SPOTIFY_REFRESH_TOKEN);
+
+        try {
+            // Retrieve an access token
+            const token = await this.api.clientCredentialsGrant();
+            this.api.setAccessToken(token.body.access_token); //
+        } catch(err) {
+            logger.error({
+                error: 'Something went wrong when retrieving an access token',
+                message: err,
+            });
+        }
     }
 
 
     async searchTracks(q, limit = 1) {
-        return await this.api.searchTracks(q, {
-            limit
-        })
-        .then((data) => {
-            return data.body;
-        })
-        .catch((err) => {
+        try {
+            const searchTracks = await this.api.searchTracks(q, {
+                limit,
+            });
+
+            return searchTracks.body;
+        } catch (err) {
             logger.error({
                 error: 'Search failed',
                 query: q,
-                message: err
+                message: err,
             });
-        });
+        }
     }
 
 
     async addTracksToPlaylist(playlistID, listOfTracks = [], position = 0, handleDuplicates = true) {
-        
         if (true === handleDuplicates) {
             let trackFromPlaylist = await this.findTrackInPlaylist(listOfTracks[0], playlistID);
 
@@ -162,16 +172,16 @@ class Spotify {
                 if (0 < trackFromPlaylist.position) {
                     await this.reorderTracksInPlaylist(playlistID, 1, trackFromPlaylist.position, 0);
                     logger.debug({
-                        description: 'Track already exists, bumping to be first.',
                         playlistID,
+                        description: 'Track already exists, bumping to be first',
                         trackPosition: trackFromPlaylist.position,
                         id: listOfTracks[0],
-                        name: trackFromPlaylist.name
+                        name: trackFromPlaylist.name,
                     });
                 } else {
                     logger.debug({
-                        description: 'Track already exists and first in playlist - SKIPPING!',
                         playlistID,
+                        description: 'Track already exists and first in playlist - SKIPPING!',
                         id: listOfTracks[0],
                         name: trackFromPlaylist.name
                     });
@@ -182,24 +192,25 @@ class Spotify {
 
         }
 
-        logger.info({description: 'ADDING THE FOLLOWING TRACK TO LIST:', trackID: listOfTracks});
+        logger.info({
+            playlistID,
+            description: 'ADDING THE FOLLOWING TRACK TO LIST',
+            trackIDs: listOfTracks,
+        });
 
-        return await this.api.addTracksToPlaylist(playlistID, listOfTracks, {
-                position
-            })
-            .then((data) => {
-                let body = data.body;
-
-                return true;
-            })
-            .catch((err) => {
-                logger.error({
-                    method: 'addTracksToPlaylist',
-                    description: 'Failed to add track to playlist',
-                    playlistID,
-                    message: err
+        try {
+            const playlist = await this.api.addTracksToPlaylist(playlistID, listOfTracks, {
+                    position
                 });
+            return true;
+        } catch (err) {
+            logger.error({
+                method: 'addTracksToPlaylist',
+                description: 'Failed to add track to playlist',
+                playlistID,
+                message: err,
             });
+        }
     }
 
 
@@ -213,29 +224,28 @@ class Spotify {
 
     // getter for the playlist tracks
     async getPlaylistTracks(playlistID, limit = 100, offset = 0, fields = 'tracks(offset,total,items(track(uri,name)))') {
-        return await this.api
-            .getPlaylistTracks(playlistID, {
-                offset,
-                limit,
-                fields
-            })
-            .then((data) => {
-                return data.body;
-            })
-            .catch(
-                (err) => {
-                    logger.info({
-                        method: 'getPlaylistTracks',
-                        error: 'Something went wrong!',
-                        message: err
-                    });
+        try {
+            const playlist = await this.api.getPlaylistTracks(playlistID, {
+                    offset,
+                    limit,
+                    fields,
                 });
 
+            return playlist.body;
+        } catch(err) {
+            logger.info({
+                playlistID,
+                method: 'getPlaylistTracks',
+                error: 'Something went wrong!',
+                message: err,
+            });
+        }
     }
 
 
     // getter for the playlist tracks
     async getPlaylistTracksAllPages(playlistID, limit = 100, offset = 0, fields = 'limit,offset,total,items(track(uri,name))') {
+
         let firstPage = await this.getPlaylistTracks(playlistID, limit, offset, fields);
         let totalPages = Math.ceil((firstPage.total || 1) / limit);
         
@@ -244,6 +254,7 @@ class Spotify {
                 .catch(
                     (err) => logger.error({
                         method: 'getPlaylistAllPages',
+                        args: [...arguments],
                         error: 'paged request failed',
                         message: err
                     })
@@ -261,10 +272,10 @@ class Spotify {
                 (err) => {
                     // there was an error
                     logger.error({
-                        method: 'getPlaylistAllPages',
                         playlistID,
+                        method: 'getPlaylistAllPages',
                         error: 'Global fetch failed',
-                        message: err
+                        message: err,
                     });
                 })
     }
@@ -276,44 +287,41 @@ class Spotify {
             range_length: rangeLength
         };
 
-        return await this.api
-            .reorderTracksInPlaylist(playlistID, rangeStart, insertBefore, options)
-            .then((data) => {
-                return data.body;
-            })
-            .catch((err) => {
-                logger.error({
-                    method: 'reorderTracksInPlaylist',
-                    playlistID,
-                    error: 'Something went wrong!',
-                    message: err
-                });
+        try {
+            const playlist = await this.api.reorderTracksInPlaylist(playlistID, rangeStart, insertBefore, options);
+            return playlist.body;
+        } catch (err) {
+            logger.error({
+                playlistID,
+                method: 'reorderTracksInPlaylist',
+                error: 'Something went wrong!',
+                message: err,
             });
+        }
     }
 
 
-    // replace complete list of tracks
+    // replace complete list of tracks (override?)
     async replaceTracksInPlaylist(playlistID, tracksList = []) {
-        return await this.api
-            .replaceTracksInPlaylist(playlistID, tracksList)
-            .then((data) => {
-                logger.info({
-                    method: 'replaceTracksInPlaylist',
-                    playlistID,
-                    description: 'Replaced playlist, snapshot:',
-                    message: data.body
-                });
+        try {
+            const playlist = await this.api.replaceTracksInPlaylist(playlistID, tracksList);
 
-                return data.body;
-            })
-            .catch((err) => {
-                logger.error({
-                    method: 'replaceTracksInPlaylist',
-                    playlistID,
-                    error: 'Something went wrong!',
-                    message: err
-                });
+            logger.debug({
+                playlistID,
+                method: 'replaceTracksInPlaylist',
+                description: 'Replaced playlist, snapshot',
+                message: playlist.body,
             });
+
+            return playlist.body;
+        } catch (err) {
+            logger.error({
+                playlistID,
+                method: 'replaceTracksInPlaylist',
+                error: 'Something went wrong!',
+                message: err,
+            });
+        }
     }
 
 
@@ -350,11 +358,11 @@ class Spotify {
 
 
     async playlistUpdateDetails(playlistID, props = {}) {
-        return await this.api
-            .changePlaylistDetails(playlistID, {
-                ...props
-            })
-            .then((data) => {
+        try {
+            const playlist = await this.api.changePlaylistDetails(playlistID, {
+                    ...props
+                });
+
                 logger.info({
                     method: 'playlistUpdateDetails',
                     description: 'Playlist details updated.',
@@ -363,15 +371,14 @@ class Spotify {
                 });
 
                 return data.body;
-            })
-            .catch((err) => {
-                logger.error({
-                    method: 'playlistUpdateDetails',
-                    error: 'Something went wrong!',
-                    playlistID,
-                    message: err
-                });
+        } catch (err) {
+            logger.error({
+                method: 'playlistUpdateDetails',
+                error: 'Something went wrong!',
+                playlistID,
+                message: err,
             });
+        }
     }
 
 
