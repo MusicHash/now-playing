@@ -3,7 +3,6 @@ import SpotifyWebApi from 'spotify-web-api-node';
 import logger from '../../utils/logger.js';
 
 const scopes = [
-        'user-top-read',
         'playlist-read-private',
         'playlist-modify-private',
         'playlist-modify-public'
