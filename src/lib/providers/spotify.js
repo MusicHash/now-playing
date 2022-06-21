@@ -10,25 +10,31 @@ const scopes = [
 
 class Spotify {
     api = null;
+    #isConnected = false;
 
-    constructor() {}
-
-
-    async connect() {
-        if (null !== this.api) {
-            return true;
-        }
-
+    constructor() {
         this.api = new SpotifyWebApi({
             clientId: process.env.SPOTIFY_CLIENT_ID,
             clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
-            redirectUri: process.env.SPTOFIY_CALLBACK_ENDPOINT
+            redirectUri: process.env.SPTOFIY_CALLBACK_ENDPOINT,
         });
+    }
+
+
+    /**
+     * 
+     * @returns 
+     */
+    async connect() {
+        if (true === this.#isConnected) {
+            return true;
+        }
 
         try {
             // Retrieve an access token
             const token = await this.api.clientCredentialsGrant();
             this.api.setAccessToken(token.body.access_token); //
+            this.#isConnected = true;
         } catch(err) {
             logger.error({
                 error: 'Something went wrong when retrieving an access token',
@@ -38,6 +44,10 @@ class Spotify {
     }
 
 
+    /**
+     * 
+     * @returns 
+     */
     async auth(code, error, res) {
 
         if (error) {
@@ -100,21 +110,37 @@ class Spotify {
     }
 
 
+    /**
+     * 
+     * @returns 
+     */
     setAccessToken(accessToken) {
         return this.api.setAccessToken(accessToken);
     }
 
 
+    /**
+     * 
+     * @returns 
+     */
     setRefreshToken(refreshToken) {
         return this.api.setRefreshToken(refreshToken);
     }
 
 
+    /**
+     * 
+     * @returns 
+     */
     createAuthorizeURL() {
         return this.api.createAuthorizeURL(scopes, 'new');
     }
 
-    
+
+    /**
+     * 
+     * @returns 
+     */
     async refreshAccessToken() {
         let token = {};
         
@@ -139,6 +165,12 @@ class Spotify {
     }
 
 
+    /**
+     * 
+     * @param {*} q 
+     * @param {*} limit 
+     * @returns 
+     */
     async searchTracks(q, limit = 1) {
         try {
             const searchTracks = await this.api.searchTracks(q, {
@@ -156,6 +188,34 @@ class Spotify {
     }
 
 
+    /**
+     * 
+     * @param {*} playlistID 
+     * @returns 
+     */
+    async getPlaylist(playlistID) {
+        try {
+            const playlist = await this.api.getPlaylist(playlistID);
+
+            return playlist.body;
+        } catch (err) {
+            logger.error({
+                error: 'getPlaylist failed',
+                playlistID,
+                message: err,
+            });
+        }
+    }
+
+
+    /**
+     * 
+     * @param {*} playlistID 
+     * @param {*} listOfTracks 
+     * @param {*} position 
+     * @param {*} handleDuplicates 
+     * @returns 
+     */
     async addTracksToPlaylist(playlistID, listOfTracks = [], position = 0, handleDuplicates = true) {
         if (true === handleDuplicates) {
             let trackFromPlaylist = await this.findTrackInPlaylist(listOfTracks[0], playlistID);
@@ -208,6 +268,12 @@ class Spotify {
     }
 
 
+    /**
+     * 
+     * @param {*} trackID 
+     * @param {*} playlistID 
+     * @returns int
+     */
     async findTrackInPlaylist(trackID, playlistID) {
         let playlistTracks = await this.getPlaylistTracksAllPages(playlistID);
         let uriTracks = this._extractUriFromTracks(playlistTracks);
@@ -216,8 +282,16 @@ class Spotify {
     }
 
 
-    // getter for the playlist tracks
-    async getPlaylistTracks(playlistID, limit = 100, offset = 0, fields = 'tracks(offset,total,items(track(uri,name)))') {
+    /**
+     * 
+     * 
+     * @param {*} playlistID 
+     * @param {*} limit 
+     * @param {*} offset 
+     * @param {*} fields 
+     * @returns 
+     */
+    async getPlaylistTracks(playlistID, limit = 100, offset = 0, fields = 'limit,offset,total,items(track(uri,name))') {
         try {
             const playlist = await this.api.getPlaylistTracks(playlistID, {
                     offset,
@@ -237,7 +311,15 @@ class Spotify {
     }
 
 
-    // getter for the playlist tracks
+    /**
+     * 
+     * 
+     * @param {*} playlistID 
+     * @param {*} limit 
+     * @param {*} offset 
+     * @param {*} fields 
+     * @returns 
+     */
     async getPlaylistTracksAllPages(playlistID, limit = 100, offset = 0, fields = 'limit,offset,total,items(track(uri,name))') {
 
         let firstPage = await this.getPlaylistTracks(playlistID, limit, offset, fields);
@@ -257,21 +339,59 @@ class Spotify {
 
         return await Promise.all(allPagesPromise)
             .then((playlists) => {
+                let output = firstPage;
+
                 playlists.forEach((playlist, idx) => {
-                    firstPage.items.push(...playlist.items);
+                    output.items.push(...playlist.items);
                 });
 
-                return firstPage;
+                output.pages = totalPages;
+                delete output.offset; // clean up, not needed in multi page response
+
+                return output;
             }).catch(
                 (err) => {
                     // there was an error
                     logger.error({
                         playlistID,
+                        totalPages,
                         method: 'getPlaylistAllPages',
                         error: 'Global fetch failed',
                         message: err,
                     });
                 })
+    }
+
+
+    /**
+     * Update playlist details
+     * 
+     * @param {*} playlistID 
+     * @param {*} props 
+     * @returns 
+     */
+    async playlistUpdateDetails(playlistID, props = {}) {
+        try {
+            const playlist = await this.api.changePlaylistDetails(playlistID, {
+                    ...props
+                });
+
+                logger.info({
+                    method: 'playlistUpdateDetails',
+                    description: 'Playlist details updated.',
+                    playlistID,
+                    message: data.body
+                });
+
+                return data.body;
+        } catch (err) {
+            logger.error({
+                method: 'playlistUpdateDetails',
+                error: 'Something went wrong!',
+                playlistID,
+                message: err,
+            });
+        }
     }
 
 
@@ -348,31 +468,6 @@ class Spotify {
         }
 
         return Promise.resolve();
-    }
-
-
-    async playlistUpdateDetails(playlistID, props = {}) {
-        try {
-            const playlist = await this.api.changePlaylistDetails(playlistID, {
-                    ...props
-                });
-
-                logger.info({
-                    method: 'playlistUpdateDetails',
-                    description: 'Playlist details updated.',
-                    playlistID,
-                    message: data.body
-                });
-
-                return data.body;
-        } catch (err) {
-            logger.error({
-                method: 'playlistUpdateDetails',
-                error: 'Something went wrong!',
-                playlistID,
-                message: err,
-            });
-        }
     }
 
 
