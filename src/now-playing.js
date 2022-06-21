@@ -92,7 +92,7 @@ app.get('/playlist/slice/all', async (req, res) => {
     triggerSliceAllPlaylist();
     res.send(['Success, Queued ALL playlists for slice. (sliceAllPlaylist)']);
 });
-
+console.log(process.env.EXPRESS_PORT);
 const server = http
     .createServer(app)
     .listen(process.env.EXPRESS_PORT, () =>
