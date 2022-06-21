@@ -19,10 +19,10 @@ jobs:
 
       - name: Test
         env:
-          SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
-          SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
-          SPTOFIY_USER_ID: ${{ secrets.SPTOFIY_USER_ID }}
-          SPTOFIY_CALLBACK_ENDPOINT: ${{ secrets.SPTOFIY_CALLBACK_ENDPOINT }}
-          SPOTIFY_PLAYLIST_MAP: ${{ secrets.SPOTIFY_PLAYLIST_MAP }}
-          EXPRESS_PORT: ${{ secrets.EXPRESS_PORT }}
+          SPOTIFY_CLIENT_ID: "${{ secrets.SPOTIFY_CLIENT_ID }}"
+          SPOTIFY_CLIENT_SECRET: "${{ secrets.SPOTIFY_CLIENT_SECRET }}"
+          SPOTIFY_USER_ID: "${{ secrets.SPOTIFY_USER_ID }}"
+          SPOTIFY_CALLBACK_ENDPOINT: "${{ secrets.SPOTIFY_CALLBACK_ENDPOINT }}"
+          SPOTIFY_PLAYLIST_MAP: "${{ secrets.SPOTIFY_PLAYLIST_MAP }}"
+          EXPRESS_PORT: "${{ secrets.EXPRESS_PORT }}"
         run: npm test

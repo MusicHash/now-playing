@@ -19,7 +19,7 @@ class Spotify {
         this.api = new SpotifyWebApi({
             clientId: process.env.SPOTIFY_CLIENT_ID,
             clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
-            redirectUri: process.env.SPTOFIY_CALLBACK_ENDPOINT,
+            redirectUri: process.env.SPOTIFY_CALLBACK_ENDPOINT,
         });
     }
 
