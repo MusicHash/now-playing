@@ -379,6 +379,7 @@ class Spotify {
                 logger.info({
                     method: 'playlistUpdateDetails',
                     description: 'Playlist details updated.',
+                    props,
                     playlistID,
                     message: data.body
                 });

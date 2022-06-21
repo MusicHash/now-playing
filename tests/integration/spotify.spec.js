@@ -10,6 +10,51 @@ const PLAYLIST_ID_READONLY = '7zHsH44gcVuASD4nKx9WLE', // [DEV] [CI] TESTING PLA
             id: 'spotify:track:4JehYebiI9JE8sR8MisGVb',
             artist: 'Beyoncé',
             name: 'Halo',
+        },
+        {
+            id: 'spotify:track:5IVuqXILoxVWvWEPm82Jxr',
+            artist: 'Beyoncé',
+            name: 'Crazy In Love (feat. Jay-Z)',
+        },
+        {
+            id: 'spotify:track:6jG2YzhxptolDzLHTGLt7S',
+            artist: 'Beyoncé',
+            name: 'Drunk in Love (feat. Jay-Z)',
+        },
+        {
+            id: 'spotify:track:1z6WtY7X4HQJvzxC4UgkSf',
+            artist: 'Beyoncé',
+            name: 'Love On Top',
+        },
+        {
+            id: 'spotify:track:5v4GgrXPMghOnBBLmveLac',
+            artist: 'Beyoncé',
+            name: 'Savage Remix (feat. Beyoncé)',
+        },
+        {
+            id: 'spotify:track:5hgnY0mVcVetszbb85qeDg',
+            artist: 'Beyoncé',
+            name: 'Partition',
+        },
+        {
+            id: 'spotify:track:7rl7ao5pb9BhvAzPdWStxi',
+            artist: 'Beyoncé',
+            name: 'Telephone',
+        },
+        {
+            id: 'spotify:track:6RX5iL93VZ5fKmyvNXvF1r',
+            artist: 'Beyoncé',
+            name: 'Irreplaceable',
+        },
+        {
+            id: 'spotify:track:6g0Orsxv6glTJCt4cHsRsQ',
+            artist: 'Beyoncé',
+            name: 'Formation',
+        },
+        {
+            id: 'spotify:track:1uXbwHHfgsXcUKfSZw5ZJ0',
+            artist: 'Beyoncé',
+            name: 'Run the World (Girls)',
         }
       ];
 
@@ -114,21 +159,42 @@ describe('Spotify', function() {
 
 
     describe('Playlist Write Operations', function () {
-        
+        const setPredefinedSongsToAPlaylist = async (playlistID, tracksListRaw, limit) => {
+            const tracksList = tracksListRaw.map(({ id, artist, name }) => id).slice(0, limit);
+
+            try {
+                let newPlaylist = await Spotify.replaceTracksInPlaylist(PLAYLIST_ID_READWRITE, tracksList);
+            } catch(err) {
+                throw 'Failed to replaceTracksInPlaylist, error: ' + err;
+            }
+        };
+
+
+        beforeEach(async () => {
+            const limit = 6;
+
+            Spotify.api.setAccessToken(SPOTIFY_USER_OAUTH);
+
+            await setPredefinedSongsToAPlaylist(PLAYLIST_ID_READWRITE, TRACKS, limit);
+
+            return true;
+        });  
+
 
         it('When modifying a playlist description, should verify change is immediate', async function () {
             const props = {
+                name: '[DEV] [CI] TESTING PLAYING - READ/WRITE',
+                public: false,
                 description: 'ci passed runtime: '+ Date.now()
             };
-
-            Spotify.api.setAccessToken(SPOTIFY_USER_OAUTH);
 
             let sut = await Spotify.playlistUpdateDetails(PLAYLIST_ID_READWRITE, props);
             let afterChange = await Spotify.getPlaylist(PLAYLIST_ID_READWRITE);
 
+            expect(afterChange.name).toBe(props.name);
+            expect(afterChange.public).toBe(props.public);
             expect(afterChange.description).toBe(props.description);
         });
-
 
         
     });
