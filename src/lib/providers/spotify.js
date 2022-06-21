@@ -2,6 +2,9 @@ import SpotifyWebApi from 'spotify-web-api-node';
 
 import logger from '../../utils/logger.js';
 
+console.log('PORTSS');
+console.log(process.env.EXPRESS_PORT);
+
 const scopes = [
         'playlist-read-private',
         'playlist-modify-private',
