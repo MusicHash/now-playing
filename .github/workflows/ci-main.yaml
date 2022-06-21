@@ -24,5 +24,6 @@ jobs:
           SPOTIFY_USER_ID: ${{ secrets.SPOTIFY_USER_ID }}
           SPOTIFY_CALLBACK_ENDPOINT: ${{ secrets.SPOTIFY_CALLBACK_ENDPOINT }}
           SPOTIFY_PLAYLIST_MAP: ${{ secrets.SPOTIFY_PLAYLIST_MAP }}
+          SPOTIFY_USER_OAUTH: ${{ secrets.SPOTIFY_USER_OAUTH }}
           EXPRESS_PORT: ${{ secrets.EXPRESS_PORT }}
         run: npm test
