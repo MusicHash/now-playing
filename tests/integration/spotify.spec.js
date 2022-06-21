@@ -196,6 +196,55 @@ describe('Spotify', function() {
             expect(afterChange.description).toBe(props.description);
         });
 
-        
+
+        it('Should take 2 tracks from the end of the playlist and make them first', async function () {
+            const limit = 10,
+                  offset = 0,
+                  amountOfTracksToMove = 2;
+
+            let tracksBase = await Spotify.getPlaylistTracks(PLAYLIST_ID_READWRITE, limit, offset);
+            
+            const rangeLength = amountOfTracksToMove, // from the index, take range of 2, meaning 2 consecutive tracks
+                  rangeStart = tracksBase.total - amountOfTracksToMove, // Take index number 4 for example
+                  insertBefore = 0; // where to insert the moved tracks - 0 is the beginning of the list.
+            let sut = await Spotify.reorderTracksInPlaylist(PLAYLIST_ID_READWRITE, rangeLength, rangeStart, insertBefore);
+
+            let tracksAfterChange = await Spotify.getPlaylistTracks(PLAYLIST_ID_READWRITE, limit, offset);
+
+            expect(sut.snapshot_id).toBeDefined();
+            expect(tracksAfterChange.items[0].track.uri).toBe(tracksBase.items[tracksBase.total - amountOfTracksToMove].track.uri); // compare first track
+            expect(tracksAfterChange.items[1].track.uri).toBe(tracksBase.items[tracksBase.total - amountOfTracksToMove + 1].track.uri); // compare second track
+        });
+
+
+        it('Should override the content of a playlist with a list of songs', async function () {
+            const limit = 10,
+                  offset = 0,
+                  amountOfSongsToInsert = 3;
+
+            const tracksBase = await Spotify.getPlaylistTracks(PLAYLIST_ID_READWRITE, limit, offset);
+
+            const tracksList = TRACKS.map(({ id, artist, name }) => id).slice(-amountOfSongsToInsert);
+            const sut = await Spotify.replaceTracksInPlaylist(PLAYLIST_ID_READWRITE, tracksList);
+
+            const tracksAfterChange = await Spotify.getPlaylistTracks(PLAYLIST_ID_READWRITE, limit, offset);
+
+            expect(tracksAfterChange.items[0].track.uri).toBe(TRACKS[TRACKS.length - amountOfSongsToInsert + 0].id); // compare first track
+            expect(tracksAfterChange.items[1].track.uri).toBe(TRACKS[TRACKS.length - amountOfSongsToInsert + 1].id); // compare second track
+            expect(tracksAfterChange.items[2].track.uri).toBe(TRACKS[TRACKS.length - amountOfSongsToInsert + 2].id); // compare third track
+        });
+
+
+        it('slicePlaylist', async function () {
+            const limit = 10,
+                  offset = 0,
+                  slicePlaylistTo = 7;
+
+            const tracksBase = await Spotify.getPlaylistTracks(PLAYLIST_ID_READWRITE, limit, offset);
+
+            const sut = await Spotify.slicePlaylist(PLAYLIST_ID_READWRITE, slicePlaylistTo);
+
+            const tracksAfterChange = await Spotify.getPlaylistTracks(PLAYLIST_ID_READWRITE, limit, offset);
+        });
     });
 });
