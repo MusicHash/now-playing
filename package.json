@@ -23,7 +23,7 @@
     "dotenv": "^16.0.1",
     "express": "^4.18.1",
     "pino": "^8.1.0",
-    "scrapa": "^0.1.14",
+    "scrapa": "^0.1.15",
     "spotify-web-api-node": "^5.0.2"
   },
   "devDependencies": {
