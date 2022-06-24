@@ -235,7 +235,7 @@ describe('Spotify', function() {
         });
 
 
-        it('slicePlaylist', async function () {
+        it('When list is sliced and reduced in size, should have the requested amount of 7 items on that playlist remaining', async function () {
             const limit = 10,
                   offset = 0,
                   slicePlaylistTo = 7;
