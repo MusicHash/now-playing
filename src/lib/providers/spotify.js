@@ -82,7 +82,7 @@ class Spotify {
                 method: 'auth',
                 access_token: accessToken,
                 refresh_token: refreshToken,
-                message: `Sucessfully retreived access token. Expires in ${expiresIn} s.`
+                message: `Successfully retrieved access token. Expires in ${expiresIn} s.`
             });
 
             res.send('Success! You can now close the window.');
