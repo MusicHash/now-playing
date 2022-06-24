@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import SpotifyWebApi from 'spotify-web-api-node';
 
 import logger from '../../utils/logger.js';

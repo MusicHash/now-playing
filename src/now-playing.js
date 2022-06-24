@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import http from 'http';
 import express from 'express';
 
@@ -8,10 +11,6 @@ import { refreshAllStations, refreshChart, refreshChartAll } from './lib/fetch_s
 import { slicePlaylist, sliceAllPlaylists } from './lib/playlist.js';
 
 import Spotify from './lib/providers/spotify.js';
-
-import dotenv from 'dotenv';
-dotenv.config();
-
 
 Spotify.connect().then(() => {
     logger.info({
