@@ -7,6 +7,7 @@
   "scripts": {
     "test": "node --experimental-vm-modules node_modules/.bin/jest",
     "start": "NODE_OPTIONS='--experimental-specifier-resolution=node' node ./src/now-playing.js",
+    "debug": "PINO_LOG_LEVEL=debug NODE_OPTIONS='--experimental-specifier-resolution=node' node ./src/now-playing.js",
     "coverage": "jest --collect-coverage"
   },
   "repository": {
