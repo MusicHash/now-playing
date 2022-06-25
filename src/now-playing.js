@@ -18,20 +18,63 @@ Spotify.connect().then(() => {
     });
 })
 
-const triggerRefreshAllStations = function () {
-    let res = refreshAllStations().then(body => logger.info({method: 'triggerRefreshAllStations', message: body}));
+const triggerRefreshAllStations = async function () {
+    try {
+        let res = await refreshAllStations();
+
+        logger.info({method: 'triggerRefreshAllStations', message: res});
+    } catch(err) {
+        logger.error({
+            method: 'triggerRefreshAllStations',
+            error: 'Could not refresh stations',
+            message: err,
+        });
+    }
 };
 
-const triggerRefreshChartAll = function () {
-    let res = refreshChartAll().then(body => logger.info({method: 'triggerRefreshChartAll', message: body}));
+
+const triggerRefreshChartAll = async function () {
+    try {
+        let res = await refreshChartAll();
+
+        logger.info({method: 'triggerRefreshChartAll', message: res});
+    } catch(err) {
+        logger.error({
+            method: 'triggerRefreshChartAll',
+            error: 'Could not refresh charts',
+            message: err,
+        });
+    }
 };
 
-const triggerRefreshChart = function (chart) {
-    let res = refreshChart(chart).then(body => logger.info({method: 'triggerRefreshChart', chart, message: body}));
+const triggerRefreshChart = async function (chart) {
+    try {
+        let res = await refreshChart(chart);
+
+        logger.info({method: 'triggerRefreshChart', chart, message: res});
+    } catch(err) {
+        logger.error({
+            method: 'triggerRefreshChart',
+            chart,
+            error: 'Could not refresh chart',
+            message: err,
+        });
+    }
 };
 
-const triggerSliceAllPlaylist = function (chart) {
-    let res = sliceAllPlaylists().then(body => logger.info({method: 'triggerSliceAllPlaylist', chart, message: body}));
+const triggerSliceAllPlaylist = async function (chart) {
+    try {
+        let res = await sliceAllPlaylists();
+
+        logger.info({method: 'triggerSliceAllPlaylist', chart, message: res});
+    } catch(err) {
+        logger.error({
+            method: 'triggerSliceAllPlaylist',
+            chart,
+            error: 'Could not slice chart',
+            message: err,
+        });
+    }
 };
 
 const app = express();
