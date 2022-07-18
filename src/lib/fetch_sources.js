@@ -6,6 +6,15 @@ import { stations, charts } from '../../config/sources.js';
 import logger from '../utils/logger.js';
 
 
+const getChartInfo = async function(props) {
+    const chartInfo = await getCurrentTracks({
+        scraper: props.scraper,
+        parser: props.parser
+    });
+
+    return chartInfo;
+};
+
 const refreshAllStations = async function() {
     for (let stationIdx in stations) {
         let props = stations[stationIdx];
@@ -81,4 +90,5 @@ export {
     refreshAllStations,
     refreshChart,
     refreshChartAll,
+    getChartInfo,
 };

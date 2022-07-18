@@ -3,14 +3,18 @@ dotenv.config();
 
 import http from 'http';
 import express from 'express';
+import prettier from 'prettier';
 
 import logger from './utils/logger.js';
 import { terminate } from './utils/terminate.js';
 
-import { refreshAllStations, refreshChart, refreshChartAll } from './lib/fetch_sources.js';
+import { refreshAllStations, refreshChart, refreshChartAll, getChartInfo } from './lib/fetch_sources.js';
+import { stations, charts } from '../config/sources.js';
+
 import { slicePlaylist, sliceAllPlaylists } from './lib/playlist.js';
 
 import Spotify from './lib/providers/spotify.js';
+
 
 Spotify.connect().then(() => {
     logger.info({
@@ -96,6 +100,7 @@ app.get('/actions', async (req, res) => {
         '/refresh_playlists_manually': 'Refresh Stations (all)',
         '/playlist/refresh_charts/all': 'Refresh Charts - in batches (all)',
         '/playlist/slice/all': 'Shorten the playlist to limit (all)',
+        '/debug_channels': 'Debug Channels',
     };
 
     let html = Object.keys(links).map(function (result, item) {
@@ -103,6 +108,45 @@ app.get('/actions', async (req, res) => {
     }, 0).join("\r\n");
 
     res.send(`<ul>${html}</ul>`);
+});
+
+app.get('/debug_channels', async (req, res) => {
+    let output = [];
+    let items = Object.assign({}, stations, charts);
+
+    for (let stationIdx in items) {
+        output.push(`<li><a href="/debug_channels/${stationIdx}">${stationIdx}</a></li>`);
+    }
+
+    res.send(`<ul>${output.join("\n")}</ul>`);
+});
+
+app.get('/debug_channels/:chartID', async (req, res) => {
+    let chartID = req.params.chartID;
+    let output = [];
+
+    try {
+        
+        let items = Object.assign({}, stations, charts);
+        let props = items[chartID];
+        let rawURL = new Buffer(props.scraper.url, 'base64').toString('ascii'); // decode
+
+        let formattedStationParserInfo = prettier.format(JSON.stringify(props), { semi: false, parser: 'json' });
+        output.push(`formattedStationParserInfo: ${chartID}`);
+        output.push(`URL: ${rawURL}`);
+        output.push(formattedStationParserInfo);
+
+        let chartRPC = await getChartInfo(props);
+        let formattedRPCInfo = prettier.format(JSON.stringify(chartRPC), { semi: false, parser: 'json' });
+
+        output.push(`chartRPC: ${chartID}`);
+        output.push(formattedRPCInfo);
+    } catch(err) {
+        output.push(`Error: ${chartID}`);
+        output.push(err);
+    }
+
+    res.send(`<pre>${output.join("\n")}</pre>`);
 });
 
 app.get('/refresh_playlists_manually', async (req, res) => {
