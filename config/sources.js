@@ -84,7 +84,7 @@ const shzmCharts = {
             },
 
             fields: {
-                artist: 'tracks.{Iterator}.artists.0.alias',
+                artist: 'tracks.{Iterator}.subtitle',
                 title: 'tracks.{Iterator}.title'
             },
         },
@@ -114,7 +114,7 @@ const shzmCharts = {
             },
 
             fields: {
-                artist: 'tracks.{Iterator}.artists.0.alias',
+                artist: 'tracks.{Iterator}.subtitle',
                 title: 'tracks.{Iterator}.title'
             },
         },
@@ -144,7 +144,7 @@ const shzmCharts = {
             },
 
             fields: {
-                artist: 'tracks.{Iterator}.artists.0.alias',
+                artist: 'tracks.{Iterator}.subtitle',
                 title: 'tracks.{Iterator}.title'
             },
         },
@@ -174,7 +174,7 @@ const shzmCharts = {
             },
 
             fields: {
-                artist: 'tracks.{Iterator}.artists.0.alias',
+                artist: 'tracks.{Iterator}.subtitle',
                 title: 'tracks.{Iterator}.title'
             },
         },
@@ -204,7 +204,7 @@ const shzmCharts = {
             },
 
             fields: {
-                artist: 'tracks.{Iterator}.artists.0.alias',
+                artist: 'tracks.{Iterator}.subtitle',
                 title: 'tracks.{Iterator}.title'
             },
         },
@@ -234,7 +234,7 @@ const shzmCharts = {
             },
 
             fields: {
-                artist: 'tracks.{Iterator}.artists.0.alias',
+                artist: 'tracks.{Iterator}.subtitle',
                 title: 'tracks.{Iterator}.title'
             },
         },
