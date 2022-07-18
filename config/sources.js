@@ -648,13 +648,12 @@ const virginStations = {
 
         now_playing: {
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (35) * 1000
+            refresh_rate_ms: (35) * 1000,
         },
 
         scraper: {
             type: 'get',
-            url: 'aHR0cHM6Ly92aXJnaW5yYWRpby5jby51ay9zaXRlcy92aXJnaW5yYWRpby5jby51ay9maWxlcy9ub2NhY2hlL25vd19sYXN0c29uZ3NfanNvbi5qc29uP3t0aW1lfSZjYWxsYmFjaz1qc29uQ2FsbGJhY2tfYW50aGVtcw==',
-            regExp: [new RegExp('\\((.*?)\\);')],
+            url: 'aHR0cHM6Ly92aXJnaW5yYWRpby5jby51ay9hcGkvZ2V0LXN0YXRpb24tZGF0YT9zdGF0aW9uPXZpcmdpbnJhZGlvdWsmd2l0aFNvbmdzPTEmaGFzUHJvZ3JhbXM9MSZudW1iZXJPZlNvbmdzPTIw',
         },
 
         parser: {
@@ -665,9 +664,8 @@ const virginStations = {
             },
 
             fields: {
-                artist: 'nowplaying.{Iterator}.artist',
-                title: 'nowplaying.{Iterator}.title',
-                album: 'nowplaying.{Iterator}.album'
+                artist: 'recentlyPlayed.{Iterator}.artist',
+                title: 'recentlyPlayed.{Iterator}.title'
             },
         },
     },
