@@ -322,8 +322,8 @@ const billboardCharts = {
             },
 
             fields: {
-                title: '.chart-element__information__song',
-                artist: '.chart-element__information__artist',
+                title: 'li ul li h3.c-title',
+                artist: 'li ul li span.a-no-trucate',
             },
         },
     },
@@ -352,8 +352,8 @@ const billboardCharts = {
             },
 
             fields: {
-                title: '.chart-element__information__song',
-                artist: '.chart-element__information__artist',
+                title: 'li ul li h3.c-title',
+                artist: 'li ul li span.a-no-trucate',
             },
         },
     },
@@ -415,7 +415,7 @@ const bpCharts = {
 
             fields: {
                 artist: 'tracks.{Iterator}.artists.0.name',
-                title: 'tracks.{Iterator}.title',
+                title: 'tracks.{Iterator}.name',
                 mix: 'tracks.{Iterator}.mix',
                 genre: 'tracks.{Iterator}.genres.0.name',
                 label: 'tracks.{Iterator}.label.name',
@@ -454,7 +454,7 @@ const bpCharts = {
 
             fields: {
                 artist: 'tracks.{Iterator}.artists.0.name',
-                title: 'tracks.{Iterator}.title',
+                title: 'tracks.{Iterator}.name',
                 mix: 'tracks.{Iterator}.mix',
                 genre: 'tracks.{Iterator}.genres.0.name',
                 label: 'tracks.{Iterator}.label.name',
