@@ -966,21 +966,24 @@ const z100Stations = {
 
         scraper: {
             type: 'get',
-            url: 'aHR0cHM6Ly93dy5hcGkuaWhlYXJ0LmNvbS9hcGkvdjMvbGl2ZS1tZXRhL3N0cmVhbS8xNDY5L2N1cnJlbnRUcmFja01ldGE/ZGVmYXVsdE1ldGFkYXRhPXRydWU=',
+            url: 'aHR0cHM6Ly96MTAwLmloZWFydC5jb20vbXVzaWMvcmVjZW50bHktcGxheWVkLw==',
         },
 
         now_playing: {
-
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (35) * 1000,
         },
 
         parser: {
-            type: 'json',
+            type: 'html',
+
+            options: {
+                limit: 1,
+            },
 
             fields: {
-                artist: 'artist',
-                title: 'title'
+                artist: '.track-details > a:first-child, .track-artist',
+                title: '.livecard-title a:first-child, .track-title'
             },
         },
     },
