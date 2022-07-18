@@ -362,7 +362,7 @@ const billboardCharts = {
 const kanCharts = {
     'kan-gimiel-editor': {
         spotify: {
-            playlist: 'https://spoti.fi/37H0GnZ'
+            playlist: 'https://spoti.fi/3PgyZG9'
         },
 
         now_playing: {
