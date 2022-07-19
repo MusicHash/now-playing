@@ -379,7 +379,7 @@ const kanCharts = {
             type: 'html',
 
             options: {
-                limit: 49,
+                limit: 50,
             },
 
             fields: {
@@ -578,8 +578,8 @@ const capitalfmStations = {
             type: 'html',
 
             fields: {
-                artist: '.now-playing__text-content__details__track',
-                title: '.now-playing__text-content__details__artist'
+                artist: '.now-playing__text-content__details__artist',
+                title: '.now-playing__text-content__details__track'
             },
         },
     },
