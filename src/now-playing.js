@@ -107,21 +107,17 @@ app.get('/actions', async (req, res) => {
         return `<li><a href="${result}">${links[result]}</a></li>`;
     }, 0).join("\r\n");
 
+    let channelsList = Object.assign({}, stations, charts);
+    html += "<li>Channels List:</li>";
+    for (let channelID in channelsList) {
+        html += `<li>${channelID} (<a href="/debug/fetch/${channelID}">Debug Fetch</a>)</li>`;
+    }
+
     res.send(`<ul>${html}</ul>`);
 });
 
-app.get('/debug_channels', async (req, res) => {
-    let output = [];
-    let items = Object.assign({}, stations, charts);
 
-    for (let stationIdx in items) {
-        output.push(`<li><a href="/debug_channels/${stationIdx}">${stationIdx}</a></li>`);
-    }
-
-    res.send(`<ul>${output.join("\n")}</ul>`);
-});
-
-app.get('/debug_channels/:chartID', async (req, res) => {
+app.get('/debug/fetch/:chartID', async (req, res) => {
     let chartID = req.params.chartID;
     let output = [];
 
