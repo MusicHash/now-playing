@@ -311,7 +311,7 @@ const billboardCharts = {
 
         scraper: {
             type: 'get',
-            url: 'aHR0cHM6Ly93d3cuYmlsbGJvYXJkLmNvbS9jaGFydHMvYmlsbGJvYXJkLWdsb2JhbC0yMDA=',
+            url: 'aHR0cHM6Ly93d3cuYmlsbGJvYXJkLmNvbS9jaGFydHMvYmlsbGJvYXJkLTIwMC8=',
         },
 
         parser: {
