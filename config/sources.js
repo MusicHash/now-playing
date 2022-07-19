@@ -271,12 +271,12 @@ const bigtopCharts = {
 const billboardCharts = {
     'billboard-official-uk': {
         spotify: {
-            playlist: 'https://spoti.fi/3pgYmKt'
+            playlist: 'https://spoti.fi/3pgYmKt',
         },
 
         now_playing: {
             description: 'Last 20 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (60 * 60 * 1) * 1000
+            refresh_rate_ms: (60 * 60 * 1) * 1000,
         },
 
         scraper: {
@@ -292,8 +292,8 @@ const billboardCharts = {
             },
 
             fields: {
-                title: '.chart-list-item__title-text',
-                artist: '.chart-list-item__artist',
+                title: 'li ul li h3.c-title',
+                artist: 'li ul li span.a-no-trucate',
             },
         },
     },
@@ -301,12 +301,12 @@ const billboardCharts = {
 
     'billboard-global100': {
         spotify: {
-            playlist: 'https://spoti.fi/3h95Uw3'
+            playlist: 'https://spoti.fi/3h95Uw3',
         },
 
         now_playing: {
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (60 * 60 * 1) * 1000
+            refresh_rate_ms: (60 * 60 * 1) * 1000,
         },
 
         scraper: {
