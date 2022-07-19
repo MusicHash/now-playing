@@ -108,7 +108,7 @@ app.get('/actions', async (req, res) => {
     }, 0).join("\r\n");
 
     let channelsList = Object.assign({}, stations, charts);
-    html += "<li>Channels List:</li>";
+    html += "<li style='margin-top:30px'>Channels List:</li>";
     for (let channelID in channelsList) {
         html += `<li>${channelID} (<a href="/debug/fetch/${channelID}">Debug Fetch</a>)</li>`;
     }
