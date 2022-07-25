@@ -993,7 +993,7 @@ const z100Stations = {
 const europaPlusStations = {
     'euplus-ru-live': {
         spotify: {
-            playlist: 'https://spoti.fi/2MssWCM',
+            playlist: 'https://spoti.fi/3zuFDms',
         },
 
         scraper: {
