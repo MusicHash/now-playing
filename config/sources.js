@@ -392,7 +392,7 @@ const kanCharts = {
             type: 'html',
 
             options: {
-                limit: 25,
+                limit: 26,
             },
 
             fields: {
