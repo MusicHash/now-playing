@@ -187,6 +187,8 @@ class Spotify {
                 query: q,
                 message: err,
             });
+            
+            throw err;
         }
     }
 
