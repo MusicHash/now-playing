@@ -375,23 +375,22 @@ class Spotify {
      */
     async playlistUpdateDetails(playlistID, props = {}) {
         try {
-            const playlist = await this.api.changePlaylistDetails(playlistID, {
-                    ...props
-                });
+            const playlist = await this.api.changePlaylistDetails(playlistID, props);
 
-                logger.info({
-                    method: 'playlistUpdateDetails',
-                    description: 'Playlist details updated.',
-                    props,
-                    playlistID,
-                    message: data.body
-                });
+            logger.debug({
+                method: 'playlistUpdateDetails',
+                description: 'Playlist metadata updated successfully.',
+                props,
+                playlistID,
+                message: playlist.body
+            });
 
-                return data.body;
+            return playlist.body;
         } catch (err) {
             logger.error({
                 method: 'playlistUpdateDetails',
-                error: 'Something went wrong!',
+                error: 'Failed to update playlist metadata - Something went wrong!',
+                props,
                 playlistID,
                 message: err,
             });
