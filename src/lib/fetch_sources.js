@@ -48,6 +48,12 @@ const refreshChart = async function (chartIdx) {
         return;
     }
 
+    logger.debug({
+        method: 'refreshChart',
+        error: 'Refreshing Chart started',
+        chart,
+    });
+
     getCurrentTracks({
         scraper: chart.scraper,
         parser: chart.parser

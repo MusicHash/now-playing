@@ -122,7 +122,6 @@ app.get('/debug/fetch/:chartID', async (req, res) => {
     let output = [];
 
     try {
-        
         let items = Object.assign({}, stations, charts);
         let props = items[chartID];
         let rawURL = new Buffer(props.scraper.url, 'base64').toString('ascii'); // decode

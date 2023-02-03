@@ -7,6 +7,7 @@ const shzmCharts = {
         },
 
         now_playing: {
+            title: 'SHZM - Rising Hits - UK (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (35) * 1000,
         },
@@ -37,6 +38,7 @@ const shzmCharts = {
         },
 
         now_playing: {
+            title: 'SHZM - Top Hits 200 - UK (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (35) * 1000,
         },
@@ -67,6 +69,7 @@ const shzmCharts = {
         },
 
         now_playing: {
+            title: 'SHZM - Top 50 Hits - NYC (#Music)',
             description: 'Last 50 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (35) * 1000,
         },
@@ -97,6 +100,7 @@ const shzmCharts = {
         },
 
         now_playing: {
+            title: 'SHZM - Rising Hits - USA (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (35) * 1000,
         },
@@ -127,6 +131,7 @@ const shzmCharts = {
         },
 
         now_playing: {
+            title: 'SHZM - Top Hits 200 - USA (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (35) * 1000,
         },
@@ -157,6 +162,7 @@ const shzmCharts = {
         },
 
         now_playing: {
+            title: 'SHZM - Rising Hits - Israel (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (35) * 1000,
         },
@@ -187,6 +193,7 @@ const shzmCharts = {
         },
 
         now_playing: {
+            title: 'SHZM - Top Hits 200 - Israel (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (35) * 1000,
         },
@@ -217,6 +224,7 @@ const shzmCharts = {
         },
 
         now_playing: {
+            title: 'SHZM - Top Hits 200 - Global (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (35) * 1000,
         },
@@ -248,6 +256,7 @@ const bigtopCharts = {
         },
 
         now_playing: {
+            title: 'BigTop- 40 Top Tracks (#Music)',
             description: 'Last 40 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (35) * 1000,
         },
@@ -275,6 +284,7 @@ const billboardCharts = {
         },
 
         now_playing: {
+            title: 'Billboard - Official UK (#Music)',
             description: 'Last 20 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (60 * 60 * 1) * 1000,
         },
@@ -305,6 +315,7 @@ const billboardCharts = {
         },
 
         now_playing: {
+            title: 'Billboard - HOT 100 (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (60 * 60 * 1) * 1000,
         },
@@ -335,6 +346,7 @@ const billboardCharts = {
         },
 
         now_playing: {
+            title: 'Billboard - HOT 100 (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (60 * 60 * 1) * 1000
         },
@@ -366,6 +378,7 @@ const kanCharts = {
         },
 
         now_playing: {
+            title: 'Kan - Gimel - Editor Selection (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (60 * 60 * 1) * 1000
         },
@@ -396,6 +409,7 @@ const bpCharts = {
         },
 
         now_playing: {
+            title: 'BP Top - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (60 * 60 * 1) * 1000
         },
@@ -435,6 +449,7 @@ const bpCharts = {
         },
 
         now_playing: {
+            title: 'BP Psy Trance - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (60 * 60 * 1) * 1000
         },
@@ -480,6 +495,7 @@ const z100Charts = {
         },
 
         now_playing: {
+            title: 'Z100 - Top Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (35) * 1000,
         },
@@ -507,6 +523,7 @@ const europaPlusCharts = {
         },
 
         now_playing: {
+            title: 'EuropaPlus (RU) - Top 40 Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (35) * 1000,
         },
@@ -537,6 +554,7 @@ const europaPlusCharts = {
         },
 
         now_playing: {
+            title: 'EuropaPlus (RU) - New Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (35) * 1000,
         },
@@ -565,6 +583,7 @@ const capitalfmStations = {
         },
 
         now_playing: {
+            title: 'CapitalFM - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (35) * 1000,
         },
@@ -592,6 +611,7 @@ const xmStations = {
         },
 
         now_playing: {
+            title: 'XM1 Hits - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (35) * 1000
         },
@@ -619,6 +639,7 @@ const xmStations = {
         },
 
         now_playing: {
+            title: 'XM1 Pulse - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (35) * 1000
         },
@@ -647,6 +668,7 @@ const virginStations = {
         },
 
         now_playing: {
+            title: 'VG - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (35) * 1000,
         },
@@ -678,6 +700,7 @@ const glzStations = {
         },
 
         now_playing: {
+            title: 'GLZ - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (35) * 1000
         },
@@ -713,6 +736,7 @@ const fm88Stations = {
         },
 
         now_playing: {
+            title: '88FM - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (35) * 1000
         },
@@ -741,6 +765,7 @@ const fm91Stations = {
         },
 
         now_playing: {
+            title: '91FM - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (35) * 1000
         },
@@ -769,6 +794,7 @@ const fm100Stations = {
         },
 
         now_playing: {
+            title: '100FM - Yam Tihoni Hits (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (35) * 1000
         },
@@ -795,6 +821,7 @@ const fm100Stations = {
         },
 
         now_playing: {
+            title: '100FM - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (35) * 1000
         },
@@ -823,6 +850,7 @@ const fm102Stations = {
         },
 
         now_playing: {
+            title: '102FM - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (35) * 1000
         },
@@ -850,6 +878,7 @@ const fm103Stations = {
         },
 
         now_playing: {
+            title: '103FM - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (35) * 1000
         },
@@ -878,6 +907,7 @@ const fm1075Stations = {
         },
 
         now_playing: {
+            title: '107.5FM - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (35) * 1000
         },
@@ -905,27 +935,22 @@ const us997Stations = {
         },
 
         now_playing: {
+            title: '9FM MOW - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (35) * 1000
         },
 
         scraper: {
             type: 'get',
-            url: 'aHR0cDovL3BsYXllci5saXN0ZW5saXZlLmNvLzU1NDQxL2VuL3NvbmdoaXN0b3J5',
-            regExp: [new RegExp('songs = (.*?);')],
+            url: 'aHR0cHM6Ly9jYWNoZS5ib25uZXZpbGxlLmNsb3VkL3YxL21ldGEvaG90bGluZS9vcmcvQklDL21hcmtldC9TYW5GcmFuY2lzY28vc3RhdGlvbi9LTVZRLUZN',
         },
 
         parser: {
             type: 'json',
 
-            options: {
-                limit: 1,
-                reverse: true,
-            },
-
             fields: {
-                artist: '{Iterator}.artist',
-                title: '{Iterator}.title'
+                artist: 'desc',
+                title: 'title'
             },
         },
     },
@@ -943,6 +968,7 @@ const eco99Stations = {
         },
 
         now_playing: {
+            title: 'ECO - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (35) * 1000
         },
@@ -970,6 +996,7 @@ const z100Stations = {
         },
 
         now_playing: {
+            title: 'Z10 - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (35) * 1000,
         },
@@ -1003,6 +1030,7 @@ const europaPlusStations = {
         },
 
         now_playing: {
+            title: 'Europa (RU) - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (35) * 1000,
         },
@@ -1062,12 +1090,12 @@ const charts = {
 const stations = {
     // IL
     ...glzStations,
-    ...fm88Stations,
-    ...fm91Stations,
+    //...fm88Stations,
+    //...fm91Stations,
     ...eco99Stations,
-    ...fm100Stations,
-    ...fm102Stations,
-    ...fm103Stations,
+    //...fm100Stations,
+    //...fm102Stations,
+    //...fm103Stations,
 
     // World
     ...capitalfmStations,
@@ -1076,7 +1104,7 @@ const stations = {
     ...us997Stations,
     ...z100Stations,
     ...europaPlusStations,
-    ...dorognoeStations,
+    //...dorognoeStations,
 };
 
 export {

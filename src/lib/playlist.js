@@ -1,6 +1,6 @@
 import Spotify from './providers/spotify.js';
 import { decodeHTMLEntities } from '../utils/strings.js';
-import { stations } from '../../config/sources.js';
+import { stations, charts } from '../../config/sources.js';
 
 import logger from '../utils/logger.js';
 
@@ -34,7 +34,7 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
             });
 
             let addToPlaylist = await Spotify.addTracksToPlaylist(playlistID, [songID], 0);
-            await updatePlaylistDescription(playlistID);
+            await updatePlaylistMetadata(playlist);
         } else {
             logger.debug({
                 method: 'updatePlayList',
@@ -112,7 +112,7 @@ const replacePlayList = async function (playlist, tracks) {
         }
 
         let replaceItemsInPlaylist = await Spotify.replaceTracksInPlaylist(playlistID, tracksList);
-        await updatePlaylistDescription(playlistID);
+        await updatePlaylistMetadata(playlist);
     } catch (err) {
         logger.error({
             error: 'replacePlayList exception',
@@ -121,14 +121,21 @@ const replacePlayList = async function (playlist, tracks) {
     }
 };
 
-const updatePlaylistDescription = async function (playlistID) {
+const updatePlaylistMetadata = async function (playlist) {
+    let playlistID = _getPlaylistID(playlist);
+    let nowPlayingMetadata = _getNowPlayingMetadata(playlist);
+
     try {
-        await Spotify.playlistUpdateDetails(playlistID, {
-            description: 'Last 200 Tracks. LAST UPDATE: {now}'.replace('{now}', _now())
-        });
+        let metadata = {
+            name: isProduction() ? nowPlayingMetadata.title : _getPlaylistPrefix() +' '+ nowPlayingMetadata.title,
+            description: nowPlayingMetadata.description.replace('{now}', _now()),
+            public: isProduction()
+        };
+
+        await Spotify.playlistUpdateDetails(playlistID, metadata);
     } catch (err) {
         logger.error({
-            error: 'updatePlaylistDescription exception',
+            error: 'updatePlaylistMetadata exception',
             message: err,
         });
     }
@@ -139,7 +146,7 @@ const slicePlaylist = async function (playlist, limit) {
     let playlistID = _getPlaylistID(playlist);
 
     try {
-        await updatePlaylistDescription(playlistID);
+        await updatePlaylistMetadata(playlist);
         await Spotify.slicePlaylist(playlistID, limit);
     } catch (err) {
         logger.error({
@@ -170,6 +177,11 @@ const sliceAllPlaylists = async function (limit = 200) {
     }
 };
 
+const _getNowPlayingMetadata = function(channelID) {
+    let channels = Object.assign({}, stations, charts);
+
+    return channels[channelID]?.now_playing;
+};
 
 const _getPlaylistID = function(source) {
     let playlists = JSON.parse(process.env.SPOTIFY_PLAYLIST_MAP);
@@ -177,6 +189,13 @@ const _getPlaylistID = function(source) {
     return playlists[source];
 };
 
+const _getPlaylistPrefix = function() {
+    return process.env.SPOTIFY_PLAYLIST_PREFIX;
+};
+
+const isProduction = function() {
+    return (['production'].includes(process.env.NODE_ENV));
+};
 
 const _cleanNames = function(str) {
     return str
