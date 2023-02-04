@@ -315,7 +315,7 @@ const billboardCharts = {
         },
 
         now_playing: {
-            title: 'Billboard - HOT 100 (#Music)',
+            title: 'Billboard - GLOBAL 100 (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: (60 * 60 * 1) * 1000,
         },
