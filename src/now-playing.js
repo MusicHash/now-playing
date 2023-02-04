@@ -72,7 +72,13 @@ const triggerSliceAllPlaylist = async function (chart) {
     try {
         let res = await sliceAllPlaylists();
 
-        logger.info({method: 'triggerSliceAllPlaylist', chart, message: res});
+        logger.info({
+            method: 'triggerSliceAllPlaylist', 
+            message: res,
+            metadata: {
+                chart,
+            },
+        });
     } catch(error) {
         logger.error({
             method: 'triggerSliceAllPlaylist',
