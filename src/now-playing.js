@@ -215,7 +215,7 @@ setInterval(() => {
     triggerRefreshChartAll();
 
     logger.info({message: '[AUTO REFRESH] CHARTS - once every 24 hours'});
-}, 5000);
+}, 24 * 60 * 60 * 1000);
 
 
 // Shorten all playlists to 220 rows
