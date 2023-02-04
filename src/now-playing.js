@@ -27,11 +27,11 @@ const triggerRefreshAllStations = async function () {
         let res = await refreshAllStations();
 
         logger.info({method: 'triggerRefreshAllStations', message: res});
-    } catch(err) {
+    } catch(error) {
         logger.error({
             method: 'triggerRefreshAllStations',
-            error: 'Could not refresh stations',
-            message: err,
+            message: 'Could not refresh stations',
+            error,
         });
     }
 };
@@ -42,11 +42,11 @@ const triggerRefreshChartAll = async function () {
         let res = await refreshChartAll();
 
         logger.info({method: 'triggerRefreshChartAll', message: res});
-    } catch(err) {
+    } catch(error) {
         logger.error({
             method: 'triggerRefreshChartAll',
-            error: 'Could not refresh charts',
-            message: err,
+            message: 'Could not refresh charts',
+            error,
         });
     }
 };
@@ -56,12 +56,14 @@ const triggerRefreshChart = async function (chart) {
         let res = await refreshChart(chart);
 
         logger.info({method: 'triggerRefreshChart', chart, message: res});
-    } catch(err) {
+    } catch(error) {
         logger.error({
             method: 'triggerRefreshChart',
-            chart,
-            error: 'Could not refresh chart',
-            message: err,
+            message: 'Could not refresh chart',
+            error,
+            metadata: {
+                chart,
+            },
         });
     }
 };
@@ -71,12 +73,14 @@ const triggerSliceAllPlaylist = async function (chart) {
         let res = await sliceAllPlaylists();
 
         logger.info({method: 'triggerSliceAllPlaylist', chart, message: res});
-    } catch(err) {
+    } catch(error) {
         logger.error({
             method: 'triggerSliceAllPlaylist',
-            chart,
-            error: 'Could not slice chart',
-            message: err,
+            message: 'Could not slice chart',
+            error,
+            metadata: {
+                chart,
+            },
         });
     }
 };
@@ -211,7 +215,7 @@ setInterval(() => {
     triggerRefreshChartAll();
 
     logger.info({message: '[AUTO REFRESH] CHARTS - once every 24 hours'});
-}, 24 * 60 * 60 * 1000);
+}, 5000);
 
 
 // Shorten all playlists to 220 rows

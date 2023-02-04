@@ -19,10 +19,10 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
         artist = tracks.fields[0] && tracks.fields[0].artist || '',
         title = tracks.fields[0] && tracks.fields[0].title || '';
 
-    let q = _cleanNames(decodeHTMLEntities([artist, title].join(' - ')));
+    let query = _cleanNames(decodeHTMLEntities([artist, title].join(' - ')));
 
     try {
-        let search = await Spotify.searchTracks(q);
+        let search = await Spotify.searchTracks(query);
 
         if (0 < search.tracks.items.length) {
             let songID = search.tracks.items[0].uri;
@@ -31,7 +31,7 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
                 method: 'updatePlayList',
                 message: 'FOUND, adding',
                 metadata: {
-                    query: q,
+                    query,
                     playlist,
                     playlistID,
                 }
@@ -44,19 +44,20 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
                 method: 'updatePlayList',
                 message: 'END - NOT FOUND',
                 metadata: {
-                    query: q,
+                    query,
                     playlist,
                     playlistID,
                     tracks,
                 }
             });
         }
-    } catch (err) {
+    } catch (error) {
         logger.error({
-            error: 'updatePlayList failed, exception',
-            message: err,
+            method: 'updatePlayList',
+            message: 'updatePlayList failed, exception',
+            error,
             metadata: {
-                query: q,
+                query,
                 playlist,
                 playlistID,
                 tracks,
@@ -78,13 +79,20 @@ const replacePlayList = async function (playlist, tracks) {
 
     let playlistID = _getPlaylistID(playlist);
 
-    let extractURI = async function(q) {
-        let search = await Spotify.searchTracks(q);
+    let extractURI = async function(query) {
+        let search = await Spotify.searchTracks(query);
 
         if (0 < search.tracks.items.length) {
             let songID = search.tracks.items[0].uri;
 
-            //logger.debug({method: 'replacePlayList', message: 'FOUND item for q', query: q, songID});
+            logger.debug({
+                method: 'replacePlayList',
+                message: 'FOUND item for query',
+                metadata: {
+                    query,
+                    songID,
+                },
+            });
 
             return songID;
         } else {
@@ -92,8 +100,10 @@ const replacePlayList = async function (playlist, tracks) {
 
             logger.debug({
                 method: 'replacePlayList',
-                error: 'NOT FOUND',
-                query: q,
+                message: 'NOT FOUND',
+                metadata: {
+                    query,
+                },
             });
         }
 
@@ -107,8 +117,8 @@ const replacePlayList = async function (playlist, tracks) {
             let artist = tracks.fields[i] && tracks.fields[i].artist || '',
                 title = tracks.fields[i] && tracks.fields[i].title || '';
 
-            let q = _cleanNames(decodeHTMLEntities([artist, title].join(' - ')));
-            let trackFound = await extractURI(q);
+            let query = _cleanNames(decodeHTMLEntities([artist, title].join(' - ')));
+            let trackFound = await extractURI(query);
 
             if (null !== trackFound) {
                 tracksList.push(trackFound);
@@ -116,19 +126,22 @@ const replacePlayList = async function (playlist, tracks) {
                 // @todo: decide what to do here: skip?retry?
                 logger.debug({
                     method: 'replacePlayList',
-                    description: 'trackFound not found, could be timeout etc..',
-                    trackFound,
-                    tracksList,
+                    message: 'trackFound not found, could be timeout etc..',
+                    metadata: {
+                        query,
+                        trackFound,
+                        tracksList,
+                    },
                 });
             }
         }
 
         let replaceItemsInPlaylist = await Spotify.replaceTracksInPlaylist(playlistID, tracksList);
         await updatePlaylistMetadata(playlist);
-    } catch (err) {
+    } catch (error) {
         logger.error({
-            error: 'replacePlayList exception',
-            message: err,
+            message: 'replacePlayList failed',
+            error,
         });
     }
 };
@@ -145,10 +158,14 @@ const updatePlaylistMetadata = async function (playlist) {
         };
 
         await Spotify.playlistUpdateDetails(playlistID, metadata);
-    } catch (err) {
+    } catch (error) {
         logger.error({
-            error: 'updatePlaylistMetadata exception',
-            message: err,
+            method: 'updatePlaylistMetadata',
+            message: 'updatePlaylistMetadata failed',
+            error,
+            metadata: {
+                args: [...arguments],
+            },
         });
     }
 };
@@ -160,10 +177,14 @@ const slicePlaylist = async function (playlist, limit) {
     try {
         await updatePlaylistMetadata(playlist);
         await Spotify.slicePlaylist(playlistID, limit);
-    } catch (err) {
+    } catch (error) {
         logger.error({
-            error: 'slicePlaylist exception',
-            message: err,
+            method: 'slicePlaylist',
+            message: 'slicePlaylist exception',
+            error,
+            metadata: {
+                args: [...arguments],
+            },
         });
     }
 };
