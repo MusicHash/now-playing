@@ -9,8 +9,10 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
     logger.debug({
         method: 'updatePlayList',
         message: 'START',
-        playlist,
-        tracks,
+        metadata: {
+            playlist,
+            tracks,
+        },
     });
 
     let playlistID = _getPlaylistID(playlist),
@@ -28,9 +30,11 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
             logger.debug({
                 method: 'updatePlayList',
                 message: 'FOUND, adding',
-                query: q,
-                playlist,
-                playlistID,
+                metadata: {
+                    query: q,
+                    playlist,
+                    playlistID,
+                }
             });
 
             let addToPlaylist = await Spotify.addTracksToPlaylist(playlistID, [songID], 0);
@@ -39,18 +43,24 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
             logger.debug({
                 method: 'updatePlayList',
                 message: 'END - NOT FOUND',
-                query: q,
-                playlist,
-                playlistID,
-                tracks,
+                metadata: {
+                    query: q,
+                    playlist,
+                    playlistID,
+                    tracks,
+                }
             });
         }
     } catch (err) {
         logger.error({
-            playlist,
-            playlistID,
-            error: 'updatePlayList exception',
+            error: 'updatePlayList failed, exception',
             message: err,
+            metadata: {
+                query: q,
+                playlist,
+                playlistID,
+                tracks,
+            }
         });
     }
 };
@@ -60,8 +70,10 @@ const replacePlayList = async function (playlist, tracks) {
     logger.debug({
         method: 'replacePlayList',
         message: 'START',
-        playlist,
-        tracks,
+        metadata: {
+            playlist,
+            tracks,
+        },
     });
 
     let playlistID = _getPlaylistID(playlist);
