@@ -164,8 +164,8 @@ describe('Spotify', function() {
 
             try {
                 let newPlaylist = await Spotify.replaceTracksInPlaylist(PLAYLIST_ID_READWRITE, tracksList);
-            } catch(err) {
-                throw 'Failed to replaceTracksInPlaylist, error: ' + err;
+            } catch(error) {
+                throw 'Failed to replaceTracksInPlaylist, error: ' + error;
             }
         };
 

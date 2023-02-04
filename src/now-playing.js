@@ -140,9 +140,9 @@ app.get('/debug/fetch/:chartID', async (req, res) => {
 
         output.push(`chartRPC: ${chartID}`);
         output.push(formattedRPCInfo);
-    } catch(err) {
+    } catch(error) {
         output.push(`Error: ${chartID}`);
-        output.push(err);
+        output.push(error);
     }
 
     res.send(`<pre>${output.join("\n")}</pre>`);
