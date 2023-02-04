@@ -26,10 +26,10 @@ const refreshAllStations = async function() {
         .then(async tracks => {
             await updatePlayList(stationIdx, tracks);
         })
-        .catch(err => logger.error({
+        .catch(error => logger.error({
             method: 'refreshAllStations',
-            error: 'Failed to refresh stations',
-            message: err,
+            message: 'Failed to refresh stations',
+            error,
         }));
     }
 };
@@ -61,10 +61,10 @@ const refreshChart = async function (chartIdx) {
     .then(async tracks => {
         await replacePlayList(chartIdx, tracks);
     })
-    .catch(err => logger.error({
+    .catch(error => logger.error({
         method: 'refreshChart',
-        error: 'Failed to refresh charts',
-        message: err,
+        message: 'Failed to refresh charts',
+        error,
     }));
     
 };
