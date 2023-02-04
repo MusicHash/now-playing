@@ -184,7 +184,7 @@ class Spotify {
         } catch (err) {
             logger.error({
                 error: 'Search failed',
-                message: searchTracks.error,
+                message: JSON.stringify(err),
                 metadata: {
                     query: q,
                 },
