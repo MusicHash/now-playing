@@ -157,7 +157,7 @@ const updatePlaylistMetadata = async function (playlist) {
             public: isProduction()
         };
 
-        await Spotify.playlistUpdateDetails(playlistID, metadata);
+        await Spotify.playlistUpdateMetadata(playlistID, metadata);
     } catch (error) {
         logger.error({
             method: 'updatePlaylistMetadata',
