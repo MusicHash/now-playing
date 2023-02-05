@@ -188,7 +188,7 @@ describe('Spotify', function() {
                 description: 'ci passed runtime: '+ Date.now()
             };
 
-            let sut = await Spotify.playlistUpdateDetails(PLAYLIST_ID_READWRITE, props);
+            let sut = await Spotify.playlistUpdateMetadata(PLAYLIST_ID_READWRITE, props);
             let afterChange = await Spotify.getPlaylist(PLAYLIST_ID_READWRITE);
 
             expect(afterChange.name).toBe(props.name);
