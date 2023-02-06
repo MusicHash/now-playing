@@ -40,7 +40,7 @@ class Spotify {
             this.#isConnected = true;
         } catch(error) {
             logger.error({
-                message: 'Something went wrong when retrieving an access token',
+                message: 'Failed retrieving an access token',
                 error,
                 metadata: {
                     token
@@ -71,7 +71,11 @@ class Spotify {
             const authorizationCode = await this.api.authorizationCodeGrant(code);
 
             if (authorizationCode.body.expires_in < 1500) {
-                logger.info({method: 'authorizationCode', message: 'Too short, renewing...'});
+                logger.info({
+                    method: 'authorizationCode',
+                    message: 'Token too short, renewing...',
+                });
+
                 authorizationCode = await this.api.refreshAccessToken();
             }
 
@@ -86,8 +90,8 @@ class Spotify {
                 method: 'auth',
                 message: `Successfully retrieved access token. Expires in ${expiresIn} s.`,
                 metadata: {
-                    access_token: accessToken,
-                    refresh_token: refreshToken,
+                    accessToken,
+                    refreshToken,
                 },
             });
 
@@ -103,7 +107,7 @@ class Spotify {
                     method: 'auth',
                     message: 'The access token has been refreshed!',
                     metadata: {
-                        access_token: accessToken,
+                        accessToken,
                     },
                 });
 
@@ -112,14 +116,14 @@ class Spotify {
         } catch (error) {
             logger.error({
                 method: 'auth',
-                message: 'Error getting Tokens',
+                message: 'Error getting tokens',
                 error,
                 metadata: {
                     code,
                 },
             });
 
-            res.send(`Error getting Tokens: ${err}`);
+            res.send(`Error getting tokens: ${error}`);
         }
     }
 
@@ -166,12 +170,12 @@ class Spotify {
 
             logger.info({
                 method: 'refreshAccessToken',
-                message: 'The access token has been refreshed successfully!',
+                message: 'Access token refreshed successfully',
             });
         } catch (error) {
             logger.error({
                 method: 'refreshAccessToken',
-                message: 'Could not refresh access token',
+                message: 'Failed to refresh access token',
                 error,
                 metadata: {
                     token,
@@ -197,10 +201,10 @@ class Spotify {
 
             logger.debug({
                 method: 'searchTracks',
-                message: 'Search API successful',
+                message: 'Search API called successfully',
                 metadata: {
-                    query,
-                    limit,
+                    args: [...arguments],
+                    searchTracks,
                 },
             });
 
@@ -211,8 +215,7 @@ class Spotify {
                 message: 'Search API failed',
                 error,
                 metadata: {
-                    query,
-                    limit,
+                    args: [...arguments],
                 },
             });
             
@@ -232,9 +235,9 @@ class Spotify {
 
             logger.debug({
                 method: 'getPlaylist',
-                message: 'getPlaylist successful',
+                message: 'getPlaylist API called successfully',
                 metadata: {
-                    playlistID,
+                    args: [...arguments],
                     playlist,
                 },
             });
@@ -246,7 +249,7 @@ class Spotify {
                 message: 'getPlaylist failed',
                 error,
                 metadata: {
-                    playlistID,
+                    args: [...arguments],
                 },
             });
         }
@@ -277,7 +280,7 @@ class Spotify {
                         method: 'addTracksToPlaylist',
                         message: 'TrackID found but already exists, bumping to be first',
                         metadata: {
-                            playlistID,
+                            args: [...arguments],
                             name: trackFromPlaylist.name,
                             trackID: trackIDs[0],
                             trackPosition: trackFromPlaylist.position,
@@ -290,7 +293,7 @@ class Spotify {
                         method: 'addTracksToPlaylist',
                         message: 'TrackID already exists and first in playlist, SKIPPING!',
                         metadata: {
-                            playlistID,
+                            args: [...arguments],
                             name: trackFromPlaylist.name,
                             trackPosition: trackFromPlaylist.position,
                             id: trackIDs[0],
@@ -320,7 +323,7 @@ class Spotify {
             
             logger.debug({
                 method: 'addTracksToPlaylist',
-                message: 'addTracksToPlaylist API called',
+                message: 'addTracksToPlaylist API called successfully',
                 metadata: {
                     args: [...arguments],
                     playlist,
@@ -375,7 +378,7 @@ class Spotify {
 
             logger.debug({
                 method: 'getPlaylistTracks',
-                message: 'getPlaylistTracks API called',
+                message: 'getPlaylistTracks API called successfully',
                 metadata: {
                     args: [...arguments],
                     playlist,
