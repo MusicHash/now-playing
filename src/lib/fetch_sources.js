@@ -31,7 +31,7 @@ const refreshAllStations = async function() {
             message: 'Failed to refresh station',
             error,
             metadata: {
-                stationIdx
+                stationIdx,
             },
         }));
     }
