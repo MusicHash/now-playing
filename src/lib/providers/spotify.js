@@ -105,7 +105,7 @@ class Spotify {
 
                 logger.info({
                     method: 'auth',
-                    message: 'The access token has been refreshed!',
+                    message: 'The access token has been refreshed',
                     metadata: {
                         accessToken,
                     },
@@ -291,7 +291,7 @@ class Spotify {
 
                     logger.debug({
                         method: 'addTracksToPlaylist',
-                        message: 'TrackID already exists and first in playlist, SKIPPING!',
+                        message: 'TrackID already exists and first in playlist, SKIPPING',
                         metadata: {
                             args: [...arguments],
                             name: trackFromPlaylist.name,
