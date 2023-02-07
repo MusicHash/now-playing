@@ -233,7 +233,7 @@ const isProduction = function() {
 };
 
 const _cleanNames = function(str) {
-    return decodeHTMLEntities(str).
+    return decodeHTMLEntities(str)
         .replace(/\s\([^)]+\)$/, '') // removes, last part (.*)$
         .replace(/( עם |feat\.|Ft\.|Featuring)/g, '')
         .replace(/(&|,)/g, '')

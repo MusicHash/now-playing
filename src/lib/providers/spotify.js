@@ -43,7 +43,7 @@ class Spotify {
                 message: 'Failed retrieving an access token',
                 error,
                 metadata: {
-                    token
+                    token,
                 },
             });
         }
