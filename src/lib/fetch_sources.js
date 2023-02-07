@@ -82,7 +82,7 @@ const refreshChartAll = async function () {
             refreshChart(chartIdx);
         }, delayBySeconds * 1000);
 
-        logger.debug({
+        logger.info({
             method: 'refreshChartAll',
             message: `Queued chart ${chartIdx} for update in ${delayBySeconds}s`,
         });
