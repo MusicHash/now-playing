@@ -249,12 +249,12 @@ const isProduction = function() {
 
 const _cleanNames = function(str) {
     return decodeHTMLEntities(str)
-        .replace(/\s\([^)]+\)$/, '') // removes, last part (.*)$
-        .replace(/( עם |feat\.|Ft\.|Featuring)/g, '')
+        .replace(/( עם |feat\.|Ft\.|Featuring|)/g, '')
         .replace(/(&|,)/g, '')
         .replace(/( x |-|–)/g, ' ')    
         .replace(/(\/)/g, ' ')
         .replace(/\s+/g, ' ')
+        .replace(/\s\([^)]+\)$/, '') // removes, last part (.*)$
         .trim()
         ;
 };
