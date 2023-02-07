@@ -44,26 +44,34 @@ const refreshChart = async function (chartIdx) {
     if (!chart) {
         logger.error({
             method: 'refreshChart',
-            message: 'Invalid chart',
-            chart,
+            message: 'Chart not found - failed',
+            metadata: {
+                chart,
+                args: [...arguments],
+            },
         });
 
-        return;
+        return Promise.reject();
     }
 
     logger.debug({
         method: 'refreshChart',
-        error: 'Refreshing Chart started',
-        chart,
+        error: 'Starting chart refreshing',
+        metadata: {
+            chart,
+            args: [...arguments],
+        },
     });
 
     getCurrentTracks({
         scraper: chart.scraper,
         parser: chart.parser
     })
+    
     .then(async tracks => {
         await replacePlayList(chartIdx, tracks);
     })
+
     .catch(error => logger.error({
         method: 'refreshChart',
         message: 'Failed to refresh charts',
