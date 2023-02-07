@@ -10,8 +10,7 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
         method: 'updatePlayList',
         message: 'START',
         metadata: {
-            playlist,
-            tracks,
+            args: [...arguments],
         },
     });
 
@@ -31,9 +30,11 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
                 method: 'updatePlayList',
                 message: 'FOUND, adding',
                 metadata: {
-                    query,
-                    playlist,
+                    args: [...arguments],
                     playlistID,
+                    songID,
+                    search,
+                    query,
                 }
             });
 
@@ -44,10 +45,9 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
                 method: 'updatePlayList',
                 message: 'END - NOT FOUND',
                 metadata: {
+                    args: [...arguments],
                     query,
-                    playlist,
                     playlistID,
-                    tracks,
                 }
             });
         }
@@ -57,10 +57,9 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
             message: 'updatePlayList failed, exception',
             error,
             metadata: {
+                args: [...arguments],
                 query,
-                playlist,
                 playlistID,
-                tracks,
             }
         });
     }
@@ -72,8 +71,7 @@ const replacePlayList = async function (playlist, tracks) {
         method: 'replacePlayList',
         message: 'START',
         metadata: {
-            playlist,
-            tracks,
+            args: [...arguments],
         },
     });
 
@@ -89,6 +87,7 @@ const replacePlayList = async function (playlist, tracks) {
                 method: 'replacePlayList',
                 message: 'FOUND item for query',
                 metadata: {
+                    args: [...arguments],
                     query,
                     songID,
                 },
@@ -102,6 +101,7 @@ const replacePlayList = async function (playlist, tracks) {
                 method: 'replacePlayList',
                 message: 'NOT FOUND',
                 metadata: {
+                    args: [...arguments],
                     query,
                 },
             });
@@ -128,6 +128,7 @@ const replacePlayList = async function (playlist, tracks) {
                     method: 'replacePlayList',
                     message: 'trackFound not found, could be timeout etc..',
                     metadata: {
+                        args: [...arguments],
                         query,
                         trackFound,
                         tracksList,
