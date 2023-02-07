@@ -8,7 +8,7 @@ import logger from '../utils/logger.js';
 const updatePlayList = async function (playlist, tracks, firstSongOnly) {
     logger.debug({
         method: 'updatePlayList',
-        message: 'START',
+        message: 'STARTING UPDATE PLAYLIST FLOW',
         metadata: {
             args: [...arguments],
         },
@@ -238,7 +238,9 @@ const _cleanNames = function(str) {
         .replace(/(&|,)/g, '')
         .replace(/( x |-|–)/g, ' ')    
         .replace(/(\/)/g, ' ')
-        .replace(/\s+/g, ' ');
+        .replace(/\s+/g, ' ')
+        .trim()
+        ;
 };
 
 const _now = function(timezone = 'Asia/Jerusalem') {
