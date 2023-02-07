@@ -3,19 +3,19 @@ import logger from '../utils/logger.js';
 
 setLogger(logger);
 
-const getCurrentTracks = async function({ scraper, parser }) {
+const getCurrentTracks = async function({ scraperProps, parserProps }) {
     let scrapeResponse = await scrape({
-        url: Buffer.from(scraper.url, 'base64').toString('ascii'),
-        type: scraper.type,
-        regExp: scraper.regExp,
-        payload: scraper.payload || {},
+        url: Buffer.from(scraperProps.url, 'base64').toString('ascii'),
+        type: scraperProps.type,
+        regExp: scraperProps.regExp,
+        payload: scraperProps.payload || {},
     });
 
     let parsed = await parse({
         body: scrapeResponse.body(),
-        type: parser.type,
-        fields: parser.fields,
-        options: parser.options
+        type: parserProps.type,
+        fields: parserProps.fields,
+        options: parserProps.options
     });
 
     return parsed;

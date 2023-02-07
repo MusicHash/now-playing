@@ -20,8 +20,8 @@ const refreshAllStations = async function() {
         let props = stations[stationIdx];
 
         getCurrentTracks({
-            scraper: props.scraper,
-            parser: props.parser
+            scraperProps: props.scraper,
+            parserProps: props.parser
         })
         .then(async tracks => {
             await updatePlayList(stationIdx, tracks);
