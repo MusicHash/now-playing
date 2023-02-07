@@ -31,6 +31,8 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
                 query,
             },
         });
+
+        return Promise.reject();
     }
 
     try {
