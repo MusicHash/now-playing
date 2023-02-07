@@ -24,7 +24,7 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
     if (10 >= query.length) {
         logger.warn({
             method: 'updatePlayList',
-            message: 'minimum length is below threshold, skipping spotify api call',
+            message: 'Minimum length is below threshold, skipping spotify api call',
             metadata: {
                 args: [...arguments],
                 playlistID,
@@ -43,7 +43,7 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
 
             logger.debug({
                 method: 'updatePlayList',
-                message: 'FOUND, adding',
+                message: 'Found track, takes first',
                 metadata: {
                     args: [...arguments],
                     playlistID,
@@ -58,7 +58,7 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
         } else {
             logger.debug({
                 method: 'updatePlayList',
-                message: 'END - NOT FOUND',
+                message: 'Track was not found, playlist didnt update',
                 metadata: {
                     args: [...arguments],
                     query,
@@ -81,10 +81,10 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
 };
 
 
-const replacePlayList = async function (playlist, tracks) {
+const replacePlayList = async function(playlist, tracks) {
     logger.debug({
         method: 'replacePlayList',
-        message: 'START',
+        message: 'Starting to replace all tracks in a given playlist',
         metadata: {
             args: [...arguments],
         },
@@ -99,10 +99,11 @@ const replacePlayList = async function (playlist, tracks) {
             let songID = search.tracks.items[0].uri;
 
             logger.debug({
-                method: 'replacePlayList',
-                message: 'FOUND item for query',
+                method: 'extractURI -> replacePlayList',
+                message: 'Found a track for query',
                 metadata: {
                     args: [...arguments],
+                    playlistID,
                     query,
                     songID,
                 },
@@ -113,10 +114,11 @@ const replacePlayList = async function (playlist, tracks) {
             // retry here ?
 
             logger.debug({
-                method: 'replacePlayList',
-                message: 'NOT FOUND',
+                method: 'extractURI -> replacePlayList',
+                message: 'Track not found for query',
                 metadata: {
                     args: [...arguments],
+                    playlistID,
                     query,
                 },
             });
@@ -132,20 +134,21 @@ const replacePlayList = async function (playlist, tracks) {
             let artist = tracks.fields[i] && tracks.fields[i].artist || '',
                 title = tracks.fields[i] && tracks.fields[i].title || '';
 
-            let query = _cleanNames([artist, title].join(' - '));
-            let trackFound = await extractURI(query);
+            let query = _cleanNames([artist, title].join(' '));
+            let tracksFound = await extractURI(query);
 
-            if (null !== trackFound) {
-                tracksList.push(trackFound);
+            if (null !== tracksFound) {
+                tracksList.push(tracksFound);
             } else {
                 // @todo: decide what to do here: skip?retry?
                 logger.debug({
                     method: 'replacePlayList',
-                    message: 'trackFound not found, could be timeout etc..',
+                    message: 'tracksFound request failed, not tracks found',
                     metadata: {
                         args: [...arguments],
+                        playlistID,
                         query,
-                        trackFound,
+                        tracksFound,
                         tracksList,
                     },
                 });
@@ -158,6 +161,10 @@ const replacePlayList = async function (playlist, tracks) {
         logger.error({
             message: 'replacePlayList failed',
             error,
+            metadata: {
+                args: [...arguments],
+                playlistID,
+            },
         });
     }
 };

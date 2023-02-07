@@ -27,7 +27,7 @@ const refreshAllStations = async function() {
             await updatePlayList(stationIdx, tracks);
         })
         .catch(error => logger.error({
-            method: 'refreshAllStations -> getCurrentTracks',
+            method: 'getCurrentTracks -> refreshAllStations',
             message: 'Failed to refresh station',
             error,
             metadata: {
@@ -44,7 +44,7 @@ const refreshChart = async function (chartIdx) {
     if (!chart) {
         logger.error({
             method: 'refreshChart',
-            message: 'Chart not found - failed',
+            message: 'Chart not found',
             metadata: {
                 chart,
                 args: [...arguments],
@@ -56,7 +56,7 @@ const refreshChart = async function (chartIdx) {
 
     logger.debug({
         method: 'refreshChart',
-        error: 'Starting chart refreshing',
+        error: 'Starting chart refreshing for a single chart',
         metadata: {
             chart,
             args: [...arguments],
@@ -74,8 +74,12 @@ const refreshChart = async function (chartIdx) {
 
     .catch(error => logger.error({
         method: 'refreshChart',
-        message: 'Failed to refresh charts',
+        message: 'Failed to refresh a chart',
         error,
+        metadata: {
+            chart,
+            args: [...arguments],
+        },
     }));
     
 };
