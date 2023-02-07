@@ -27,9 +27,12 @@ const refreshAllStations = async function() {
             await updatePlayList(stationIdx, tracks);
         })
         .catch(error => logger.error({
-            method: 'refreshAllStations',
-            message: 'Failed to refresh stations',
+            method: 'refreshAllStations -> getCurrentTracks',
+            message: 'Failed to refresh station',
             error,
+            metadata: {
+                stationIdx
+            },
         }));
     }
 };
