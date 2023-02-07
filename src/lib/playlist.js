@@ -15,10 +15,23 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
     });
 
     let playlistID = _getPlaylistID(playlist),
-        artist = tracks.fields[0] && tracks.fields[0].artist || '',
-        title = tracks.fields[0] && tracks.fields[0].title || '';
+        artist = tracks.fields[0]?.artist || '',
+        title = tracks.fields[0]?.title || '';
 
-    let query = _cleanNames([artist, title].join(' - '));
+    let query = _cleanNames([artist, title].join(' '));
+
+    // validate min length
+    if (10 <= query.length) {
+        logger.warn({
+            method: 'updatePlayList',
+            message: 'minimum length is below threshold, skipping spotify api call',
+            metadata: {
+                args: [...arguments],
+                playlistID,
+                query,
+            },
+        });
+    }
 
     try {
         let search = await Spotify.searchTracks(query);
