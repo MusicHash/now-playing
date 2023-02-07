@@ -20,13 +20,18 @@ Spotify.connect().then(() => {
     logger.info({
         message: 'Spotify initialized successfully'
     });
-})
+});
 
-const triggerRefreshAllStations = async function () {
+
+const triggerRefreshAllStations = async function() {
     try {
         let res = await refreshAllStations();
 
-        logger.info({method: 'triggerRefreshAllStations', message: res});
+        logger.info({
+            method: 'triggerRefreshAllStations',
+            message: res,
+        });
+
     } catch(error) {
         logger.error({
             method: 'triggerRefreshAllStations',
@@ -37,11 +42,14 @@ const triggerRefreshAllStations = async function () {
 };
 
 
-const triggerRefreshChartAll = async function () {
+const triggerRefreshChartAll = async function() {
     try {
         let res = await refreshChartAll();
 
-        logger.info({method: 'triggerRefreshChartAll', message: res});
+        logger.info({
+            method: 'triggerRefreshChartAll',
+            message: res,
+        });
     } catch(error) {
         logger.error({
             method: 'triggerRefreshChartAll',
@@ -51,24 +59,30 @@ const triggerRefreshChartAll = async function () {
     }
 };
 
-const triggerRefreshChart = async function (chart) {
+
+const triggerRefreshChart = async function(chart) {
     try {
         let res = await refreshChart(chart);
 
-        logger.info({method: 'triggerRefreshChart', chart, message: res});
+        logger.info({
+            method: 'triggerRefreshChart',
+            message: res,
+            args: [...arguments],
+        });
     } catch(error) {
         logger.error({
             method: 'triggerRefreshChart',
             message: 'Could not refresh chart',
             error,
             metadata: {
-                chart,
+                args: [...arguments],
             },
         });
     }
 };
 
-const triggerSliceAllPlaylist = async function (chart) {
+
+const triggerSliceAllPlaylist = async function(chart) {
     try {
         let res = await sliceAllPlaylists();
 
@@ -76,7 +90,7 @@ const triggerSliceAllPlaylist = async function (chart) {
             method: 'triggerSliceAllPlaylist', 
             message: res,
             metadata: {
-                chart,
+                args: [...arguments],
             },
         });
     } catch(error) {
@@ -85,17 +99,20 @@ const triggerSliceAllPlaylist = async function (chart) {
             message: 'Could not slice chart',
             error,
             metadata: {
-                chart,
+                args: [...arguments],
             },
         });
     }
 };
 
+
 const app = express();
+
 
 app.get('/spotify/login', async (req, res) => {
     res.redirect(Spotify.createAuthorizeURL());
 });
+
 
 app.get('/spotify/auth/redirect', async (req, res) => {
     const error = req.query.error;
@@ -103,6 +120,7 @@ app.get('/spotify/auth/redirect', async (req, res) => {
 
     Spotify.auth(code, error, res);
 });
+
 
 app.get('/actions', async (req, res) => {
     let links = {
@@ -154,10 +172,12 @@ app.get('/debug/fetch/:chartID', async (req, res) => {
     res.send(`<pre>${output.join("\n")}</pre>`);
 });
 
+
 app.get('/refresh_playlists_manually', async (req, res) => {
     triggerRefreshAllStations();
     res.send('Success, triggerRefreshAllStations!');
 });
+
 
 app.get('/refresh_charts_manually/:chart', async (req, res) => {
     let chart = req.params.chart;
@@ -166,10 +186,12 @@ app.get('/refresh_charts_manually/:chart', async (req, res) => {
     res.send(['Success, triggerRefreshChart!', chart]);
 });
 
+
 app.get('/playlist/refresh_charts/all', async (req, res) => {
     triggerRefreshChartAll();
     res.send(['Success, Queued ALL charts for refresh. (triggerRefreshChartAll)']);
 });
+
 
 app.get('/playlist/slice/:playlist/:limit', async (req, res) => {
     let playlist = req.params.playlist;
@@ -179,27 +201,35 @@ app.get('/playlist/slice/:playlist/:limit', async (req, res) => {
     res.send(['Success, slicePlaylist!', playlist, limit]);
 });
 
+
 app.get('/playlist/slice/all', async (req, res) => {
     triggerSliceAllPlaylist();
     res.send(['Success, Queued ALL playlists for slice. (sliceAllPlaylist)']);
 });
+
 
 const server = http
     .createServer(app)
     .listen(process.env.EXPRESS_PORT, () =>
         logger.info({
             message: `HTTP Server up. Now go to http://localhost:${process.env.EXPRESS_PORT}/login in your browser`
-        })
+        });
     )
-    .on('close', () => logger.info({message: 'Closed HTTP Server!'}));
+    .on('close', () => logger.info({
+            message: 'Closed HTTP Server!'
+        });
+    );
+
 
 // Handle exit process
 const exitHandler = terminate(server, {
     coredump: false,
 });
 
+
 // Start reading from stdin so we don't exit.
 process.stdin.resume();
+
 
 ['SIGTERM', 'SIGINT', 'SIGUSR1', 'SIGUSR2', 'SIGHUP', 'uncaughtException', 'unhandledRejection'].forEach((eventType) => {
     process.on(eventType, exitHandler.bind(null, eventType));
