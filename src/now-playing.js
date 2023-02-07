@@ -213,11 +213,11 @@ const server = http
     .listen(process.env.EXPRESS_PORT, () =>
         logger.info({
             message: `HTTP Server up. Now go to http://localhost:${process.env.EXPRESS_PORT}/login in your browser`
-        });
+        })
     )
     .on('close', () => logger.info({
             message: 'Closed HTTP Server!'
-        });
+        })
     );
 
 
