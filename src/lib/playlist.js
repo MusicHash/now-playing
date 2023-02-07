@@ -8,7 +8,7 @@ import logger from '../utils/logger.js';
 const updatePlayList = async function (playlist, tracks, firstSongOnly) {
     logger.debug({
         method: 'updatePlayList',
-        message: 'STARTING UPDATE PLAYLIST FLOW',
+        message: 'Starting playlist update flow',
         metadata: {
             args: [...arguments],
         },
@@ -18,7 +18,7 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
         artist = tracks.fields[0] && tracks.fields[0].artist || '',
         title = tracks.fields[0] && tracks.fields[0].title || '';
 
-    let query = _cleanNames(decodeHTMLEntities([artist, title].join(' - ')));
+    let query = _cleanNames([artist, title].join(' - '));
 
     try {
         let search = await Spotify.searchTracks(query);
@@ -33,8 +33,8 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
                     args: [...arguments],
                     playlistID,
                     songID,
-                    search,
                     query,
+                    search,
                 }
             });
 
@@ -117,7 +117,7 @@ const replacePlayList = async function (playlist, tracks) {
             let artist = tracks.fields[i] && tracks.fields[i].artist || '',
                 title = tracks.fields[i] && tracks.fields[i].title || '';
 
-            let query = _cleanNames(decodeHTMLEntities([artist, title].join(' - ')));
+            let query = _cleanNames([artist, title].join(' - '));
             let trackFound = await extractURI(query);
 
             if (null !== trackFound) {
@@ -204,6 +204,7 @@ const sliceAllPlaylists = async function (limit = 200) {
         }, delayBySeconds * 1000);
 
         logger.debug({
+            args: [...arguments],
             message: `Queued station ${stationIdx} for slice in ${delayBySeconds}s`,
         });
 
@@ -232,7 +233,7 @@ const isProduction = function() {
 };
 
 const _cleanNames = function(str) {
-    return str
+    return decodeHTMLEntities(str).
         .replace(/\s\([^)]+\)$/, '') // removes, last part (.*)$
         .replace(/( עם |feat\.|Ft\.|Featuring)/g, '')
         .replace(/(&|,)/g, '')
