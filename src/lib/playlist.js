@@ -21,7 +21,7 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
     let query = _cleanNames([artist, title].join(' '));
 
     // validate min length
-    if (10 <= query.length) {
+    if (10 >= query.length) {
         logger.warn({
             method: 'updatePlayList',
             message: 'minimum length is below threshold, skipping spotify api call',
