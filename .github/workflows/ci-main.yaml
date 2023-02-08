@@ -22,8 +22,9 @@ jobs:
           SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
           SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
           SPOTIFY_USER_ID: ${{ secrets.SPOTIFY_USER_ID }}
+          SPOTIFY_PLAYLIST_PREFIX: ${{ secrets.SPOTIFY_PLAYLIST_PREFIX }}
           SPOTIFY_CALLBACK_ENDPOINT: ${{ secrets.SPOTIFY_CALLBACK_ENDPOINT }}
           SPOTIFY_PLAYLIST_MAP: ${{ secrets.SPOTIFY_PLAYLIST_MAP }}
           SPOTIFY_USER_OAUTH: ${{ secrets.SPOTIFY_USER_OAUTH }}
-          EXPRESS_PORT: ${{ secrets.EXPRESS_PORT }}
+          HTTP_PORT: ${{ secrets.HTTP_PORT }}
         run: npm test

@@ -210,9 +210,9 @@ app.get('/playlist/slice/all', async (req, res) => {
 
 const server = http
     .createServer(app)
-    .listen(process.env.EXPRESS_PORT, () =>
+    .listen(process.env.HTTP_PORT, () =>
         logger.info({
-            message: `HTTP Server up. Now go to http://localhost:${process.env.EXPRESS_PORT}/login in your browser`
+            message: `HTTP Server up. Now go to http://localhost:${process.env.HTTP_PORT}/login in your browser`
         })
     )
     .on('close', () => logger.info({
