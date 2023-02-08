@@ -4,25 +4,19 @@ import Redis from 'ioredis';
  * Redis
  */
 class RedisWrapper {
-    _redisInstance;
-    redisURL;
-    logger;
+    _redisInstance = null;
+    redisURL = null;
+    logger = null;
 
-    init(Logger) {
+    init(Logger, redisURL = null) {
       this.logger = Logger;
+      this.redisURL = redisURL;
 
       return this;
     }
 
 
-    connect(redisURL) {
-      this.redisURL = redisURL;
-
-      return this._connect();
-    }
-
-
-    async _connect() {
+    async connect() {
       if (null !== this._redisInstance) {
         return this._redisInstance;
       }
@@ -41,6 +35,9 @@ class RedisWrapper {
 
       return this._redisInstance;
     }
+
+
+
 
 
     isEnabled() {

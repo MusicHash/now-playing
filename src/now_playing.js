@@ -36,11 +36,26 @@ class NowPlaying {
             ._spotifyConnect()
             ._loadAutomaticTimers();
 
-        redisWrapper
-            .init(Logger)
-            .connect(process.env.REDIS_URL);
+        this._connectToRedis();
+
+        return this;
+    }
 
 
+    _connectToRedis() {
+        const redisURL = process.env.REDIS_URL;
+
+        if (redisURL) {
+            this.logger.warn(`Connecting to Redis`);
+
+            redisWrapper
+                .init(this.logger, redisURL)
+                .connect();
+            
+        } else {
+            this.logger.warn('REDIS_URL is not defined, redis will not be connected');
+        }
+        
         return this;
     }
 
