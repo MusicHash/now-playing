@@ -265,7 +265,9 @@ class NowPlaying {
         setInterval(() => {
             this.triggerRefreshAllStations();
 
-            this.logger.info({message: '[AUTO REFRESH] STATIONS 45s'});
+            this.logger.info({
+                message: '[AUTO REFRESH] STATIONS 45s',
+            });
         }, 45 * 1000);
 
 
@@ -273,7 +275,9 @@ class NowPlaying {
         setInterval(() => {
             this.triggerRefreshChartAll();
 
-            this.logger.info({message: '[AUTO REFRESH] CHARTS - once every 24 hours'});
+            this.logger.info({
+                message: '[AUTO REFRESH] CHARTS - once every 24 hours',
+            });
         }, 24 * 60 * 60 * 1000);
 
 
@@ -281,17 +285,23 @@ class NowPlaying {
         setInterval(() => {
             this.triggerSliceAllPlaylist();
 
-            this.logger.info({message: '[AUTO REFRESH] SHORTEN ALL PLAYLISTS, every 4 hours'});
+            this.logger.info({
+                message: '[AUTO REFRESH] SHORTEN ALL PLAYLISTS, every 4 hours',
+            });
         }, 4 * 60 * 60 * 1000);
+
+        return this;
     }
 
 
     _spotifyConnect() {
         Spotify.connect().then(() => {
             this.logger.info({
-                message: 'Spotify initialized successfully'
+                message: 'Spotify initialized successfully',
             });
         });
+
+        return this;
     }
 
 
