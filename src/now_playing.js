@@ -46,12 +46,14 @@ class NowPlaying {
         const redisURL = process.env.REDIS_URL;
 
         if (redisURL) {
-            this.logger.warn(`Connecting to Redis`);
+            this.logger.info('Connecting to Redis...');
 
             redisWrapper
                 .init(this.logger, redisURL)
                 .connect();
             
+            this.logger.info('Connected to Redis!');
+
         } else {
             this.logger.warn('REDIS_URL is not defined, redis will not be connected');
         }

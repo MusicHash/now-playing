@@ -37,9 +37,6 @@ class RedisWrapper {
     }
 
 
-
-
-
     isEnabled() {
       return Boolean(this.redisURL);
     }
@@ -48,7 +45,7 @@ class RedisWrapper {
     async addSet(ids) {
       for (let i = 0; i < ids.length; i++) {
         const { key, value } = ids[i];
-        await redis.set(key, value);
+        await this._redisInstance.set(key, value);
       }
     }
 
@@ -56,14 +53,14 @@ class RedisWrapper {
     async get(key) {
       await connect();
 
-      return redis.get(key);
+      return this._redisInstance.get(key);
     }
 
 
     async set(key, value) {
       await connect();
 
-      return redis.set(key, value);
+      return this._redisInstance.set(key, value);
     }
 }
 
