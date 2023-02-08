@@ -6,6 +6,7 @@ import express from 'express';
 import prettier from 'prettier';
 
 import logger from './utils/logger.js';
+import redisWrapper from './utils/redis_wrapper.js';
 import { terminate } from './utils/terminate.js';
 
 import { refreshAllStations, refreshChart, refreshChartAll, getChartInfo } from './lib/fetch_sources.js';
@@ -31,9 +32,14 @@ class NowPlaying {
         this._terminateHandle(server);
 
         // init
-        this._loadRoutes();
-        this._spotifyConnect();
-        this._loadAutomaticTimers();
+        this._loadRoutes()
+            ._spotifyConnect()
+            ._loadAutomaticTimers();
+
+        redisWrapper
+            .init(Logger)
+            .connect(process.env.REDIS_URL);
+
 
         return this;
     }
