@@ -4,7 +4,6 @@ import { stations, charts } from '../../config/sources.js';
 
 import logger from '../utils/logger.js';
 
-
 const updatePlayList = async function (playlist, tracks, firstSongOnly) {
     logger.debug({
         method: 'updatePlayList',
@@ -36,7 +35,7 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
     }
 
     try {
-        let search = await Spotify.searchTracks(query);
+        let search = await Spotify.searchTracksWithCache(query);
 
         if (0 < search.tracks.items.length) {
             let songID = search.tracks.items[0].uri;
@@ -50,7 +49,7 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
                     songID,
                     query,
                     search,
-                }
+                },
             });
 
             let addToPlaylist = await Spotify.addTracksToPlaylist(playlistID, [songID], 0);
@@ -63,7 +62,7 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
                     args: [...arguments],
                     query,
                     playlistID,
-                }
+                },
             });
         }
     } catch (error) {
@@ -75,13 +74,12 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
                 args: [...arguments],
                 query,
                 playlistID,
-            }
+            },
         });
     }
 };
 
-
-const replacePlayList = async function(playlist, tracks) {
+const replacePlayList = async function (playlist, tracks) {
     logger.debug({
         method: 'replacePlayList',
         message: 'Starting to replace all tracks in a given playlist',
@@ -92,8 +90,8 @@ const replacePlayList = async function(playlist, tracks) {
 
     let playlistID = _getPlaylistID(playlist);
 
-    let extractURI = async function(query) {
-        let search = await Spotify.searchTracks(query);
+    let extractURI = async function (query) {
+        let search = await Spotify.searchTracksWithCache(query);
 
         if (0 < search.tracks.items.length) {
             let songID = search.tracks.items[0].uri;
@@ -131,8 +129,8 @@ const replacePlayList = async function(playlist, tracks) {
 
     try {
         for (let i = 0, len = tracks.fields.length; i < len; i++) {
-            let artist = tracks.fields[i] && tracks.fields[i].artist || '',
-                title = tracks.fields[i] && tracks.fields[i].title || '';
+            let artist = (tracks.fields[i] && tracks.fields[i].artist) || '',
+                title = (tracks.fields[i] && tracks.fields[i].title) || '';
 
             let query = _cleanNames([artist, title].join(' '));
             let tracksFound = await extractURI(query);
@@ -175,9 +173,9 @@ const updatePlaylistMetadata = async function (playlist) {
 
     try {
         let metadata = {
-            name: isProduction() ? nowPlayingMetadata.title : _getPlaylistPrefix() +' '+ nowPlayingMetadata.title,
+            name: isProduction() ? nowPlayingMetadata.title : _getPlaylistPrefix() + ' ' + nowPlayingMetadata.title,
             description: nowPlayingMetadata.description.replace('{now}', _now()),
-            public: isProduction()
+            public: isProduction(),
         };
 
         await Spotify.playlistUpdateMetadata(playlistID, metadata);
@@ -192,7 +190,6 @@ const updatePlaylistMetadata = async function (playlist) {
         });
     }
 };
-
 
 const slicePlaylist = async function (playlist, limit) {
     let playlistID = _getPlaylistID(playlist);
@@ -212,14 +209,12 @@ const slicePlaylist = async function (playlist, limit) {
     }
 };
 
-
 const sliceAllPlaylists = async function (limit = 200) {
     let delaySeconds = 5,
         chartEnumeration = 1;
 
     for (let stationIdx in stations) {
-
-        let delayBySeconds = (delaySeconds * chartEnumeration);
+        let delayBySeconds = delaySeconds * chartEnumeration;
 
         setTimeout(() => {
             slicePlaylist(stationIdx, limit);
@@ -234,39 +229,38 @@ const sliceAllPlaylists = async function (limit = 200) {
     }
 };
 
-const _getNowPlayingMetadata = function(channelID) {
+const _getNowPlayingMetadata = function (channelID) {
     let channels = Object.assign({}, stations, charts);
 
     return channels[channelID]?.now_playing;
 };
 
-const _getPlaylistID = function(source) {
+const _getPlaylistID = function (source) {
     let playlists = JSON.parse(process.env.SPOTIFY_PLAYLIST_MAP);
 
     return playlists[source];
 };
 
-const _getPlaylistPrefix = function() {
+const _getPlaylistPrefix = function () {
     return process.env.SPOTIFY_PLAYLIST_PREFIX;
 };
 
-const isProduction = function() {
-    return (['production'].includes(process.env.NODE_ENV));
+const isProduction = function () {
+    return ['production'].includes(process.env.NODE_ENV);
 };
 
-const _cleanNames = function(str) {
+const _cleanNames = function (str) {
     return decodeHTMLEntities(str)
         .replace(/( עם |feat\.|Ft\.|Featuring|)/g, '')
         .replace(/(&|,)/g, '')
-        .replace(/( x |-|–)/g, ' ')    
+        .replace(/( x |-|–)/g, ' ')
         .replace(/(\/)/g, ' ')
         .replace(/\s+/g, ' ')
         .replace(/\s\([^)]+\)$/, '') // removes, last part (.*)$
-        .trim()
-        ;
+        .trim();
 };
 
-const _now = function(timezone = 'Asia/Jerusalem') {
+const _now = function (timezone = 'Asia/Jerusalem') {
     let parts = new Intl.DateTimeFormat('en', {
         day: '2-digit',
         month: '2-digit',
@@ -277,19 +271,13 @@ const _now = function(timezone = 'Asia/Jerusalem') {
         second: '2-digit',
         timeZone: timezone,
     })
-    .formatToParts(new Date())
-    .reduce((acc, part) => {
-        acc[part.type] = part.value;
-        return acc;
-    }, Object.create(null));
+        .formatToParts(new Date())
+        .reduce((acc, part) => {
+            acc[part.type] = part.value;
+            return acc;
+        }, Object.create(null));
 
     return `${parts.day}/${parts.month}/${parts.year} ${parts.hour}:${parts.minute}:${parts.second}`;
 };
 
-
-export {
-    updatePlayList,
-    replacePlayList,
-    slicePlaylist,
-    sliceAllPlaylists,
-};
+export { updatePlayList, replacePlayList, slicePlaylist, sliceAllPlaylists };

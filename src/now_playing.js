@@ -16,7 +16,6 @@ import { slicePlaylist, sliceAllPlaylists } from './lib/playlist.js';
 
 import Spotify from './lib/providers/spotify.js';
 
-
 /**
  * NowPlaying
  */
@@ -32,50 +31,45 @@ class NowPlaying {
         this._terminateHandle(server);
 
         // init
-        this._loadRoutes()
-            ._spotifyConnect()
-            ._loadAutomaticTimers();
+        this._loadRoutes();
+        this._spotifyConnect();
+        this._loadAutomaticTimers();
 
-        this._connectToRedis();
+        const connect = this._connectToRedis();
 
         return this;
     }
 
-
-    _connectToRedis() {
+    async _connectToRedis() {
         const redisURL = process.env.REDIS_URL;
 
         if (redisURL) {
             this.logger.info('Connecting to Redis...');
 
-            redisWrapper
-                .init(this.logger, redisURL)
-                .connect();
-            
-            this.logger.info('Connected to Redis!');
+            await redisWrapper.init(this.logger, redisURL).connect();
 
+            this.logger.info('Connected to Redis!');
         } else {
             this.logger.warn('REDIS_URL is not defined, redis will not be connected');
         }
-        
+
         return this;
     }
-
 
     _getExpressServer(app) {
         return http
             .createServer(app)
             .listen(process.env.HTTP_PORT, () =>
                 this.logger.info({
-                    message: `HTTP Server up. Now go to http://localhost:${process.env.HTTP_PORT}/login in your browser`
-                })
+                    message: `HTTP Server up. Now go to http://localhost:${process.env.HTTP_PORT}/login in your browser`,
+                }),
             )
-            .on('close', () => this.logger.info({
-                    message: 'Closed HTTP Server!'
-                })
+            .on('close', () =>
+                this.logger.info({
+                    message: 'Closed HTTP Server!',
+                }),
             );
     }
-
 
     _terminateHandle(server) {
         // Handle exit process
@@ -86,13 +80,21 @@ class NowPlaying {
         // Start reading from stdin so we don't exit.
         process.stdin.resume();
 
+        process
+            .on('unhandledRejection', (reason, p) => {
+                this.logger.error(reason, 'Unhandled Rejection at Promise', p);
+            })
+            .on('uncaughtException', (err) => {
+                this.logger.error(err, 'Uncaught Exception thrown');
+                process.exit(1);
+            });
+
         ['SIGTERM', 'SIGINT', 'SIGUSR1', 'SIGUSR2', 'SIGHUP', 'uncaughtException', 'unhandledRejection'].forEach((eventType) => {
             process.on(eventType, exitHandler.bind(null, eventType));
         });
 
         return this;
     }
-
 
     async triggerRefreshAllStations() {
         try {
@@ -102,8 +104,7 @@ class NowPlaying {
                 method: 'triggerRefreshAllStations',
                 message: res,
             });
-
-        } catch(error) {
+        } catch (error) {
             this.logger.error({
                 method: 'triggerRefreshAllStations',
                 message: 'Could not refresh stations',
@@ -120,7 +121,7 @@ class NowPlaying {
                 method: 'triggerRefreshChartAll',
                 message: res,
             });
-        } catch(error) {
+        } catch (error) {
             this.logger.error({
                 method: 'triggerRefreshChartAll',
                 message: 'Could not refresh charts',
@@ -138,7 +139,7 @@ class NowPlaying {
                 message: res,
                 args: [...arguments],
             });
-        } catch(error) {
+        } catch (error) {
             this.logger.error({
                 method: 'triggerRefreshChart',
                 message: 'Could not refresh chart',
@@ -150,19 +151,18 @@ class NowPlaying {
         }
     }
 
-
     async triggerSliceAllPlaylist(chart) {
         try {
             let res = await sliceAllPlaylists();
 
             this.logger.info({
-                method: 'triggerSliceAllPlaylist', 
+                method: 'triggerSliceAllPlaylist',
                 message: res,
                 metadata: {
                     args: [...arguments],
                 },
             });
-        } catch(error) {
+        } catch (error) {
             this.logger.error({
                 method: 'triggerSliceAllPlaylist',
                 message: 'Could not slice chart',
@@ -179,14 +179,12 @@ class NowPlaying {
             res.redirect(Spotify.createAuthorizeURL());
         });
 
-
         this.app.get('/spotify/auth/redirect', async (req, res) => {
             const error = req.query.error;
             const code = req.query.code;
 
             Spotify.auth(code, error, res);
         });
-
 
         this.app.get('/actions', async (req, res) => {
             let links = {
@@ -197,9 +195,11 @@ class NowPlaying {
                 '/debug_channels': 'Debug Channels',
             };
 
-            let html = Object.keys(links).map(function (result, item) {
-                return `<li><a href="${result}">${links[result]}</a></li>`;
-            }, 0).join("\r\n");
+            let html = Object.keys(links)
+                .map(function (result, item) {
+                    return `<li><a href="${result}">${links[result]}</a></li>`;
+                }, 0)
+                .join('\r\n');
 
             let channelsList = Object.assign({}, stations, charts);
             html += "<li style='margin-top:30px'>Channels List:</li>";
@@ -209,7 +209,6 @@ class NowPlaying {
 
             res.send(`<ul>${html}</ul>`);
         });
-
 
         this.app.get('/debug/fetch/:chartID', async (req, res) => {
             let chartID = req.params.chartID;
@@ -230,34 +229,30 @@ class NowPlaying {
 
                 output.push(`chartRPC: ${chartID}`);
                 output.push(formattedRPCInfo);
-            } catch(error) {
+            } catch (error) {
                 output.push(`Error: ${chartID}`);
                 output.push(error);
             }
 
-            res.send(`<pre>${output.join("\n")}</pre>`);
+            res.send(`<pre>${output.join('\n')}</pre>`);
         });
-
 
         this.app.get('/refresh_playlists_manually', async (req, res) => {
             triggerRefreshAllStations();
             res.send('Success, triggerRefreshAllStations!');
         });
 
-
         this.app.get('/refresh_charts_manually/:chart', async (req, res) => {
             let chart = req.params.chart;
-            
+
             triggerRefreshChart(chart);
             res.send(['Success, triggerRefreshChart!', chart]);
         });
-
 
         this.app.get('/playlist/refresh_charts/all', async (req, res) => {
             triggerRefreshChartAll();
             res.send(['Success, Queued ALL charts for refresh. (triggerRefreshChartAll)']);
         });
-
 
         this.app.get('/playlist/slice/:playlist/:limit', async (req, res) => {
             let playlist = req.params.playlist;
@@ -267,7 +262,6 @@ class NowPlaying {
             res.send(['Success, slicePlaylist!', playlist, limit]);
         });
 
-
         this.app.get('/playlist/slice/all', async (req, res) => {
             triggerSliceAllPlaylist();
             res.send(['Success, Queued ALL playlists for slice. (sliceAllPlaylist)']);
@@ -275,7 +269,6 @@ class NowPlaying {
 
         return this;
     }
-
 
     _loadAutomaticTimers() {
         // now playing, stations songs
@@ -287,7 +280,6 @@ class NowPlaying {
             });
         }, 45 * 1000);
 
-
         // update charts once a day
         setInterval(() => {
             this.triggerRefreshChartAll();
@@ -296,7 +288,6 @@ class NowPlaying {
                 message: '[AUTO REFRESH] CHARTS - once every 24 hours',
             });
         }, 24 * 60 * 60 * 1000);
-
 
         // Shorten all playlists to 220 rows
         setInterval(() => {
@@ -310,7 +301,6 @@ class NowPlaying {
         return this;
     }
 
-
     _spotifyConnect() {
         Spotify.connect().then(() => {
             this.logger.info({
@@ -320,9 +310,6 @@ class NowPlaying {
 
         return this;
     }
-
-
 }
-
 
 export default new NowPlaying(logger);

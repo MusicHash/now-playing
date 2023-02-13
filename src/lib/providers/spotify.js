@@ -4,12 +4,9 @@ dotenv.config();
 import SpotifyWebApi from 'spotify-web-api-node';
 
 import logger from '../../utils/logger.js';
+import redisWrapper from '../../utils/redis_wrapper';
 
-const scopes = [
-        'playlist-read-private',
-        'playlist-modify-private',
-        'playlist-modify-public'
-    ];
+const scopes = ['playlist-read-private', 'playlist-modify-private', 'playlist-modify-public'];
 
 class Spotify {
     api = null;
@@ -23,10 +20,9 @@ class Spotify {
         });
     }
 
-
     /**
-     * 
-     * @returns 
+     *
+     * @returns
      */
     async connect() {
         if (true === this.#isConnected) {
@@ -38,7 +34,7 @@ class Spotify {
             const token = await this.api.clientCredentialsGrant();
             this.api.setAccessToken(token.body.access_token); //
             this.#isConnected = true;
-        } catch(error) {
+        } catch (error) {
             logger.error({
                 message: 'Failed retrieving an access token',
                 error,
@@ -49,13 +45,11 @@ class Spotify {
         }
     }
 
-
     /**
-     * 
-     * @returns 
+     *
+     * @returns
      */
     async auth(code, error, res) {
-
         if (error) {
             logger.error({
                 method: 'auth',
@@ -110,9 +104,7 @@ class Spotify {
                         accessToken,
                     },
                 });
-
-            }, expiresIn / 2 * 1000);
-
+            }, (expiresIn / 2) * 1000);
         } catch (error) {
             logger.error({
                 method: 'auth',
@@ -127,41 +119,37 @@ class Spotify {
         }
     }
 
-
     /**
-     * 
-     * @returns 
+     *
+     * @returns
      */
     setAccessToken(accessToken) {
         return this.api.setAccessToken(accessToken);
     }
 
-
     /**
-     * 
-     * @returns 
+     *
+     * @returns
      */
     setRefreshToken(refreshToken) {
         return this.api.setRefreshToken(refreshToken);
     }
 
-
     /**
-     * 
-     * @returns 
+     *
+     * @returns
      */
     createAuthorizeURL() {
         return this.api.createAuthorizeURL(scopes, 'new');
     }
 
-
     /**
-     * 
-     * @returns 
+     *
+     * @returns
      */
     async refreshAccessToken() {
         let token = {};
-        
+
         try {
             token = await this.api.refreshAccessToken();
 
@@ -182,16 +170,62 @@ class Spotify {
                 },
             });
         }
-        
+
         return token;
     }
 
+    async searchTracksWithCache(query, limit = 1) {
+        const KEY_PREFIX = 'SONG:';
+        const cacheKey = `${KEY_PREFIX}${query}`;
+
+        try {
+            let searchTracks = await redisWrapper.get(cacheKey);
+
+            if (searchTracks) {
+                searchTracks = JSON.parse(searchTracks);
+
+                logger.debug({
+                    method: 'searchTracksWithCache',
+                    message: 'Cache hit for query, fetching from Redis instead of API call',
+                    metadata: {
+                        args: [...arguments],
+                        searchTracks,
+                    },
+                });
+            } else {
+                logger.debug({
+                    method: 'searchTracksWithCache',
+                    message: 'Cache miss for query',
+                    metadata: {
+                        args: [...arguments],
+                        searchTracks,
+                    },
+                });
+
+                searchTracks = await this.searchTracks(query, limit);
+                await redisWrapper.set(cacheKey, JSON.stringify(searchTracks), 60 * 60 * 24 * 7);
+            }
+        } catch (error) {
+            logger.error({
+                method: 'searchTracksWithCache',
+                message: 'Cache fetching failed',
+                error,
+                metadata: {
+                    args: [...arguments],
+                },
+            });
+
+            throw error;
+        }
+
+        return searchTracks;
+    }
 
     /**
-     * 
-     * @param {*} query 
-     * @param {*} limit 
-     * @returns 
+     *
+     * @param {*} query
+     * @param {*} limit
+     * @returns
      */
     async searchTracks(query, limit = 1) {
         try {
@@ -218,16 +252,15 @@ class Spotify {
                     args: [...arguments],
                 },
             });
-            
+
             throw error;
         }
     }
 
-
     /**
-     * 
-     * @param {*} playlistID 
-     * @returns 
+     *
+     * @param {*} playlistID
+     * @returns
      */
     async getPlaylist(playlistID) {
         try {
@@ -255,27 +288,24 @@ class Spotify {
         }
     }
 
-
     /**
-     * 
-     * @param {*} playlistID 
-     * @param {*} trackIDs 
-     * @param {*} position 
-     * @param {*} handleDuplicates 
-     * @returns 
+     *
+     * @param {*} playlistID
+     * @param {*} trackIDs
+     * @param {*} position
+     * @param {*} handleDuplicates
+     * @returns
      */
     async addTracksToPlaylist(playlistID, trackIDs = [], position = 0, handleDuplicates = true) {
         if (true === handleDuplicates) {
-
             let trackFromPlaylist = await this.findTrackInPlaylist(trackIDs[0], playlistID);
 
             // unique only, skip
             if (-1 !== trackFromPlaylist) {
-
                 // already first, check position
                 if (0 < trackFromPlaylist.position) {
                     await this.reorderTracksInPlaylist(playlistID, 1, trackFromPlaylist.position, 0);
-                    
+
                     logger.debug({
                         method: 'addTracksToPlaylist',
                         message: 'TrackID found but already exists, bumping to be first',
@@ -286,9 +316,7 @@ class Spotify {
                             trackPosition: trackFromPlaylist.position,
                         },
                     });
-
                 } else {
-
                     logger.debug({
                         method: 'addTracksToPlaylist',
                         message: 'TrackID already exists and first in playlist, SKIPPING',
@@ -298,14 +326,11 @@ class Spotify {
                             trackPosition: trackFromPlaylist.position,
                             id: trackIDs[0],
                         },
-                        
                     });
-
                 }
 
                 return true;
             }
-
         }
 
         logger.info({
@@ -318,9 +343,9 @@ class Spotify {
 
         try {
             const playlist = await this.api.addTracksToPlaylist(playlistID, trackIDs, {
-                    position
-                });
-            
+                position,
+            });
+
             logger.debug({
                 method: 'addTracksToPlaylist',
                 message: 'addTracksToPlaylist API called successfully',
@@ -331,7 +356,6 @@ class Spotify {
             });
 
             return true;
-        
         } catch (error) {
             logger.error({
                 method: 'addTracksToPlaylist',
@@ -344,37 +368,35 @@ class Spotify {
         }
     }
 
-
     /**
-     * 
-     * @param {*} trackID 
-     * @param {*} playlistID 
+     *
+     * @param {*} trackID
+     * @param {*} playlistID
      * @returns int
      */
     async findTrackInPlaylist(trackID, playlistID) {
         let playlistTracks = await this.getPlaylistTracksAllPages(playlistID);
         let uriTracks = this._extractUriFromTracks(playlistTracks);
-        
-        return (undefined !== uriTracks[trackID]) ? uriTracks[trackID] : - 1;
+
+        return undefined !== uriTracks[trackID] ? uriTracks[trackID] : -1;
     }
 
-
     /**
-     * 
-     * 
-     * @param {*} playlistID 
-     * @param {*} limit 
-     * @param {*} offset 
-     * @param {*} fields 
-     * @returns 
+     *
+     *
+     * @param {*} playlistID
+     * @param {*} limit
+     * @param {*} offset
+     * @param {*} fields
+     * @returns
      */
     async getPlaylistTracks(playlistID, limit = 100, offset = 0, fields = 'limit,offset,total,items(track(uri,name))') {
         try {
             const playlist = await this.api.getPlaylistTracks(playlistID, {
-                    offset,
-                    limit,
-                    fields,
-                });
+                offset,
+                limit,
+                fields,
+            });
 
             logger.debug({
                 method: 'getPlaylistTracks',
@@ -386,7 +408,7 @@ class Spotify {
             });
 
             return playlist.body;
-        } catch(error) {
+        } catch (error) {
             logger.error({
                 method: 'getPlaylistTracks',
                 message: 'Failed to fetch playlist tracks',
@@ -398,35 +420,32 @@ class Spotify {
         }
     }
 
-
     /**
-     * 
-     * 
-     * @param {*} playlistID 
-     * @param {*} limit 
-     * @param {*} offset 
-     * @param {*} fields 
-     * @returns 
+     *
+     *
+     * @param {*} playlistID
+     * @param {*} limit
+     * @param {*} offset
+     * @param {*} fields
+     * @returns
      */
     async getPlaylistTracksAllPages(playlistID, limit = 100, offset = 0, fields = 'limit,offset,total,items(track(uri,name))') {
-
         let firstPage = await this.getPlaylistTracks(playlistID, limit, offset, fields);
         let totalPages = Math.ceil((firstPage.total || 1) / limit);
-        
-        let allPagesPromise = Array.from(new Array(totalPages-1), (_, index) => index+1).map(
-            pageNumber => this.getPlaylistTracks(playlistID, limit, limit * pageNumber, fields)
-                .catch(
-                    (error) => logger.error({
-                        method: 'getPlaylistAllPages',
-                        message: 'Failed getting playlist tracks by page',
-                        error,
-                        metadata: {
-                            args: [...arguments],
-                            pageNumber,
-                            totalPages,
-                        },
-                    })
-                )
+
+        let allPagesPromise = Array.from(new Array(totalPages - 1), (_, index) => index + 1).map((pageNumber) =>
+            this.getPlaylistTracks(playlistID, limit, limit * pageNumber, fields).catch((error) =>
+                logger.error({
+                    method: 'getPlaylistAllPages',
+                    message: 'Failed getting playlist tracks by page',
+                    error,
+                    metadata: {
+                        args: [...arguments],
+                        pageNumber,
+                        totalPages,
+                    },
+                }),
+            ),
         );
 
         return await Promise.all(allPagesPromise)
@@ -441,29 +460,28 @@ class Spotify {
                 delete output.offset; // clean up, not needed in multi page response
 
                 return output;
-            }).catch(
-                (error) => {
-                    // there was an error
-                    logger.error({
-                        method: 'getPlaylistAllPages',
-                        message: 'Failed to fetch all pages trackIDs',
-                        error,
-                        metadata: {
-                            args: [...arguments],
-                            pageNumber,
-                            totalPages,
-                        },
-                    });
-                })
+            })
+            .catch((error) => {
+                // there was an error
+                logger.error({
+                    method: 'getPlaylistAllPages',
+                    message: 'Failed to fetch all pages trackIDs',
+                    error,
+                    metadata: {
+                        args: [...arguments],
+                        pageNumber,
+                        totalPages,
+                    },
+                });
+            });
     }
-
 
     /**
      * Update playlist details
-     * 
-     * @param {*} playlistID 
-     * @param {*} props 
-     * @returns 
+     *
+     * @param {*} playlistID
+     * @param {*} props
+     * @returns
      */
     async playlistUpdateMetadata(playlistID, props = {}) {
         try {
@@ -491,11 +509,10 @@ class Spotify {
         }
     }
 
-
     // re-order a a track in a list
     async reorderTracksInPlaylist(playlistID, rangeLength = 1, rangeStart = 0, insertBefore = 0) {
         let options = {
-            range_length: rangeLength
+            range_length: rangeLength,
         };
 
         try {
@@ -522,7 +539,6 @@ class Spotify {
             });
         }
     }
-
 
     // replace complete list of tracks (override?)
     async replaceTracksInPlaylist(playlistID, tracksList = []) {
@@ -551,31 +567,29 @@ class Spotify {
         }
     }
 
-
     // replace complete list of tracks
     async slicePlaylist(playlistID, limit = 100) {
-        let maxBatchSize = (100 < limit) ? 100 : limit;
+        let maxBatchSize = 100 < limit ? 100 : limit;
 
         let playlist = await this.getPlaylistTracksAllPages(playlistID, maxBatchSize);
         let tracksListRaw = playlist.items.map((item) => item.track.uri);
         let tracksList = [...new Set(tracksListRaw)]; // removed duplicates
 
         // cap limit is not above total
-        limit = (tracksList.length < limit) ? Number(tracksList.length) : limit;
+        limit = tracksList.length < limit ? Number(tracksList.length) : limit;
 
         // cut array to length.
         let shorterTracksList = tracksList.slice(0, maxBatchSize);
         let totalPages = Math.ceil(limit / maxBatchSize);
-        
+
         await this.replaceTracksInPlaylist(playlistID, shorterTracksList);
-        
+
         if (playlist.limit < limit) {
-            for (let pageNumber = 1, lastPage = totalPages-1; pageNumber <= lastPage; pageNumber++) {
-                
-                let batchSize = (pageNumber === lastPage) ? (limit - (maxBatchSize * pageNumber)) : maxBatchSize;
+            for (let pageNumber = 1, lastPage = totalPages - 1; pageNumber <= lastPage; pageNumber++) {
+                let batchSize = pageNumber === lastPage ? limit - maxBatchSize * pageNumber : maxBatchSize;
                 let offset = maxBatchSize * pageNumber;
                 let tracksListSliced = tracksList.slice(offset, offset + batchSize);
-                
+
                 await this.addTracksToPlaylist(playlistID, tracksListSliced, offset, false);
             }
         }
@@ -583,20 +597,18 @@ class Spotify {
         return Promise.resolve();
     }
 
-
     _extractUriFromTracks(tracks) {
         let output = {};
 
         tracks.items.forEach((item, idx) => {
             output[item.track.uri] = {
                 name: item.track.name,
-                position: idx
-            }
+                position: idx,
+            };
         });
 
         return output;
     }
-
 }
 
 export default new Spotify();
