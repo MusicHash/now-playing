@@ -238,19 +238,19 @@ class NowPlaying {
         });
 
         this.app.get('/refresh_playlists_manually', async (req, res) => {
-            triggerRefreshAllStations();
+            this.triggerRefreshAllStations();
             res.send('Success, triggerRefreshAllStations!');
         });
 
         this.app.get('/refresh_charts_manually/:chart', async (req, res) => {
             let chart = req.params.chart;
 
-            triggerRefreshChart(chart);
+            this.triggerRefreshChart(chart);
             res.send(['Success, triggerRefreshChart!', chart]);
         });
 
         this.app.get('/playlist/refresh_charts/all', async (req, res) => {
-            triggerRefreshChartAll();
+            this.triggerRefreshChartAll();
             res.send(['Success, Queued ALL charts for refresh. (triggerRefreshChartAll)']);
         });
 
@@ -258,12 +258,12 @@ class NowPlaying {
             let playlist = req.params.playlist;
             let limit = req.params.limit;
 
-            await slicePlaylist(playlist, limit);
+            await this.slicePlaylist(playlist, limit);
             res.send(['Success, slicePlaylist!', playlist, limit]);
         });
 
         this.app.get('/playlist/slice/all', async (req, res) => {
-            triggerSliceAllPlaylist();
+            this.triggerSliceAllPlaylist();
             res.send(['Success, Queued ALL playlists for slice. (sliceAllPlaylist)']);
         });
 
