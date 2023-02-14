@@ -175,11 +175,12 @@ class Spotify {
     }
 
     async searchTracksWithCache(query, limit = 1) {
-        const KEY_PREFIX = 'SONG:';
-        const cacheKey = `${KEY_PREFIX}${query}`;
+        const KEY_PREFIX = 'SONG';
+        const cacheKey = `${KEY_PREFIX}:${query}`;
+        let searchTracks = null;
 
         try {
-            let searchTracks = await redisWrapper.get(cacheKey);
+            searchTracks = await redisWrapper.get(cacheKey);
 
             if (searchTracks) {
                 searchTracks = JSON.parse(searchTracks);

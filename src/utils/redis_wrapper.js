@@ -54,13 +54,13 @@ class RedisWrapper {
     async get(key) {
         await this.connect();
 
-        return this._redisInstance.get(key);
+        return await this._redisInstance.get(key);
     }
 
     async set(key, value, ttl = -1) {
         await this.connect();
 
-        return this._redisInstance.set(key, value, 'ex', ttl);
+        return await this._redisInstance.set(key, value, 'ex', ttl);
     }
 }
 
