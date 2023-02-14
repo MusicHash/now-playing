@@ -1,4 +1,3 @@
-
 // Charts
 const shzmCharts = {
     'shzm-rising-uk': {
@@ -9,7 +8,7 @@ const shzmCharts = {
         now_playing: {
             title: 'SHZM - Rising Hits - UK (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (35) * 1000,
+            refresh_rate_ms: 35 * 1000,
         },
 
         scraper: {
@@ -26,11 +25,10 @@ const shzmCharts = {
 
             fields: {
                 artist: 'tracks.{Iterator}.artists.0.alias',
-                title: 'tracks.{Iterator}.title'
+                title: 'tracks.{Iterator}.title',
             },
         },
     },
-
 
     'shzm-top200-uk': {
         spotify: {
@@ -40,7 +38,7 @@ const shzmCharts = {
         now_playing: {
             title: 'SHZM - Top Hits 200 - UK (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (35) * 1000,
+            refresh_rate_ms: 35 * 1000,
         },
 
         scraper: {
@@ -57,11 +55,10 @@ const shzmCharts = {
 
             fields: {
                 artist: 'tracks.{Iterator}.artists.0.alias',
-                title: 'tracks.{Iterator}.title'
+                title: 'tracks.{Iterator}.title',
             },
         },
     },
-
 
     'shzm-top50-us-nyc': {
         spotify: {
@@ -71,7 +68,7 @@ const shzmCharts = {
         now_playing: {
             title: 'SHZM - Top 50 Hits - NYC (#Music)',
             description: 'Last 50 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (35) * 1000,
+            refresh_rate_ms: 35 * 1000,
         },
 
         scraper: {
@@ -88,11 +85,10 @@ const shzmCharts = {
 
             fields: {
                 artist: 'tracks.{Iterator}.subtitle',
-                title: 'tracks.{Iterator}.title'
+                title: 'tracks.{Iterator}.title',
             },
         },
     },
-
 
     'shzm-rising-us': {
         spotify: {
@@ -102,7 +98,7 @@ const shzmCharts = {
         now_playing: {
             title: 'SHZM - Rising Hits - USA (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (35) * 1000,
+            refresh_rate_ms: 35 * 1000,
         },
 
         scraper: {
@@ -119,11 +115,10 @@ const shzmCharts = {
 
             fields: {
                 artist: 'tracks.{Iterator}.subtitle',
-                title: 'tracks.{Iterator}.title'
+                title: 'tracks.{Iterator}.title',
             },
         },
     },
-
 
     'shzm-top200-us': {
         spotify: {
@@ -133,7 +128,7 @@ const shzmCharts = {
         now_playing: {
             title: 'SHZM - Top Hits 200 - USA (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (35) * 1000,
+            refresh_rate_ms: 35 * 1000,
         },
 
         scraper: {
@@ -150,11 +145,10 @@ const shzmCharts = {
 
             fields: {
                 artist: 'tracks.{Iterator}.subtitle',
-                title: 'tracks.{Iterator}.title'
+                title: 'tracks.{Iterator}.title',
             },
         },
     },
-
 
     'shzm-rising-israel': {
         spotify: {
@@ -164,7 +158,7 @@ const shzmCharts = {
         now_playing: {
             title: 'SHZM - Rising Hits - Israel (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (35) * 1000,
+            refresh_rate_ms: 35 * 1000,
         },
 
         scraper: {
@@ -181,11 +175,10 @@ const shzmCharts = {
 
             fields: {
                 artist: 'tracks.{Iterator}.subtitle',
-                title: 'tracks.{Iterator}.title'
+                title: 'tracks.{Iterator}.title',
             },
         },
     },
-
 
     'shzm-top200-israel': {
         spotify: {
@@ -195,7 +188,7 @@ const shzmCharts = {
         now_playing: {
             title: 'SHZM - Top Hits 200 - Israel (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (35) * 1000,
+            refresh_rate_ms: 35 * 1000,
         },
 
         scraper: {
@@ -212,11 +205,10 @@ const shzmCharts = {
 
             fields: {
                 artist: 'tracks.{Iterator}.subtitle',
-                title: 'tracks.{Iterator}.title'
+                title: 'tracks.{Iterator}.title',
             },
         },
     },
-
 
     'shzm-top200-global': {
         spotify: {
@@ -226,7 +218,7 @@ const shzmCharts = {
         now_playing: {
             title: 'SHZM - Top Hits 200 - Global (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (35) * 1000,
+            refresh_rate_ms: 35 * 1000,
         },
 
         scraper: {
@@ -243,7 +235,7 @@ const shzmCharts = {
 
             fields: {
                 artist: 'tracks.{Iterator}.subtitle',
-                title: 'tracks.{Iterator}.title'
+                title: 'tracks.{Iterator}.title',
             },
         },
     },
@@ -258,7 +250,7 @@ const bigtopCharts = {
         now_playing: {
             title: 'BigTop- 40 Top Tracks (#Music)',
             description: 'Last 40 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (35) * 1000,
+            refresh_rate_ms: 35 * 1000,
         },
 
         scraper: {
@@ -271,7 +263,7 @@ const bigtopCharts = {
 
             fields: {
                 artist: '.chart-entry__track-info__track-title',
-                title: '.chart-entry__track-info__track-artist'
+                title: '.chart-entry__track-info__track-artist',
             },
         },
     },
@@ -286,7 +278,7 @@ const billboardCharts = {
         now_playing: {
             title: 'Billboard - Official UK (#Music)',
             description: 'Last 20 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (60 * 60 * 1) * 1000,
+            refresh_rate_ms: 60 * 60 * 1 * 1000,
         },
 
         scraper: {
@@ -308,7 +300,6 @@ const billboardCharts = {
         },
     },
 
-
     'billboard-global100': {
         spotify: {
             playlist: 'https://spoti.fi/3h95Uw3',
@@ -317,7 +308,7 @@ const billboardCharts = {
         now_playing: {
             title: 'Billboard - GLOBAL 100 (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (60 * 60 * 1) * 1000,
+            refresh_rate_ms: 60 * 60 * 1 * 1000,
         },
 
         scraper: {
@@ -339,16 +330,15 @@ const billboardCharts = {
         },
     },
 
-
     'billboard-hot100': {
         spotify: {
-            playlist: 'https://spoti.fi/3h9hBCO'
+            playlist: 'https://spoti.fi/3h9hBCO',
         },
 
         now_playing: {
             title: 'Billboard - HOT 100 (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (60 * 60 * 1) * 1000
+            refresh_rate_ms: 60 * 60 * 1 * 1000,
         },
 
         scraper: {
@@ -374,17 +364,17 @@ const billboardCharts = {
 const kanCharts = {
     'kan-gimiel-editor': {
         spotify: {
-            playlist: 'https://spoti.fi/3PgyZG9'
+            playlist: 'https://spoti.fi/3PgyZG9',
         },
 
         now_playing: {
             title: 'Kan - Gimel - Editor Selection (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (60 * 60 * 1) * 1000
+            refresh_rate_ms: 60 * 60 * 1 * 1000,
         },
 
         scraper: {
-            type: 'get',
+            type: 'headless',
             url: 'aHR0cHM6Ly93d3cua2FuLm9yZy5pbC9wYWdlLmFzcHg/bGFuZGluZ1BhZ2VJZD0xMDQ5',
         },
 
@@ -405,13 +395,13 @@ const kanCharts = {
 const bpCharts = {
     'bp-top100': {
         spotify: {
-            playlist: 'https://spoti.fi/3h2V2Q5'
+            playlist: 'https://spoti.fi/3h2V2Q5',
         },
 
         now_playing: {
             title: 'BP Top - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (60 * 60 * 1) * 1000
+            refresh_rate_ms: 60 * 60 * 1 * 1000,
         },
 
         scraper: {
@@ -442,16 +432,15 @@ const bpCharts = {
         },
     },
 
-
     'bp-psy-trance': {
         spotify: {
-            playlist: 'https://spoti.fi/38qkGuu'
+            playlist: 'https://spoti.fi/38qkGuu',
         },
 
         now_playing: {
             title: 'BP Psy Trance - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (60 * 60 * 1) * 1000
+            refresh_rate_ms: 60 * 60 * 1 * 1000,
         },
 
         scraper: {
@@ -497,7 +486,7 @@ const z100Charts = {
         now_playing: {
             title: 'Z100 - Top Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (35) * 1000,
+            refresh_rate_ms: 35 * 1000,
         },
 
         parser: {
@@ -505,7 +494,7 @@ const z100Charts = {
 
             fields: {
                 artist: '.track-details > a:first-child, .track-artist',
-                title: '.livecard-title a:first-child, .track-title'
+                title: '.livecard-title a:first-child, .track-title',
             },
         },
     },
@@ -525,7 +514,7 @@ const europaPlusCharts = {
         now_playing: {
             title: 'EuropaPlus (RU) - Top 40 Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (35) * 1000,
+            refresh_rate_ms: 35 * 1000,
         },
 
         parser: {
@@ -537,11 +526,10 @@ const europaPlusCharts = {
 
             fields: {
                 artist: '.song .song__name > div > a:first-child',
-                title: '.song .song__name > p'
+                title: '.song .song__name > p',
             },
         },
     },
-
 
     'euplus-ru-new': {
         spotify: {
@@ -556,7 +544,7 @@ const europaPlusCharts = {
         now_playing: {
             title: 'EuropaPlus (RU) - New Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (35) * 1000,
+            refresh_rate_ms: 35 * 1000,
         },
 
         parser: {
@@ -568,7 +556,7 @@ const europaPlusCharts = {
 
             fields: {
                 artist: '.song .song__name > div > a:first-child',
-                title: '.song .song__name > p'
+                title: '.song .song__name > p',
             },
         },
     },
@@ -585,7 +573,7 @@ const capitalfmStations = {
         now_playing: {
             title: 'CapitalFM - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (35) * 1000,
+            refresh_rate_ms: 35 * 1000,
         },
 
         scraper: {
@@ -598,7 +586,7 @@ const capitalfmStations = {
 
             fields: {
                 artist: '.now-playing__text-content__details__artist',
-                title: '.now-playing__text-content__details__track'
+                title: '.now-playing__text-content__details__track',
             },
         },
     },
@@ -607,13 +595,13 @@ const capitalfmStations = {
 const xmStations = {
     'xm-hits1': {
         spotify: {
-            playlist: 'https://spoti.fi/3zfSpFI'
+            playlist: 'https://spoti.fi/3zfSpFI',
         },
 
         now_playing: {
             title: 'XM1 Hits - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (35) * 1000
+            refresh_rate_ms: 35 * 1000,
         },
 
         scraper: {
@@ -627,21 +615,20 @@ const xmStations = {
             fields: {
                 artist: 'channels.siriushits1.content.artists.0.name',
                 title: 'channels.siriushits1.content.title',
-                album: 'channels.siriushits1.content.album.title'
+                album: 'channels.siriushits1.content.album.title',
             },
         },
     },
 
-
     'xm-the-pulse': {
         spotify: {
-            playlist: 'https://spoti.fi/3zfTJIM'
+            playlist: 'https://spoti.fi/3zfTJIM',
         },
 
         now_playing: {
             title: 'XM1 Pulse - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (35) * 1000
+            refresh_rate_ms: 35 * 1000,
         },
 
         scraper: {
@@ -655,7 +642,7 @@ const xmStations = {
             fields: {
                 artist: 'channels.starlite.content.artists.0.name',
                 title: 'channels.starlite.content.title',
-                album: 'channels.starlite.content.album.title'
+                album: 'channels.starlite.content.album.title',
             },
         },
     },
@@ -664,13 +651,13 @@ const xmStations = {
 const virginStations = {
     'virgin-recently-played': {
         spotify: {
-            playlist: 'https://spoti.fi/3mzvwDd'
+            playlist: 'https://spoti.fi/3mzvwDd',
         },
 
         now_playing: {
             title: 'VG - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (35) * 1000,
+            refresh_rate_ms: 35 * 1000,
         },
 
         scraper: {
@@ -687,7 +674,7 @@ const virginStations = {
 
             fields: {
                 artist: 'recentlyPlayed.{Iterator}.artist',
-                title: 'recentlyPlayed.{Iterator}.title'
+                title: 'recentlyPlayed.{Iterator}.title',
             },
         },
     },
@@ -696,13 +683,13 @@ const virginStations = {
 const glzStations = {
     'glz-onair': {
         spotify: {
-            playlist: 'https://spoti.fi/34otpMr'
+            playlist: 'https://spoti.fi/34otpMr',
         },
 
         now_playing: {
             title: 'GLZ - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (35) * 1000
+            refresh_rate_ms: 35 * 1000,
         },
 
         scraper: {
@@ -728,17 +715,16 @@ const glzStations = {
     },
 };
 
-
 const fm88Stations = {
     '88fm-live': {
         spotify: {
-            playlist: 'https://spoti.fi/3Hi5xfJ'
+            playlist: 'https://spoti.fi/3Hi5xfJ',
         },
 
         now_playing: {
             title: '88FM - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (35) * 1000
+            refresh_rate_ms: 35 * 1000,
         },
 
         scraper: {
@@ -751,23 +737,22 @@ const fm88Stations = {
 
             fields: {
                 title: 'track.name',
-                artist: 'track.artist'
+                artist: 'track.artist',
             },
         },
     },
 };
 
-
 const fm91Stations = {
     '91fm-live': {
         spotify: {
-            playlist: 'https://spoti.fi/3xwUKdc'
+            playlist: 'https://spoti.fi/3xwUKdc',
         },
 
         now_playing: {
             title: '91FM - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (35) * 1000
+            refresh_rate_ms: 35 * 1000,
         },
 
         scraper: {
@@ -780,23 +765,22 @@ const fm91Stations = {
 
             fields: {
                 title: 'track.name',
-                artist: 'track.artist'
+                artist: 'track.artist',
             },
         },
     },
 };
 
-
 const fm100Stations = {
     '100fm-ch91-hot': {
         spotify: {
-            playlist: 'https://spoti.fi/3pk2cm1'
+            playlist: 'https://spoti.fi/3pk2cm1',
         },
 
         now_playing: {
             title: '100FM - Yam Tihoni Hits (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (35) * 1000
+            refresh_rate_ms: 35 * 1000,
         },
 
         scraper: {
@@ -809,21 +793,20 @@ const fm100Stations = {
 
             fields: {
                 title: 'track.name',
-                artist: 'track.artist'
+                artist: 'track.artist',
             },
         },
     },
 
-
     '100fm-onair': {
         spotify: {
-            playlist: 'https://spoti.fi/3nDLuxx'
+            playlist: 'https://spoti.fi/3nDLuxx',
         },
 
         now_playing: {
             title: '100FM - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (35) * 1000
+            refresh_rate_ms: 35 * 1000,
         },
 
         scraper: {
@@ -836,23 +819,22 @@ const fm100Stations = {
 
             fields: {
                 title: 'track.name',
-                artist: 'track.artist'
+                artist: 'track.artist',
             },
         },
     },
 };
 
-
 const fm102Stations = {
     '102fm-live': {
         spotify: {
-            playlist: 'https://spoti.fi/3O8W3FG'
+            playlist: 'https://spoti.fi/3O8W3FG',
         },
 
         now_playing: {
             title: '102FM - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (35) * 1000
+            refresh_rate_ms: 35 * 1000,
         },
 
         scraper: {
@@ -865,7 +847,7 @@ const fm102Stations = {
 
             fields: {
                 title: 'track.name',
-                artist: 'track.artist'
+                artist: 'track.artist',
             },
         },
     },
@@ -874,13 +856,13 @@ const fm102Stations = {
 const fm103Stations = {
     '103fm-live': {
         spotify: {
-            playlist: 'https://spoti.fi/3zwgcl3'
+            playlist: 'https://spoti.fi/3zwgcl3',
         },
 
         now_playing: {
             title: '103FM - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (35) * 1000
+            refresh_rate_ms: 35 * 1000,
         },
 
         scraper: {
@@ -893,23 +875,22 @@ const fm103Stations = {
 
             fields: {
                 title: 'track.name',
-                artist: 'track.artist'
+                artist: 'track.artist',
             },
         },
     },
-
 };
 
 const fm1075Stations = {
     '107.5fm-live': {
         spotify: {
-            playlist: 'https://spoti.fi/3Qv4oFQ'
+            playlist: 'https://spoti.fi/3Qv4oFQ',
         },
 
         now_playing: {
             title: '107.5FM - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (35) * 1000
+            refresh_rate_ms: 35 * 1000,
         },
 
         scraper: {
@@ -922,7 +903,7 @@ const fm1075Stations = {
 
             fields: {
                 title: 'track.name',
-                artist: 'track.artist'
+                artist: 'track.artist',
             },
         },
     },
@@ -931,13 +912,13 @@ const fm1075Stations = {
 const us997Stations = {
     '99-mow': {
         spotify: {
-            playlist: 'https://spoti.fi/2PPx3ul'
+            playlist: 'https://spoti.fi/2PPx3ul',
         },
 
         now_playing: {
             title: '9FM MOW - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (35) * 1000
+            refresh_rate_ms: 35 * 1000,
         },
 
         scraper: {
@@ -950,7 +931,7 @@ const us997Stations = {
 
             fields: {
                 artist: 'desc',
-                title: 'title'
+                title: 'title',
             },
         },
     },
@@ -970,7 +951,7 @@ const eco99Stations = {
         now_playing: {
             title: 'ECO - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (35) * 1000
+            refresh_rate_ms: 35 * 1000,
         },
 
         parser: {
@@ -978,7 +959,7 @@ const eco99Stations = {
 
             fields: {
                 artist: 'documents.0.fields.artist_name.stringValue',
-                title: 'documents.0.fields.song_name.stringValue'
+                title: 'documents.0.fields.song_name.stringValue',
             },
         },
     },
@@ -998,7 +979,7 @@ const z100Stations = {
         now_playing: {
             title: 'Z10 - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (35) * 1000,
+            refresh_rate_ms: 35 * 1000,
         },
 
         parser: {
@@ -1010,12 +991,11 @@ const z100Stations = {
 
             fields: {
                 artist: '.track-details > a:first-child, .track-artist',
-                title: '.livecard-title a:first-child, .track-title'
+                title: '.livecard-title a:first-child, .track-title',
             },
         },
     },
 };
-
 
 const europaPlusStations = {
     'euplus-ru-live': {
@@ -1026,13 +1006,13 @@ const europaPlusStations = {
         scraper: {
             type: 'websocket',
             url: 'd3NzOi8vbWV0YWRhdGF3cy5ob3N0aW5ncmFkaW8ucnUv',
-            payload: {"fetch":{"current":["ep"]}}
+            payload: { fetch: { current: ['ep'] } },
         },
 
         now_playing: {
             title: 'Europa (RU) - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (35) * 1000,
+            refresh_rate_ms: 35 * 1000,
         },
 
         parser: {
@@ -1040,7 +1020,7 @@ const europaPlusStations = {
 
             fields: {
                 artist: 'ep.current.title',
-                title: 'ep.current.artist'
+                title: 'ep.current.artist',
             },
         },
     },
@@ -1059,7 +1039,7 @@ const dorognoeStations = {
 
         now_playing: {
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: (35) * 1000,
+            refresh_rate_ms: 35 * 1000,
         },
 
         parser: {
@@ -1067,12 +1047,11 @@ const dorognoeStations = {
 
             fields: {
                 artist: '.mp-reading .mp-reading__artist',
-                title: '.mp-reading .mp-reading__song'
+                title: '.mp-reading .mp-reading__song',
             },
         },
     },
 };
-
 
 const charts = {
     // IL
@@ -1107,7 +1086,4 @@ const stations = {
     //...dorognoeStations,
 };
 
-export {
-    charts,
-    stations
-};
+export { charts, stations };
