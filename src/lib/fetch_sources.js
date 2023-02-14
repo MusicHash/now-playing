@@ -5,38 +5,38 @@ import { stations, charts } from '../../config/sources.js';
 
 import logger from '../utils/logger.js';
 
-
-const getChartInfo = async function(props) {
+const getChartInfo = async function (props) {
     const chartInfo = await getCurrentTracks({
-        scraper: props.scraper,
-        parser: props.parser
+        scraperProps: props.scraper,
+        parserProps: props.parser,
     });
 
     return chartInfo;
 };
 
-const refreshAllStations = async function() {
+const refreshAllStations = async function () {
     for (let stationIdx in stations) {
         let props = stations[stationIdx];
 
         getCurrentTracks({
             scraperProps: props.scraper,
-            parserProps: props.parser
+            parserProps: props.parser,
         })
-        .then(async tracks => {
-            await updatePlayList(stationIdx, tracks);
-        })
-        .catch(error => logger.error({
-            method: 'getCurrentTracks -> refreshAllStations',
-            message: 'Failed to refresh station',
-            error,
-            metadata: {
-                stationIdx,
-            },
-        }));
+            .then(async (tracks) => {
+                await updatePlayList(stationIdx, tracks);
+            })
+            .catch((error) =>
+                logger.error({
+                    method: 'getCurrentTracks -> refreshAllStations',
+                    message: 'Failed to refresh station',
+                    error,
+                    metadata: {
+                        stationIdx,
+                    },
+                }),
+            );
     }
 };
-
 
 const refreshChart = async function (chartIdx) {
     let chart = charts[chartIdx];
@@ -64,34 +64,32 @@ const refreshChart = async function (chartIdx) {
     });
 
     getCurrentTracks({
-        scraper: chart.scraper,
-        parser: chart.parser
+        scraperProps: chart.scraper,
+        parserProps: chart.parser,
     })
-    
-    .then(async tracks => {
-        await replacePlayList(chartIdx, tracks);
-    })
+        .then(async (tracks) => {
+            await replacePlayList(chartIdx, tracks);
+        })
 
-    .catch(error => logger.error({
-        method: 'refreshChart',
-        message: 'Failed to refresh a chart',
-        error,
-        metadata: {
-            chart,
-            args: [...arguments],
-        },
-    }));
-    
+        .catch((error) =>
+            logger.error({
+                method: 'refreshChart',
+                message: 'Failed to refresh a chart',
+                error,
+                metadata: {
+                    chart,
+                    args: [...arguments],
+                },
+            }),
+        );
 };
-
 
 const refreshChartAll = async function () {
     let delaySeconds = 60,
         chartEnumeration = 1;
 
     for (let chartIdx in charts) {
-
-        let delayBySeconds = (delaySeconds * chartEnumeration);
+        let delayBySeconds = delaySeconds * chartEnumeration;
 
         setTimeout(() => {
             refreshChart(chartIdx);
@@ -106,10 +104,4 @@ const refreshChartAll = async function () {
     }
 };
 
-
-export {
-    refreshAllStations,
-    refreshChart,
-    refreshChartAll,
-    getChartInfo,
-};
+export { refreshAllStations, refreshChart, refreshChartAll, getChartInfo };
