@@ -346,6 +346,7 @@ class Spotify {
             const playlist = await this.api.addTracksToPlaylist(playlistID, trackIDs, {
                 position,
             });
+            await redisWrapper.del(`PLAYLIST:${playlistID}`); // clean cache
 
             logger.debug({
                 method: 'addTracksToPlaylist',
@@ -380,6 +381,64 @@ class Spotify {
         let uriTracks = this._extractUriFromTracks(playlistTracks);
 
         return undefined !== uriTracks[trackID] ? uriTracks[trackID] : -1;
+    }
+
+    /**
+     *
+     *
+     * @param {*} playlistID
+     * @param {*} limit
+     * @param {*} offset
+     * @param {*} fields
+     * @returns
+     */
+    async getPlaylistTracksWithCache(playlistID, limit = 100, offset = 0, fields = 'limit,offset,total,items(track(uri,name))') {
+        const KEY_PREFIX = 'PLAYLIST';
+        const cacheKey = `${KEY_PREFIX}:${playlistID}`;
+        const fieldKey = `limit:${limit}:offset:${offset}`;
+        let playlist = null;
+
+        try {
+            playlist = await redisWrapper.getHash(cacheKey, fieldKey);
+
+            if (playlist) {
+                playlist = JSON.parse(playlist);
+
+                logger.debug({
+                    method: 'getPlaylistTracksWithCache',
+                    message: 'Cache hit for playlist, fetching from cache',
+                    metadata: {
+                        args: [...arguments],
+                        playlist,
+                    },
+                });
+            } else {
+                logger.debug({
+                    method: 'getPlaylistTracksWithCache',
+                    message: 'Cache miss for playlist',
+                    metadata: {
+                        args: [...arguments],
+                        playlist,
+                    },
+                });
+
+                playlist = await this.getPlaylistTracks(playlistID, limit, offset, fields);
+                await redisWrapper.addHash(cacheKey, fieldKey, JSON.stringify(playlist), 60 * 60 * 1);
+            }
+        } catch (error) {
+            logger.error({
+                method: 'getPlaylistTracksWithCache',
+                message: 'Cache fetching failed',
+                error,
+                metadata: {
+                    args: [...arguments],
+                },
+            });
+
+            throw error;
+        }
+
+        return playlist;
     }
 
     /**
@@ -431,11 +490,11 @@ class Spotify {
      * @returns
      */
     async getPlaylistTracksAllPages(playlistID, limit = 100, offset = 0, fields = 'limit,offset,total,items(track(uri,name))') {
-        let firstPage = await this.getPlaylistTracks(playlistID, limit, offset, fields);
+        let firstPage = await this.getPlaylistTracksWithCache(playlistID, limit, offset, fields);
         let totalPages = Math.ceil((firstPage.total || 1) / limit);
 
         let allPagesPromise = Array.from(new Array(totalPages - 1), (_, index) => index + 1).map((pageNumber) =>
-            this.getPlaylistTracks(playlistID, limit, limit * pageNumber, fields).catch((error) =>
+            this.getPlaylistTracksWithCache(playlistID, limit, limit * pageNumber, fields).catch((error) =>
                 logger.error({
                     method: 'getPlaylistAllPages',
                     message: 'Failed getting playlist tracks by page',
@@ -518,6 +577,7 @@ class Spotify {
 
         try {
             const playlist = await this.api.reorderTracksInPlaylist(playlistID, rangeStart, insertBefore, options);
+            await redisWrapper.del(`PLAYLIST:${playlistID}`); // clean cache
 
             logger.debug({
                 method: 'reorderTracksInPlaylist',
@@ -545,6 +605,7 @@ class Spotify {
     async replaceTracksInPlaylist(playlistID, tracksList = []) {
         try {
             const playlist = await this.api.replaceTracksInPlaylist(playlistID, tracksList);
+            await redisWrapper.del(`PLAYLIST:${playlistID}`); // clean cache
 
             logger.debug({
                 method: 'replaceTracksInPlaylist',

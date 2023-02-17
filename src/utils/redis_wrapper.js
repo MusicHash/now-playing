@@ -45,10 +45,36 @@ class RedisWrapper {
     }
 
     async addSet(ids) {
+        await this.connect();
+
         for (let i = 0; i < ids.length; i++) {
             const { key, value } = ids[i];
             await this._redisInstance.set(key, value);
         }
+
+        return this;
+    }
+
+    async addHash(key, field, value, ttl = null) {
+        await this.connect();
+
+        await this._redisInstance.hset(key, field, value);
+
+        if (ttl) {
+            await this._redisInstance.expire(key, ttl);
+        }
+    }
+
+    async getHash(key, field) {
+        await this.connect();
+
+        return await this._redisInstance.hget(key, field);
+    }
+
+    async getAll(key) {
+        await this.connect();
+
+        return await this._redisInstance.hgetall(key);
     }
 
     async get(key) {
@@ -61,6 +87,12 @@ class RedisWrapper {
         await this.connect();
 
         return await this._redisInstance.set(key, value, 'ex', ttl);
+    }
+
+    async del(key) {
+        await this.connect();
+
+        return await this._redisInstance.del(key);
     }
 }
 
