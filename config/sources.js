@@ -407,7 +407,7 @@ const bpCharts = {
         scraper: {
             type: 'get',
             url: 'aHR0cHM6Ly93d3cuYmVhdHBvcnQuY29tL3RvcC0xMDA=',
-            regExp: [new RegExp('Playables = (.*?);')],
+            regExp: [new RegExp('<script id="__NEXT_DATA__" type="application/json">(.*?)</script>')],
         },
 
         parser: {
@@ -446,7 +446,7 @@ const bpCharts = {
         scraper: {
             type: 'get',
             url: 'aHR0cHM6Ly93d3cuYmVhdHBvcnQuY29tL2dlbnJlL3BzeS10cmFuY2UvMTMvdHJhY2tz',
-            regExp: [new RegExp('Playables = (.*?);')],
+            regExp: [new RegExp('<script id="__NEXT_DATA__" type="application/json">(.*?)</script>')],
         },
 
         parser: {
