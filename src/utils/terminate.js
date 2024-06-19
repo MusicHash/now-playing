@@ -1,4 +1,4 @@
-import logger from "./logger";
+import logger from "./logger.js";
 
 
 const terminate = function(server, options = { coredump: false, timeout: 500 }) {

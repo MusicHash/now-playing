@@ -4,7 +4,7 @@ dotenv.config();
 import SpotifyWebApi from 'spotify-web-api-node';
 
 import logger from '../../utils/logger.js';
-import redisWrapper from '../../utils/redis_wrapper';
+import redisWrapper from '../../utils/redis_wrapper.js';
 
 const scopes = ['playlist-read-private', 'playlist-modify-private', 'playlist-modify-public'];
 
