@@ -14,13 +14,17 @@ const shzmCharts = {
         scraper: {
             type: 'get',
             url: 'aHR0cHM6Ly93d3cuc2hhemFtLmNvbS9zZXJ2aWNlcy9jaGFydHMvY3N2L2Rpc2NvdmVyeS91bml0ZWQta2luZ2RvbQ==',
+            regExp: [new RegExp('days]"\n(.*)', 's')],
         },
 
         parser: {
             type: 'csv',
 
             options: {
-                limit: 100,
+                limit: 10,
+                delimiter: {
+                    field: ',',
+                },
             },
 
             fields: {
@@ -44,6 +48,7 @@ const shzmCharts = {
         scraper: {
             type: 'get',
             url: 'aHR0cHM6Ly93d3cuc2hhemFtLmNvbS9zZXJ2aWNlcy9jaGFydHMvY3N2L3RvcC0yMDAvdW5pdGVkLWtpbmdkb20=',
+            regExp: [new RegExp('days]"\n(.*)', 's')],
         },
 
         parser: {
@@ -51,6 +56,9 @@ const shzmCharts = {
 
             options: {
                 limit: 100,
+                delimiter: {
+                    field: ',',
+                },
             },
 
             fields: {
@@ -74,6 +82,7 @@ const shzmCharts = {
         scraper: {
             type: 'get',
             url: 'aHR0cHM6Ly93d3cuc2hhemFtLmNvbS9zZXJ2aWNlcy9jaGFydHMvY3N2L3RvcC01MC91bml0ZWQtc3RhdGVzL25ldy15b3JrLWNpdHk=',
+            regExp: [new RegExp('days]"\n(.*)', 's')],
         },
 
         parser: {
@@ -81,6 +90,9 @@ const shzmCharts = {
 
             options: {
                 limit: 50,
+                delimiter: {
+                    field: ',',
+                },
             },
 
             fields: {
@@ -104,13 +116,17 @@ const shzmCharts = {
         scraper: {
             type: 'get',
             url: 'aHR0cHM6Ly93d3cuc2hhemFtLmNvbS9zZXJ2aWNlcy9jaGFydHMvY3N2L2Rpc2NvdmVyeS91bml0ZWQtc3RhdGVz',
+            regExp: [new RegExp('days]"\n(.*)', 's')],
         },
 
         parser: {
             type: 'csv',
 
             options: {
-                limit: 100,
+                limit: 10,
+                delimiter: {
+                    field: ',',
+                },
             },
 
             fields: {
@@ -134,6 +150,7 @@ const shzmCharts = {
         scraper: {
             type: 'get',
             url: 'aHR0cHM6Ly93d3cuc2hhemFtLmNvbS9zZXJ2aWNlcy9jaGFydHMvY3N2L3RvcC0yMDAvdW5pdGVkLXN0YXRlcw==',
+            regExp: [new RegExp('days]"\n(.*)', 's')],
         },
 
         parser: {
@@ -141,6 +158,9 @@ const shzmCharts = {
 
             options: {
                 limit: 100,
+                delimiter: {
+                    field: ',',
+                },
             },
 
             fields: {
@@ -164,13 +184,17 @@ const shzmCharts = {
         scraper: {
             type: 'get',
             url: 'aHR0cHM6Ly93d3cuc2hhemFtLmNvbS9zZXJ2aWNlcy9jaGFydHMvY3N2L2Rpc2NvdmVyeS9pc3JhZWw=',
+            regExp: [new RegExp('days]"\n(.*)', 's')],
         },
 
         parser: {
             type: 'csv',
 
             options: {
-                limit: 100,
+                limit: 10,
+                delimiter: {
+                    field: ',',
+                },
             },
 
             fields: {
@@ -194,6 +218,7 @@ const shzmCharts = {
         scraper: {
             type: 'get',
             url: 'aHR0cHM6Ly93d3cuc2hhemFtLmNvbS9zZXJ2aWNlcy9jaGFydHMvY3N2L3RvcC0yMDAvaXNyYWVs',
+            regExp: [new RegExp('days]"\n(.*)', 's')],
         },
 
         parser: {
@@ -201,6 +226,9 @@ const shzmCharts = {
 
             options: {
                 limit: 100,
+                delimiter: {
+                    field: ',',
+                },
             },
 
             fields: {
@@ -224,6 +252,7 @@ const shzmCharts = {
         scraper: {
             type: 'get',
             url: 'aHR0cHM6Ly93d3cuc2hhemFtLmNvbS9zZXJ2aWNlcy9jaGFydHMvY3N2L3RvcC0yMDAvd29ybGQ=',
+            regExp: [new RegExp('days]"\n(.*)', 's')],
         },
 
         parser: {
@@ -231,6 +260,9 @@ const shzmCharts = {
 
             options: {
                 limit: 100,
+                delimiter: {
+                    field: ',',
+                },
             },
 
             fields: {
@@ -427,7 +459,7 @@ const bpCharts = {
                 duration_string: 'props.pageProps.dehydratedState.queries.0.state.data.results.{Iterator}.length',
                 duration_ms: 'props.pageProps.dehydratedState.queries.0.state.data.results.{Iterator}.length_ms',
                 genre: 'props.pageProps.dehydratedState.queries.0.state.data.results.{Iterator}.genre.name',
-                date_published: 'props.pageProps.dehydratedState.queries.0.state.data.results.{Iterator}.new_release_date'
+                date_published: 'props.pageProps.dehydratedState.queries.0.state.data.results.{Iterator}.new_release_date',
             },
         },
     },
@@ -466,7 +498,7 @@ const bpCharts = {
                 duration_string: 'props.pageProps.dehydratedState.queries.0.state.data.results.{Iterator}.length',
                 duration_ms: 'props.pageProps.dehydratedState.queries.0.state.data.results.{Iterator}.length_ms',
                 genre: 'props.pageProps.dehydratedState.queries.0.state.data.results.{Iterator}.genre.name',
-                date_published: 'props.pageProps.dehydratedState.queries.0.state.data.results.{Iterator}.new_release_date'
+                date_published: 'props.pageProps.dehydratedState.queries.0.state.data.results.{Iterator}.new_release_date',
             },
         },
     },

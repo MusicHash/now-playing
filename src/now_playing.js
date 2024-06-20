@@ -219,13 +219,13 @@ class NowPlaying {
                 let props = items[chartID];
                 let rawURL = new Buffer(props.scraper.url, 'base64').toString('ascii'); // decode
 
-                let formattedStationParserInfo = prettier.format(JSON.stringify(props), { semi: false, parser: 'json' });
+                let formattedStationParserInfo = await prettier.format(JSON.stringify(props), { semi: false, parser: 'json' });
                 output.push(`formattedStationParserInfo: ${chartID}`);
                 output.push(`URL: ${rawURL}`);
                 output.push(formattedStationParserInfo);
 
                 let chartRPC = await getChartInfo(props);
-                let formattedRPCInfo = prettier.format(JSON.stringify(chartRPC), { semi: false, parser: 'json' });
+                let formattedRPCInfo = await prettier.format(JSON.stringify(chartRPC), { semi: false, parser: 'json' });
 
                 output.push(`chartRPC: ${chartID}`);
                 output.push(formattedRPCInfo);
@@ -233,7 +233,7 @@ class NowPlaying {
                 output.push(`Error: ${chartID}`);
                 output.push(error);
             }
-
+                
             res.send(`<pre>${output.join('\n')}</pre>`);
         });
 
