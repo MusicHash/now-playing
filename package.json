@@ -23,25 +23,25 @@
   "dependencies": {
     "acrcloud": "^1.4.0",
     "audd.io": "^3.0.2",
-    "dotenv": "^16.0.3",
-    "express": "^4.18.2",
-    "ioredis": "^5.3.0",
-    "lru-cache": "^7.14.1",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "ioredis": "^5.4.1",
+    "lru-cache": "^10.2.2",
     "m3u8stream": "^0.8.6",
-    "pino": "^8.9.0",
-    "prettier": "^2.8.3",
+    "pino": "^9.2.0",
+    "prettier": "^3.3.2",
     "recd-cli": "^1.2.0",
-    "scrapa": "^0.2.4",
+    "scrapa": "^0.2.5",
     "spotify-web-api-node": "^5.0.2"
   },
   "devDependencies": {
-    "@babel/preset-env": "^7.20.2",
-    "babel-jest": "^29.4.1",
-    "eslint": "^8.33.0",
-    "jest": "^29.4.1",
-    "nock": "^13.3.0",
+    "@babel/preset-env": "^7.24.7",
+    "babel-jest": "^29.7.0",
+    "eslint": "^9.5.0",
+    "jest": "^29.7.0",
+    "nock": "^13.5.4",
     "sinon": "^18.0.0",
-    "ts-jest": "^29.0.5"
+    "ts-jest": "^29.1.5"
   },
   "jest": {
     "preset": "ts-jest",

@@ -1,31 +1,31 @@
 // Charts
 const shzmCharts = {
-    'shzm-rising-uk': {
+    'shzm-discovery-uk': {
         spotify: {
             playlist: 'https://spoti.fi/2WGAow0',
         },
 
         now_playing: {
-            title: 'SHZM - Rising Hits - UK (#Music)',
+            title: 'SHZM - Discovery - UK (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: 35 * 1000,
         },
 
         scraper: {
             type: 'get',
-            url: 'aHR0cHM6Ly93d3cuc2hhemFtLmNvbS9zaGF6YW0vdjMvZW4tVVMvSUwvd2ViLy0vdHJhY2tzL3Jpc2Vycy1jb3VudHJ5LWNoYXJ0LUdCP3BhZ2VTaXplPTIwJnN0YXJ0RnJvbT0w',
+            url: 'aHR0cHM6Ly93d3cuc2hhemFtLmNvbS9zZXJ2aWNlcy9jaGFydHMvY3N2L2Rpc2NvdmVyeS91bml0ZWQta2luZ2RvbQ==',
         },
 
         parser: {
-            type: 'json',
+            type: 'csv',
 
             options: {
                 limit: 100,
             },
 
             fields: {
-                artist: 'tracks.{Iterator}.artists.0.alias',
-                title: 'tracks.{Iterator}.title',
+                artist: '{Iterator}.Artist',
+                title: '{Iterator}.Title',
             },
         },
     },
@@ -43,19 +43,19 @@ const shzmCharts = {
 
         scraper: {
             type: 'get',
-            url: 'aHR0cHM6Ly93d3cuc2hhemFtLmNvbS9zaGF6YW0vdjMvZW4tVVMvSUwvd2ViLy0vdHJhY2tzL2lwLWNvdW50cnktY2hhcnQtR0I/cGFnZVNpemU9MjAwJnN0YXJ0RnJvbT0w',
+            url: 'aHR0cHM6Ly93d3cuc2hhemFtLmNvbS9zZXJ2aWNlcy9jaGFydHMvY3N2L3RvcC0yMDAvdW5pdGVkLWtpbmdkb20=',
         },
 
         parser: {
-            type: 'json',
+            type: 'csv',
 
             options: {
                 limit: 100,
             },
 
             fields: {
-                artist: 'tracks.{Iterator}.artists.0.alias',
-                title: 'tracks.{Iterator}.title',
+                artist: '{Iterator}.Artist',
+                title: '{Iterator}.Title',
             },
         },
     },
@@ -73,49 +73,49 @@ const shzmCharts = {
 
         scraper: {
             type: 'get',
-            url: 'aHR0cHM6Ly93d3cuc2hhemFtLmNvbS9zaGF6YW0vdjMvZW4tVVMvSUwvd2ViLy0vdHJhY2tzL2lwLWNpdHktY2hhcnQtNTEyODU4MT9wYWdlU2l6ZT01MCZzdGFydEZyb209MA==',
+            url: 'aHR0cHM6Ly93d3cuc2hhemFtLmNvbS9zZXJ2aWNlcy9jaGFydHMvY3N2L3RvcC01MC91bml0ZWQtc3RhdGVzL25ldy15b3JrLWNpdHk=',
         },
 
         parser: {
-            type: 'json',
+            type: 'csv',
 
             options: {
                 limit: 50,
             },
 
             fields: {
-                artist: 'tracks.{Iterator}.subtitle',
-                title: 'tracks.{Iterator}.title',
+                artist: '{Iterator}.Artist',
+                title: '{Iterator}.Title',
             },
         },
     },
 
-    'shzm-rising-us': {
+    'shzm-discovery-us': {
         spotify: {
             playlist: 'https://spoti.fi/3nNvKYT',
         },
 
         now_playing: {
-            title: 'SHZM - Rising Hits - USA (#Music)',
+            title: 'SHZM - Discovery - USA (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: 35 * 1000,
         },
 
         scraper: {
             type: 'get',
-            url: 'aHR0cHM6Ly93d3cuc2hhemFtLmNvbS9zaGF6YW0vdjMvZW4tVVMvSUwvd2ViLy0vdHJhY2tzL3Jpc2Vycy1jb3VudHJ5LWNoYXJ0LVVTP3BhZ2VTaXplPTIwJnN0YXJ0RnJvbT0w',
+            url: 'aHR0cHM6Ly93d3cuc2hhemFtLmNvbS9zZXJ2aWNlcy9jaGFydHMvY3N2L2Rpc2NvdmVyeS91bml0ZWQtc3RhdGVz',
         },
 
         parser: {
-            type: 'json',
+            type: 'csv',
 
             options: {
                 limit: 100,
             },
 
             fields: {
-                artist: 'tracks.{Iterator}.subtitle',
-                title: 'tracks.{Iterator}.title',
+                artist: '{Iterator}.Artist',
+                title: '{Iterator}.Title',
             },
         },
     },
@@ -133,49 +133,49 @@ const shzmCharts = {
 
         scraper: {
             type: 'get',
-            url: 'aHR0cHM6Ly93d3cuc2hhemFtLmNvbS9zaGF6YW0vdjMvZW4tVVMvSUwvd2ViLy0vdHJhY2tzL2lwLWNvdW50cnktY2hhcnQtVVM/cGFnZVNpemU9MjAwJnN0YXJ0RnJvbT0w',
+            url: 'aHR0cHM6Ly93d3cuc2hhemFtLmNvbS9zZXJ2aWNlcy9jaGFydHMvY3N2L3RvcC0yMDAvdW5pdGVkLXN0YXRlcw==',
         },
 
         parser: {
-            type: 'json',
+            type: 'csv',
 
             options: {
                 limit: 100,
             },
 
             fields: {
-                artist: 'tracks.{Iterator}.subtitle',
-                title: 'tracks.{Iterator}.title',
+                artist: '{Iterator}.Artist',
+                title: '{Iterator}.Title',
             },
         },
     },
 
-    'shzm-rising-israel': {
+    'shzm-discovery-israel': {
         spotify: {
             playlist: 'https://spoti.fi/34B0CEm',
         },
 
         now_playing: {
-            title: 'SHZM - Rising Hits - Israel (#Music)',
+            title: 'SHZM - Discovery - Israel (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: 35 * 1000,
         },
 
         scraper: {
             type: 'get',
-            url: 'aHR0cHM6Ly93d3cuc2hhemFtLmNvbS9zaGF6YW0vdjMvZW4tVVMvSUwvd2ViLy0vdHJhY2tzL3Jpc2Vycy1jb3VudHJ5LWNoYXJ0LUlMP3BhZ2VTaXplPTIwJnN0YXJ0RnJvbT0w',
+            url: 'aHR0cHM6Ly93d3cuc2hhemFtLmNvbS9zZXJ2aWNlcy9jaGFydHMvY3N2L2Rpc2NvdmVyeS9pc3JhZWw=',
         },
 
         parser: {
-            type: 'json',
+            type: 'csv',
 
             options: {
                 limit: 100,
             },
 
             fields: {
-                artist: 'tracks.{Iterator}.subtitle',
-                title: 'tracks.{Iterator}.title',
+                artist: '{Iterator}.Artist',
+                title: '{Iterator}.Title',
             },
         },
     },
@@ -193,19 +193,19 @@ const shzmCharts = {
 
         scraper: {
             type: 'get',
-            url: 'aHR0cHM6Ly93d3cuc2hhemFtLmNvbS9zaGF6YW0vdjMvZW4tVVMvSUwvd2ViLy0vdHJhY2tzL2lwLWNvdW50cnktY2hhcnQtSUw/cGFnZVNpemU9MjAwJnN0YXJ0RnJvbT0w',
+            url: 'aHR0cHM6Ly93d3cuc2hhemFtLmNvbS9zZXJ2aWNlcy9jaGFydHMvY3N2L3RvcC0yMDAvaXNyYWVs',
         },
 
         parser: {
-            type: 'json',
+            type: 'csv',
 
             options: {
                 limit: 100,
             },
 
             fields: {
-                artist: 'tracks.{Iterator}.subtitle',
-                title: 'tracks.{Iterator}.title',
+                artist: '{Iterator}.Artist',
+                title: '{Iterator}.Title',
             },
         },
     },
@@ -223,19 +223,19 @@ const shzmCharts = {
 
         scraper: {
             type: 'get',
-            url: 'aHR0cHM6Ly93d3cuc2hhemFtLmNvbS9zaGF6YW0vdjMvZW4tVVMvSUwvd2ViLy0vdHJhY2tzL2lwLWdsb2JhbC1jaGFydD9wYWdlU2l6ZT0yMDAmc3RhcnRGcm9tPTA=',
+            url: 'aHR0cHM6Ly93d3cuc2hhemFtLmNvbS9zZXJ2aWNlcy9jaGFydHMvY3N2L3RvcC0yMDAvd29ybGQ=',
         },
 
         parser: {
-            type: 'json',
+            type: 'csv',
 
             options: {
                 limit: 100,
             },
 
             fields: {
-                artist: 'tracks.{Iterator}.subtitle',
-                title: 'tracks.{Iterator}.title',
+                artist: '{Iterator}.Artist',
+                title: '{Iterator}.Title',
             },
         },
     },
