@@ -14,7 +14,7 @@
     "type": "git",
     "url": "git+https://github.com/MusicHash/now-playing.git"
   },
-  "author": "",
+  "author": "MusicHash",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/MusicHash/now-playing/issues"
