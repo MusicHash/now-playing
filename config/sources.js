@@ -432,14 +432,14 @@ const bpCharts = {
 
         now_playing: {
             title: 'BP Top - Latest Tracks (#Music)',
-            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            description: 'Last 100 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: 60 * 60 * 1 * 1000,
         },
 
         scraper: {
             type: 'get',
             url: 'aHR0cHM6Ly93d3cuYmVhdHBvcnQuY29tL3RvcC0xMDA=',
-            regExp: [new RegExp('<script id="__NEXT_DATA__" type="application/json">(.*?)</script>')],
+            regExp: [new RegExp('<script id="__NEXT_DATA__" type="application\/json">(.*)<\/script>')],
         },
 
         parser: {
@@ -471,14 +471,14 @@ const bpCharts = {
 
         now_playing: {
             title: 'BP Psy Trance - Latest Tracks (#Music)',
-            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            description: 'Last 100 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: 60 * 60 * 1 * 1000,
         },
 
         scraper: {
             type: 'get',
-            url: 'aHR0cHM6Ly93d3cuYmVhdHBvcnQuY29tL2dlbnJlL3BzeS10cmFuY2UvMTMvdHJhY2tz',
-            regExp: [new RegExp('<script id="__NEXT_DATA__" type="application/json">(.*?)</script>')],
+            url: 'aHR0cHM6Ly93d3cuYmVhdHBvcnQuY29tL2dlbnJlL3BzeS10cmFuY2UvMTMvdHJhY2tzP3BhZ2U9MSZwZXJfcGFnZT0xMDAmcHJlb3JkZXJzPWZhbHNl',
+            regExp: [new RegExp('<script id="__NEXT_DATA__" type="application\/json">(.*)<\/script>')],
         },
 
         parser: {
@@ -489,16 +489,16 @@ const bpCharts = {
             },
 
             fields: {
-                artist: 'props.pageProps.dehydratedState.queries.0.state.data.results.{Iterator}.artists.0.name',
-                title: 'props.pageProps.dehydratedState.queries.0.state.data.results.{Iterator}.name',
-                label: 'props.pageProps.dehydratedState.queries.0.state.data.results.{Iterator}.release.label.name',
-                mix: 'props.pageProps.dehydratedState.queries.0.state.data.results.{Iterator}.mix_name',
-                bpm: 'props.pageProps.dehydratedState.queries.0.state.data.results.{Iterator}.bpm',
-                price: 'props.pageProps.dehydratedState.queries.0.state.data.results.{Iterator}.price.value',
-                duration_string: 'props.pageProps.dehydratedState.queries.0.state.data.results.{Iterator}.length',
-                duration_ms: 'props.pageProps.dehydratedState.queries.0.state.data.results.{Iterator}.length_ms',
-                genre: 'props.pageProps.dehydratedState.queries.0.state.data.results.{Iterator}.genre.name',
-                date_published: 'props.pageProps.dehydratedState.queries.0.state.data.results.{Iterator}.new_release_date',
+                artist: 'props.pageProps.dehydratedState.queries.1.state.data.results.{Iterator}.artists.0.name',
+                title: 'props.pageProps.dehydratedState.queries.1.state.data.results.{Iterator}.name',
+                label: 'props.pageProps.dehydratedState.queries.1.state.data.results.{Iterator}.release.label.name',
+                mix: 'props.pageProps.dehydratedState.queries.1.state.data.results.{Iterator}.mix_name',
+                bpm: 'props.pageProps.dehydratedState.queries.1.state.data.results.{Iterator}.bpm',
+                price: 'props.pageProps.dehydratedState.queries.1.state.data.results.{Iterator}.price.value',
+                duration_string: 'props.pageProps.dehydratedState.queries.1.state.data.results.{Iterator}.length',
+                duration_ms: 'props.pageProps.dehydratedState.queries.1.state.data.results.{Iterator}.length_ms',
+                genre: 'props.pageProps.dehydratedState.queries.1.state.data.results.{Iterator}.genre.name',
+                date_published: 'props.pageProps.dehydratedState.queries.1.state.data.results.{Iterator}.new_release_date',
             },
         },
     },
@@ -1087,7 +1087,7 @@ const dorognoeStations = {
 
 const charts = {
     // IL
-    ...kanCharts,
+    //...kanCharts,
     ...shzmCharts,
 
     // World
