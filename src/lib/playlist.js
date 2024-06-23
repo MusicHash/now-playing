@@ -173,9 +173,9 @@ const updatePlaylistMetadata = async function (playlist) {
 
     try {
         let metadata = {
-            name: isProduction() ? nowPlayingMetadata.title : _getPlaylistPrefix() + ' ' + nowPlayingMetadata.title,
+            name: (_getPlaylistPrefix() + ' ' + nowPlayingMetadata.title).trim(),
             description: nowPlayingMetadata.description.replace('{now}', _now()),
-            public: isProduction(),
+            public: _getPlaylistIsPublic(),
         };
 
         await Spotify.playlistUpdateMetadata(playlistID, metadata);
@@ -242,7 +242,13 @@ const _getPlaylistID = function (source) {
 };
 
 const _getPlaylistPrefix = function () {
-    return process.env.SPOTIFY_PLAYLIST_PREFIX;
+    return process.env.SPOTIFY_PLAYLIST_PREFIX || '';
+};
+
+const _getPlaylistIsPublic = function () {
+    let isPublic = process.env.SPOTIFY_PLAYLIST_IS_PUBLIC || false;
+
+    return (process.env.SPOTIFY_PLAYLIST_IS_PUBLIC === 'true') || false;
 };
 
 const isProduction = function () {

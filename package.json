@@ -32,7 +32,7 @@
     "pino-pretty": "^11.2.1",
     "prettier": "^3.3.2",
     "recd-cli": "^1.2.0",
-    "scrapa": "^0.2.5",
+    "scrapa": "^0.2.6",
     "spotify-web-api-node": "^5.0.2"
   },
   "devDependencies": {

@@ -470,14 +470,14 @@ const bpCharts = {
         },
 
         now_playing: {
-            title: 'BP Psy Trance - Latest Tracks (#Music)',
+            title: 'BP Psy Trance (Full On) - Latest Tracks (#Music)',
             description: 'Last 100 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: 60 * 60 * 1 * 1000,
         },
 
         scraper: {
             type: 'get',
-            url: 'aHR0cHM6Ly93d3cuYmVhdHBvcnQuY29tL2dlbnJlL3BzeS10cmFuY2UvMTMvdHJhY2tzP3BhZ2U9MSZwZXJfcGFnZT0xMDAmcHJlb3JkZXJzPWZhbHNl',
+            url: 'aHR0cHM6Ly93d3cuYmVhdHBvcnQuY29tL2dlbnJlL3BzeS10cmFuY2UvMTMvdHJhY2tzP3BhZ2U9MSZwZXJfcGFnZT0xMDAmcHJlb3JkZXJzPWZhbHNlJnN1Yl9nZW5yZV9pZD0xNjg=',
             regExp: [new RegExp('<script id="__NEXT_DATA__" type="application\/json">(.*)<\/script>')],
         },
 
