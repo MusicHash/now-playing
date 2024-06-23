@@ -8,6 +8,10 @@ import redisWrapper from '../../utils/redis_wrapper.js';
 
 const scopes = ['playlist-read-private', 'playlist-modify-private', 'playlist-modify-public'];
 
+const CACHE_FOR_1_HOUR = 60 * 60;
+const CACHE_FOR_1_DAY = 60 * 60 * 24;
+const CACHE_FOR_180_DAYS = 60 * 60 * 24 * 180;
+
 class Spotify {
     api = null;
     #isConnected = false;
@@ -204,7 +208,7 @@ class Spotify {
                 });
 
                 searchTracks = await this.searchTracks(query, limit);
-                await redisWrapper.set(cacheKey, JSON.stringify(searchTracks), 60 * 60 * 24 * 7);
+                await redisWrapper.set(cacheKey, JSON.stringify(searchTracks), CACHE_FOR_180_DAYS);
             }
         } catch (error) {
             logger.error({
@@ -423,7 +427,7 @@ class Spotify {
                 });
 
                 playlist = await this.getPlaylistTracks(playlistID, limit, offset, fields);
-                await redisWrapper.addHash(cacheKey, fieldKey, JSON.stringify(playlist), 60 * 60 * 1);
+                await redisWrapper.addHash(cacheKey, fieldKey, JSON.stringify(playlist), CACHE_FOR_1_HOUR);
             }
         } catch (error) {
             logger.error({
