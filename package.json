@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/MusicHash/now-playing#readme",
   "dependencies": {
+    "@influxdata/influxdb-client": "^1.33.2",
     "acrcloud": "^1.4.0",
     "audd.io": "^3.0.2",
     "dotenv": "^16.4.5",
