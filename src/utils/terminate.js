@@ -1,4 +1,4 @@
-import logger from "./logger.js";
+import logger from './logger.js';
 
 
 const terminate = function(server, options = { coredump: false, timeout: 500 }) {
@@ -9,7 +9,7 @@ const terminate = function(server, options = { coredump: false, timeout: 500 }) 
             options.coredump ? process.abort() : process.exit(exitCode);
         }
 
-        logger.info('got %s, starting shutdown process', code);
+        logger.info(`got ${code}, starting shutdown process`);
 
         if (!server.listening) exit(0);
         logger.info('Closing HTTP Server...');
