@@ -17,8 +17,9 @@ const decodeHTMLEntities = function(text) {
         text = text.replace(new RegExp('&' + entities[i][0] + ';', 'g'), entities[i][1]);
 
     return text;
-}
+};
+
 
 export {
-    decodeHTMLEntities
-}
+    decodeHTMLEntities,
+};
