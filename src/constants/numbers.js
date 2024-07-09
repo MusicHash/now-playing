@@ -3,10 +3,10 @@
  *
  * @type {Object}
  */
-const NUMBERS = {
-    CACHE_FOR_1_HOUR: 60 * 60,
-    CACHE_FOR_1_DAY: 60 * 60 * 24,
-    CACHE_FOR_180_DAYS: 60 * 60 * 24 * 180,
+const DURATION = {
+    OF_1_HOUR: 60 * 60,
+    OF_1_DAY: 60 * 60 * 24,
+    OF_180_DAYS: 60 * 60 * 24 * 180,
 };
 
-export { NUMBERS };
+export { DURATION };
