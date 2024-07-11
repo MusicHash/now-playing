@@ -30,7 +30,10 @@ const cleanNames = function(text) {
         .trim();
 };
 
+const isNumeric = (string) => string == Number.parseFloat(string);
+
 export {
     decodeHTMLEntities,
     cleanNames,
+    isNumeric,
 };
