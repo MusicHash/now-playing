@@ -19,7 +19,7 @@ const decodeHTMLEntities = function(text) {
     return text;
 };
 
-const cleanNames = function (text) {
+const cleanNames = function(text) {
     return decodeHTMLEntities(text)
         .replace(/( עם |feat\.|Ft\.|Featuring|)/g, '')
         .replace(/(&|,)/g, '')
