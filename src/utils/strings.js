@@ -19,7 +19,18 @@ const decodeHTMLEntities = function(text) {
     return text;
 };
 
+const cleanNames = function (text) {
+    return decodeHTMLEntities(text)
+        .replace(/( עם |feat\.|Ft\.|Featuring|)/g, '')
+        .replace(/(&|,)/g, '')
+        .replace(/( x |-|–)/g, ' ')
+        .replace(/(\/)/g, ' ')
+        .replace(/\s+/g, ' ')
+        .replace(/\s\([^)]+\)$/, '') // removes, last part (.*)$
+        .trim();
+};
 
 export {
     decodeHTMLEntities,
+    cleanNames,
 };
