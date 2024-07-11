@@ -638,16 +638,15 @@ const xmStations = {
 
         scraper: {
             type: 'get',
-            url: 'aHR0cHM6Ly93d3cuc2lyaXVzeG0uY29tL3NlcnZsZXQvU2F0ZWxsaXRlP2Q9JnBhZ2VuYW1lPVNYTSUyRlNlcnZpY2VzJTJGTW91bnRhaW5XcmFwcGVyJmRlc2t0b3A9JmNoYW5uZWxzPXNpcml1c2hpdHMx',
+            url: 'aHR0cHM6Ly9sb29rYXJvdW5kLWNhY2hlLXByb2Quc3RyZWFtaW5nLnNpcml1c3htLmNvbS9jb250ZW50c2VydmljZXMvdjEvbGl2ZS9sb29rQXJvdW5k',
         },
 
         parser: {
             type: 'json',
 
             fields: {
-                artist: 'channels.siriushits1.content.artists.0.name',
-                title: 'channels.siriushits1.content.title',
-                album: 'channels.siriushits1.content.album.title',
+                artist: 'channels.194adbca-34d6-cb94-b153-3488ee563308.cuts.0.artistName',
+                title: 'channels.194adbca-34d6-cb94-b153-3488ee563308.cuts.0.name',
             },
         },
     },
@@ -665,16 +664,15 @@ const xmStations = {
 
         scraper: {
             type: 'get',
-            url: 'aHR0cHM6Ly93d3cuc2lyaXVzeG0uY29tL3NlcnZsZXQvU2F0ZWxsaXRlP2Q9JnBhZ2VuYW1lPVNYTSUyRlNlcnZpY2VzJTJGTW91bnRhaW5XcmFwcGVyJmRlc2t0b3A9eWVzJmNoYW5uZWxzPWJpZzgwcyx0aGVzcGVjdHJ1bSw4MjA2LHN0YXJsaXRl',
+            url: 'aHR0cHM6Ly9sb29rYXJvdW5kLWNhY2hlLXByb2Quc3RyZWFtaW5nLnNpcml1c3htLmNvbS9jb250ZW50c2VydmljZXMvdjEvbGl2ZS9sb29rQXJvdW5k',
         },
 
         parser: {
             type: 'json',
 
             fields: {
-                artist: 'channels.starlite.content.artists.0.name',
-                title: 'channels.starlite.content.title',
-                album: 'channels.starlite.content.album.title',
+                artist: 'channels.9e8d6f72-0b59-85cf-a222-b18d38acdc0f.cuts.0.artistName',
+                title: 'channels.9e8d6f72-0b59-85cf-a222-b18d38acdc0f.cuts.0.name',
             },
         },
     },
