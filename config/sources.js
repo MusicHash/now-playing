@@ -477,7 +477,7 @@ const bpCharts = {
 
         scraper: {
             type: 'get',
-            url: 'aHR0cHM6Ly93d3cuYmVhdHBvcnQuY29tL2dlbnJlL3BzeS10cmFuY2UvMTMvdHJhY2tzP3BhZ2U9MSZwZXJfcGFnZT0xMDAmcHJlb3JkZXJzPWZhbHNlJnN1Yl9nZW5yZV9pZD0xNjg=',
+            url: 'aHR0cHM6Ly93d3cuYmVhdHBvcnQuY29tL2dlbnJlL3BzeS10cmFuY2UvMTMvdG9wLTEwMA==',
             regExp: [new RegExp('<script id="__NEXT_DATA__" type="application\/json">(.*)<\/script>')],
         },
 
@@ -489,16 +489,16 @@ const bpCharts = {
             },
 
             fields: {
-                artist: 'props.pageProps.dehydratedState.queries.1.state.data.results.{Iterator}.artists.0.name',
-                title: 'props.pageProps.dehydratedState.queries.1.state.data.results.{Iterator}.name',
-                label: 'props.pageProps.dehydratedState.queries.1.state.data.results.{Iterator}.release.label.name',
-                mix: 'props.pageProps.dehydratedState.queries.1.state.data.results.{Iterator}.mix_name',
-                bpm: 'props.pageProps.dehydratedState.queries.1.state.data.results.{Iterator}.bpm',
-                price: 'props.pageProps.dehydratedState.queries.1.state.data.results.{Iterator}.price.value',
-                duration_string: 'props.pageProps.dehydratedState.queries.1.state.data.results.{Iterator}.length',
-                duration_ms: 'props.pageProps.dehydratedState.queries.1.state.data.results.{Iterator}.length_ms',
-                genre: 'props.pageProps.dehydratedState.queries.1.state.data.results.{Iterator}.genre.name',
-                date_published: 'props.pageProps.dehydratedState.queries.1.state.data.results.{Iterator}.new_release_date',
+                artist: 'props.pageProps.dehydratedState.queries.0.state.data.results.{Iterator}.artists.0.name',
+                title: 'props.pageProps.dehydratedState.queries.0.state.data.results.{Iterator}.name',
+                label: 'props.pageProps.dehydratedState.queries.0.state.data.results.{Iterator}.release.label.name',
+                mix: 'props.pageProps.dehydratedState.queries.0.state.data.results.{Iterator}.mix_name',
+                bpm: 'props.pageProps.dehydratedState.queries.0.state.data.results.{Iterator}.bpm',
+                price: 'props.pageProps.dehydratedState.queries.0.state.data.results.{Iterator}.price.value',
+                duration_string: 'props.pageProps.dehydratedState.queries.0.state.data.results.{Iterator}.length',
+                duration_ms: 'props.pageProps.dehydratedState.queries.0.state.data.results.{Iterator}.length_ms',
+                genre: 'props.pageProps.dehydratedState.queries.0.state.data.results.{Iterator}.genre.name',
+                date_published: 'props.pageProps.dehydratedState.queries.0.state.data.results.{Iterator}.new_release_date',
             },
         },
     },
