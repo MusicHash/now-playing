@@ -1,6 +1,3 @@
-import dotenv from 'dotenv';
-dotenv.config();
-
 import SpotifyWebApi from 'spotify-web-api-node';
 
 import { DURATION } from '../../constants/numbers.js';
