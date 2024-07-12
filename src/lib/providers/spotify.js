@@ -3,14 +3,75 @@ dotenv.config();
 
 import SpotifyWebApi from 'spotify-web-api-node';
 
+import { DURATION } from '../../constants/numbers.js';
 import logger from '../../utils/logger.js';
 import redisWrapper from '../../utils/redis_wrapper.js';
+import metricsWrapper from '../../utils/metrics_wrapper.js';
 
 const scopes = ['playlist-read-private', 'playlist-modify-private', 'playlist-modify-public'];
 
-const CACHE_FOR_1_HOUR = 60 * 60;
-const CACHE_FOR_1_DAY = 60 * 60 * 24;
-const CACHE_FOR_180_DAYS = 60 * 60 * 24 * 180;
+const wrapSpotifyApi = function(spotifyApi) {
+    const logMetric = function(functionName, duration, success) {
+        return metricsWrapper.report('Spotify', [{
+            type: 'intField',
+            key: 'duration',
+            value: duration,
+        },{
+            type: 'stringField',
+            key: 'function',
+            value: functionName,
+        },{
+            type: 'intField',
+            key: 'success',
+            value: success,
+        }]);
+    };
+
+    const wrapper = Object.create(Object.getPrototypeOf(spotifyApi));
+  
+    // Get all method names of the SpotifyWebApi prototype
+    const excludedMethods = ['constructor'];
+    const apiMethods = Object.getOwnPropertyNames(Object.getPrototypeOf(spotifyApi))
+        .filter(name => typeof spotifyApi[name] === 'function' && !excludedMethods.includes(name));
+
+    apiMethods.forEach(methodName => {
+        wrapper[methodName] = async function(...args) {
+            console.log(methodName);
+            const start = Date.now();
+
+            try {
+                const result = await spotifyApi[methodName].apply(spotifyApi, args);
+                const end = Date.now();
+                const duration = end - start;
+
+                console.log(`Spotify API call to ${methodName} took ${duration}ms`);
+
+                logMetric(methodName, duration, 1);
+
+                return result;
+            } catch (error) {
+                const end = Date.now();
+                const duration = end - start;
+
+                console.log(`Spotify API call to ${prop} failed after ${duration}ms:`, error);
+
+                logMetric(methodName, duration, 0);
+
+                throw error;
+            }
+        };
+    });
+
+    // Copy over any non-function properties
+    Object.keys(spotifyApi).forEach(key => {
+        if (typeof spotifyApi[key] !== 'function') {
+            wrapper[key] = spotifyApi[key];
+        }
+    });
+
+    return wrapper;
+}
+
 
 class Spotify {
     api = null;
@@ -22,7 +83,10 @@ class Spotify {
             clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
             redirectUri: process.env.SPOTIFY_CALLBACK_ENDPOINT,
         });
+        
+        //this.api = wrapSpotifyApi(this.api);
     }
+
 
     /**
      *
@@ -36,7 +100,7 @@ class Spotify {
         try {
             // Retrieve an access token
             const token = await this.api.clientCredentialsGrant();
-            this.api.setAccessToken(token.body.access_token); //
+            this.api.setAccessToken(token.body.access_token);
             this.#isConnected = true;
         } catch (error) {
             logger.error({
@@ -135,16 +199,16 @@ class Spotify {
      *
      * @returns
      */
-    setRefreshToken(refreshToken) {
-        return this.api.setRefreshToken(refreshToken);
+    async setRefreshToken(refreshToken) {
+        return await this.api.setRefreshToken(refreshToken);
     }
 
     /**
      *
      * @returns
      */
-    createAuthorizeURL() {
-        return this.api.createAuthorizeURL(scopes, 'new');
+    async createAuthorizeURL() {
+        return await this.api.createAuthorizeURL(scopes, 'new');
     }
 
     /**
@@ -208,7 +272,7 @@ class Spotify {
                 });
 
                 searchTracks = await this.searchTracks(query, limit);
-                await redisWrapper.set(cacheKey, JSON.stringify(searchTracks), CACHE_FOR_180_DAYS);
+                await redisWrapper.set(cacheKey, JSON.stringify(searchTracks), DURATION.OF_180_DAYS);
             }
         } catch (error) {
             logger.error({
@@ -217,6 +281,8 @@ class Spotify {
                 error,
                 metadata: {
                     args: [...arguments],
+                    query,
+                    searchTracks,
                 },
             });
 
@@ -427,7 +493,7 @@ class Spotify {
                 });
 
                 playlist = await this.getPlaylistTracks(playlistID, limit, offset, fields);
-                await redisWrapper.addHash(cacheKey, fieldKey, JSON.stringify(playlist), CACHE_FOR_1_HOUR);
+                await redisWrapper.addHash(cacheKey, fieldKey, JSON.stringify(playlist), DURATION.OF_1_HOUR);
             }
         } catch (error) {
             logger.error({
@@ -675,6 +741,7 @@ class Spotify {
 
         return output;
     }
+
 }
 
 export default new Spotify();

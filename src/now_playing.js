@@ -1,18 +1,19 @@
-import dotenv from 'dotenv';
-dotenv.config();
-
 import http from 'http';
 import express from 'express';
 import prettier from 'prettier';
 
 import logger from './utils/logger.js';
 import redisWrapper from './utils/redis_wrapper.js';
+import MySQLWrapper from './utils/mysql_wrapper.js';
+import eventEmitterWrapper from './utils/event_emitter_wrapper.js';
+import metricsWrapper from './utils/metrics_wrapper.js';
 import { terminate } from './utils/terminate.js';
 
 import { refreshAllStations, refreshChart, refreshChartAll, getChartInfo } from './lib/fetch_sources.js';
+import TrackLogger from './lib/actors/track_logger.js';
 import { stations, charts } from '../config/sources.js';
 
-import { slicePlaylist, sliceAllPlaylists } from './lib/playlist.js';
+import { slicePlaylist, sliceAllPlaylists, subscriptions as playlistSubscriptions } from './lib/playlist.js';
 
 import Spotify from './lib/providers/spotify.js';
 
@@ -31,30 +32,87 @@ class NowPlaying {
         this._terminateHandle(server);
 
         // init
+        this._createEventEmitter();
         this._loadRoutes();
+
+        this._connectToRedis();
+        this._connectToMySQL();
+        this._connectToMetrics();
+
         this._spotifyConnect();
         this._loadAutomaticTimers();
+        playlistSubscriptions();
 
-        const connect = this._connectToRedis();
+        new TrackLogger(Logger).init();
+
+        metricsWrapper.report('app_started', [{
+            type: 'intField',
+            key: 'started',
+            value: 1,
+        }]);
 
         return this;
     }
 
-    async _connectToRedis() {
-        const redisURL = process.env.REDIS_URL;
 
-        if (redisURL) {
+    async _connectToMetrics() {
+        metricsWrapper.init(
+            this.logger,
+            process.env.INFLUX_URL,
+            process.env.INFLUX_TOKEN,
+            process.env.INFLUX_ORG,
+            process.env.INFLUX_BUCKET);
+
+        return this;
+    }
+
+
+    async _createEventEmitter() {
+        this.logger.info('Creating EventEmitter...');
+
+        await eventEmitterWrapper
+            .init(this.logger)
+            .create();
+
+        this.logger.info('Created to EventEmitter!');
+
+        return this;
+    }
+
+
+    async _connectToRedis() {
+        const redisURI = process.env.REDIS_URI;
+
+        if (redisURI) {
             this.logger.info('Connecting to Redis...');
 
-            await redisWrapper.init(this.logger, redisURL).connect();
+            await redisWrapper.init(this.logger, redisURI).connect();
 
             this.logger.info('Connected to Redis!');
         } else {
-            this.logger.warn('REDIS_URL is not defined, redis will not be connected');
+            this.logger.warn('REDIS_URI is not defined, Redis will not be connected');
         }
 
         return this;
     }
+
+
+    async _connectToMySQL() {
+        const MySQL_URI = process.env.MYSQL_URI;
+
+        if (MySQL_URI) {
+            this.logger.info('Connecting to MySQL...');
+
+            await MySQLWrapper.init(this.logger, MySQL_URI).connect();
+
+            this.logger.info('Connected to MySQL!');
+        } else {
+            this.logger.warn('MYSQL_URI is not defined, MySQL will not be connected');
+        }
+
+        return this;
+    }
+
 
     _getExpressServer(app) {
         return http
@@ -71,6 +129,7 @@ class NowPlaying {
             );
     }
 
+
     _terminateHandle(server) {
         // Handle exit process
         const exitHandler = terminate(server, {
@@ -80,14 +139,15 @@ class NowPlaying {
         // Start reading from stdin so we don't exit.
         process.stdin.resume();
 
-        process
-            .on('unhandledRejection', (reason, p) => {
-                this.logger.error(reason, 'Unhandled Rejection at Promise', p);
-            })
-            .on('uncaughtException', (err) => {
-                this.logger.error(err, 'Uncaught Exception thrown');
-                process.exit(1);
-            });
+        process.on('unhandledRejection', (error, promise) => {
+            this.logger.error('Caught Unhandled Rejection at: Promise', promise, 'reason:', error);
+            console.log(error);
+        });
+    
+        process.on('uncaughtException', (error) => {
+            this.logger.error('Caught Uncaught Exception thrown:', error);
+            process.exit(1);
+        });
 
         ['SIGTERM', 'SIGINT', 'SIGUSR1', 'SIGUSR2', 'SIGHUP', 'uncaughtException', 'unhandledRejection'].forEach((eventType) => {
             process.on(eventType, exitHandler.bind(null, eventType));
@@ -95,6 +155,7 @@ class NowPlaying {
 
         return this;
     }
+
 
     async triggerRefreshAllStations() {
         try {
@@ -113,6 +174,7 @@ class NowPlaying {
         }
     }
 
+
     async triggerRefreshChartAll() {
         try {
             let res = await refreshChartAll();
@@ -129,6 +191,7 @@ class NowPlaying {
             });
         }
     }
+
 
     async triggerRefreshChart(chart) {
         try {
@@ -150,6 +213,7 @@ class NowPlaying {
             });
         }
     }
+
 
     async triggerSliceAllPlaylist(chart) {
         try {
@@ -174,10 +238,12 @@ class NowPlaying {
         }
     }
 
+
     _loadRoutes() {
         this.app.get('/spotify/login', async (req, res) => {
-            res.redirect(Spotify.createAuthorizeURL());
+            res.redirect(await Spotify.createAuthorizeURL());
         });
+
 
         this.app.get('/spotify/auth/redirect', async (req, res) => {
             const error = req.query.error;
@@ -185,6 +251,7 @@ class NowPlaying {
 
             Spotify.auth(code, error, res);
         });
+
 
         this.app.get('/actions', async (req, res) => {
             let links = {
@@ -209,6 +276,7 @@ class NowPlaying {
 
             res.send(`<ul>${html}</ul>`);
         });
+
 
         this.app.get('/debug/fetch/:chartID', async (req, res) => {
             let chartID = req.params.chartID;
@@ -270,6 +338,7 @@ class NowPlaying {
         return this;
     }
 
+
     _loadAutomaticTimers() {
         // now playing, stations songs
         setInterval(() => {
@@ -290,6 +359,7 @@ class NowPlaying {
         }, 24 * 60 * 60 * 1000);
 
         // Shorten all playlists to 220 rows
+        /* currently disabled, no need at this point.
         setInterval(() => {
             this.triggerSliceAllPlaylist();
 
@@ -297,9 +367,11 @@ class NowPlaying {
                 message: '[AUTO REFRESH] SHORTEN ALL PLAYLISTS, every 4 hours',
             });
         }, 4 * 60 * 60 * 1000);
+        */
 
         return this;
     }
+
 
     _spotifyConnect() {
         Spotify.connect().then(() => {
@@ -310,6 +382,8 @@ class NowPlaying {
 
         return this;
     }
+  
+
 }
 
 export default new NowPlaying(logger);

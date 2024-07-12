@@ -1,8 +1,17 @@
 import Spotify from './providers/spotify.js';
-import { decodeHTMLEntities } from '../utils/strings.js';
+import { decodeHTMLEntities, cleanNames } from '../utils/strings.js';
+import { SYSTEM_EVENTS } from '../constants/events.js';
+import eventEmitterWrapper from '../utils/event_emitter_wrapper.js';
+import { now } from '../utils/time.js';
 import { stations, charts } from '../../config/sources.js';
 
 import logger from '../utils/logger.js';
+
+const subscriptions = function() {
+    eventEmitterWrapper.on(SYSTEM_EVENTS.ON_STATION_TRACK_UPDATED, (props) => {
+        //await updatePlayList(station, tracks);
+    });
+};
 
 const updatePlayList = async function (playlist, tracks, firstSongOnly) {
     logger.debug({
@@ -17,7 +26,7 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
         artist = tracks.fields[0]?.artist || '',
         title = tracks.fields[0]?.title || '';
 
-    let query = _cleanNames([artist, title].join(' '));
+    let query = cleanNames([artist, title].join(' '));
 
     // validate min length
     if (9 >= query.length) {
@@ -132,7 +141,7 @@ const replacePlayList = async function (playlist, tracks) {
             let artist = (tracks.fields[i] && tracks.fields[i].artist) || '',
                 title = (tracks.fields[i] && tracks.fields[i].title) || '';
 
-            let query = _cleanNames([artist, title].join(' '));
+            let query = cleanNames([artist, title].join(' '));
             let tracksFound = await extractURI(query);
 
             if (null !== tracksFound) {
@@ -174,7 +183,7 @@ const updatePlaylistMetadata = async function (playlist) {
     try {
         let metadata = {
             name: (_getPlaylistPrefix() + ' ' + nowPlayingMetadata.title).trim(),
-            description: nowPlayingMetadata.description.replace('{now}', _now()),
+            description: nowPlayingMetadata.description.replace('{now}', now()),
             public: _getPlaylistIsPublic(),
         };
 
@@ -213,16 +222,16 @@ const sliceAllPlaylists = async function (limit = 200) {
     let delaySeconds = 5,
         chartEnumeration = 1;
 
-    for (let stationIdx in stations) {
+    for (let station in stations) {
         let delayBySeconds = delaySeconds * chartEnumeration;
 
         setTimeout(() => {
-            slicePlaylist(stationIdx, limit);
+            slicePlaylist(station, limit);
         }, delayBySeconds * 1000);
 
         logger.debug({
             args: [...arguments],
-            message: `Queued station ${stationIdx} for slice in ${delayBySeconds}s`,
+            message: `Queued station ${station} for slice in ${delayBySeconds}s`,
         });
 
         chartEnumeration++;
@@ -255,35 +264,5 @@ const isProduction = function () {
     return ['production'].includes(process.env.NODE_ENV);
 };
 
-const _cleanNames = function (str) {
-    return decodeHTMLEntities(str)
-        .replace(/( עם |feat\.|Ft\.|Featuring|)/g, '')
-        .replace(/(&|,)/g, '')
-        .replace(/( x |-|–)/g, ' ')
-        .replace(/(\/)/g, ' ')
-        .replace(/\s+/g, ' ')
-        .replace(/\s\([^)]+\)$/, '') // removes, last part (.*)$
-        .trim();
-};
 
-const _now = function (timezone = 'Asia/Jerusalem') {
-    let parts = new Intl.DateTimeFormat('en', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        hour12: false,
-        minute: '2-digit',
-        second: '2-digit',
-        timeZone: timezone,
-    })
-        .formatToParts(new Date())
-        .reduce((acc, part) => {
-            acc[part.type] = part.value;
-            return acc;
-        }, Object.create(null));
-
-    return `${parts.day}/${parts.month}/${parts.year} ${parts.hour}:${parts.minute}:${parts.second}`;
-};
-
-export { updatePlayList, replacePlayList, slicePlaylist, sliceAllPlaylists };
+export { updatePlayList, replacePlayList, slicePlaylist, sliceAllPlaylists, subscriptions };

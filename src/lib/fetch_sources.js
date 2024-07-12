@@ -4,6 +4,27 @@ import { updatePlayList, replacePlayList } from './playlist.js';
 import { stations, charts } from '../../config/sources.js';
 
 import logger from '../utils/logger.js';
+import { SYSTEM_EVENTS } from '../constants/events.js';
+import { DURATION } from '../constants/numbers.js';
+import { hash } from '../utils/crypt.js';
+import redisWrapper from '../utils/redis_wrapper.js';
+import eventEmitterWrapper from '../utils/event_emitter_wrapper.js';
+
+const didSourceChange = async function(station, response) {
+    const hashKey = 'NOWPLAYNG:SORUCES:RECENT_CHANGE_BY_SOURCE';
+    const hashField = station;
+    const lastStationResponse = JSON.parse(await redisWrapper.getHash(hashKey, hashField));
+
+    response = JSON.stringify(response);
+
+    if (hash(lastStationResponse) !== hash(response)) {
+        await redisWrapper.addHash(hashKey, hashField, response, DURATION.OF_1_HOUR);
+
+        return true;
+    }
+
+    return false;
+};
 
 const getChartInfo = async function (props) {
     const chartInfo = await getCurrentTracks({
@@ -15,15 +36,25 @@ const getChartInfo = async function (props) {
 };
 
 const refreshAllStations = async function () {
-    for (let stationIdx in stations) {
-        let props = stations[stationIdx];
+    for (let station in stations) {
+        let props = stations[station];
 
         getCurrentTracks({
             scraperProps: props.scraper,
             parserProps: props.parser,
         })
             .then(async (tracks) => {
-                await updatePlayList(stationIdx, tracks);
+                const payload = {
+                    station: station,
+                    result: tracks,
+                };
+
+                const shouldSendUpdate = await didSourceChange(station, payload);
+
+                if (shouldSendUpdate && payload?.result?.total > 0) {
+                    eventEmitterWrapper.emit(SYSTEM_EVENTS.ON_STATION_TRACK_UPDATED, payload);
+                }
+
             })
             .catch((error) =>
                 logger.error({
@@ -31,7 +62,7 @@ const refreshAllStations = async function () {
                     message: 'Failed to refresh station',
                     error,
                     metadata: {
-                        stationIdx,
+                        station,
                     },
                 }),
             );
