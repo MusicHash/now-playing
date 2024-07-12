@@ -7,7 +7,7 @@ CREATE TABLE `nowplaying_station_log`(
     `log_timestamp_played` INT NOT NULL,
     `log_datetime_played` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY(`log_id`)
-) ENGINE = InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- FOREIGN KEY between tables
 ALTER TABLE `nowplaying_station_log`

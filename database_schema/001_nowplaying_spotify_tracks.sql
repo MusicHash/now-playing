@@ -8,7 +8,7 @@ CREATE TABLE `nowplaying_spotify_tracks`(
 	`spotify_popularity` TINYINT NOT NULL,
     `spotify_timestamp_added` INT NOT NULL,
     PRIMARY KEY(`spotify_id`)
-) ENGINE = InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Adding Index
 ALTER TABLE `nowplaying_spotify_tracks`
