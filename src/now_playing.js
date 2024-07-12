@@ -10,7 +10,7 @@ import metricsWrapper from './utils/metrics_wrapper.js';
 import { terminate } from './utils/terminate.js';
 
 import { refreshAllStations, refreshChart, refreshChartAll, getChartInfo } from './lib/fetch_sources.js';
-import TrackLogger from './lib/actors/track_logger.js';
+import StationLogger from './lib/actors/station_logger.js';
 import { stations, charts } from '../config/sources.js';
 
 import { slicePlaylist, sliceAllPlaylists, subscriptions as playlistSubscriptions } from './lib/playlist.js';
@@ -43,7 +43,7 @@ class NowPlaying {
         this._loadAutomaticTimers();
         playlistSubscriptions();
 
-        new TrackLogger(Logger).init();
+        new StationLogger(Logger).init();
 
         metricsWrapper.report('app_started', [{
             type: 'intField',
