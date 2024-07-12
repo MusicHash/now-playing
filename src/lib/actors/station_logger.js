@@ -92,9 +92,9 @@ class StationLogger {
             },
             {
                 'spotify_track_id': track.id,
-                'spotify_track_title': track.name,
                 'spotify_artist_id': track?.artists[0]?.id,
                 'spotify_artist_title': track?.artists[0]?.name,
+                'spotify_track_title': track.name,
                 'spotify_duration_ms': track.duration_ms,
                 'spotify_popularity': track.popularity,
                 'spotify_timestamp_added': Math.floor(new Date().getTime() / 1000),
