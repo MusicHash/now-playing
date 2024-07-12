@@ -1,4 +1,4 @@
-CREATE TABLE `nowplaying_spotify`(
+CREATE TABLE `nowplaying_spotify_tracks`(
     `spotify_id` INT NOT NULL AUTO_INCREMENT,
     `spotify_track_id` VARCHAR(60) NOT NULL COMMENT '3SkVJ7vpdmLSWPgnGTPqsW',
 	`spotify_artist_id` VARCHAR(60) NOT NULL COMMENT '72Nhcx7prNk2ZCxhx0Y5es',
@@ -11,6 +11,6 @@ CREATE TABLE `nowplaying_spotify`(
 ) ENGINE = InnoDB;
 
 -- Adding Index
-ALTER TABLE `nowplaying_spotify`
+ALTER TABLE `nowplaying_spotify_tracks`
   ADD KEY `spotify_track_id` (`spotify_track_id`);
 
