@@ -20,6 +20,8 @@ class StationLogger {
         'Sweet James',
         'SXM App',
         'SiriusXMHits1',
+        'SpyderHarrison',
+        'WeekendCountdown',
         'Mack & Jen',
         '4871'
     ];
