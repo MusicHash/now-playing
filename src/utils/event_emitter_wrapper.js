@@ -37,10 +37,13 @@ class EventEmitterWrapper {
     }
 
 
-    emit(event, ...args) {
-        this.create();
+    async emit(event, ...args) {
+        await this.create();
+        const listeners = this._EventEmitterInstance.listeners(event);
 
-        this._EventEmitterInstance.emit(event, ...args);
+        for (const listener of listeners) {
+            await listener(...args);
+        }
 
         return this;
     }

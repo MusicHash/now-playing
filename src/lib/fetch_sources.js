@@ -52,7 +52,7 @@ const refreshAllStations = async function () {
                 const shouldSendUpdate = await didSourceChange(station, payload);
 
                 if (shouldSendUpdate && payload?.result?.total > 0) {
-                    eventEmitterWrapper.emit(SYSTEM_EVENTS.ON_STATION_TRACK_UPDATED, payload);
+                    await eventEmitterWrapper.emit(SYSTEM_EVENTS.ON_STATION_TRACK_UPDATED, payload);
                 }
 
             })
