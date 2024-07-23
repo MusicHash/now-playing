@@ -90,13 +90,15 @@ class Spotify {
      * @returns
      */
     async connect() {
+        let token;
+        
         if (true === this.#isConnected) {
             return true;
         }
 
         try {
             // Retrieve an access token
-            const token = await this.api.clientCredentialsGrant();
+            token = await this.api.clientCredentialsGrant();
             this.api.setAccessToken(token.body.access_token);
             this.#isConnected = true;
         } catch (error) {
