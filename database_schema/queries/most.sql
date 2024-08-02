@@ -46,7 +46,7 @@ JOIN
     nowplaying_spotify_tracks spotify_tracks
     ON station_log.spotify_id = spotify_tracks.spotify_id
 WHERE
-    station_log.log_datetime_played BETWEEN 'start_date' AND 'end_date'
+    station_log.log_datetime_played >= NOW() - INTERVAL 3 DAY
 GROUP BY
     spotify_tracks.spotify_track_id,
     spotify_tracks.spotify_artist_title,
