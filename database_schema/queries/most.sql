@@ -47,6 +47,8 @@ JOIN
     ON station_log.spotify_id = spotify_tracks.spotify_id
 WHERE
     station_log.log_datetime_played >= NOW() - INTERVAL 3 DAY
+    AND 
+    station_log.log_station_id LIKE '%glz%'
 GROUP BY
     spotify_tracks.spotify_track_id,
     spotify_tracks.spotify_artist_title,
