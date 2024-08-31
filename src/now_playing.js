@@ -9,13 +9,15 @@ import eventEmitterWrapper from './utils/event_emitter_wrapper.js';
 import metricsWrapper from './utils/metrics_wrapper.js';
 import { terminate } from './utils/terminate.js';
 
-import { refreshAllStations, refreshChart, refreshChartAll, getChartInfo } from './lib/fetch_sources.js';
-import StationLogger from './lib/actors/station_logger.js';
+import { crawlAllStationsToNotifyTrackChanges, refreshChartLocal, refreshChartRemote, updatePlaylistContentForAllStations, refreshChartAll, getChartInfo } from './lib/fetch_sources.js';
+import StationLoggerActor from './lib/actors/station_logger_actor.js';
+import SpotifyActor from './lib/actors/spotify_actor.js';
 import { stations, charts } from '../config/sources.js';
 
 import { slicePlaylist, sliceAllPlaylists, subscriptions as playlistSubscriptions } from './lib/playlist.js';
 
 import Spotify from './lib/providers/spotify.js';
+
 
 /**
  * NowPlaying
@@ -43,7 +45,8 @@ class NowPlaying {
         this._loadAutomaticTimers();
         playlistSubscriptions();
 
-        new StationLogger(Logger).init();
+        new StationLoggerActor(Logger).init();
+        new SpotifyActor(Logger).init();
 
         metricsWrapper.report('app_started', [{
             type: 'intField',
@@ -157,23 +160,39 @@ class NowPlaying {
     }
 
 
-    async triggerRefreshAllStations() {
+    async triggerCrawlAllStationsToNotifyTrackChanges() {
         try {
-            let res = await refreshAllStations();
+            let res = await crawlAllStationsToNotifyTrackChanges();
 
             this.logger.info({
-                method: 'triggerRefreshAllStations',
+                method: 'triggerCrawlAllStationsToNotifyTrackChanges',
                 message: res,
             });
         } catch (error) {
             this.logger.error({
-                method: 'triggerRefreshAllStations',
+                method: 'triggerCrawlAllStationsToNotifyTrackChanges',
                 message: 'Could not refresh stations',
                 error,
             });
         }
     }
 
+    async triggerUpdatePlaylistContentForAllStations() {
+        try {
+            let res = await updatePlaylistContentForAllStations();
+
+            this.logger.info({
+                method: 'triggerUpdatePlaylistContentForAllStations',
+                message: res,
+            });
+        } catch (error) {
+            this.logger.error({
+                method: 'triggerUpdatePlaylistContentForAllStations',
+                message: 'Could not update stations playlist',
+                error,
+            });
+        }
+    }
 
     async triggerRefreshChartAll() {
         try {
@@ -193,18 +212,18 @@ class NowPlaying {
     }
 
 
-    async triggerRefreshChart(chart) {
+    async triggerRefreshChartRemote(chart) {
         try {
-            let res = await refreshChart(chart);
+            let res = await refreshChartRemote(chart);
 
             this.logger.info({
-                method: 'triggerRefreshChart',
+                method: 'triggerRefreshChartRemote',
                 message: res,
                 args: [...arguments],
             });
         } catch (error) {
             this.logger.error({
-                method: 'triggerRefreshChart',
+                method: 'triggerRefreshChartRemote',
                 message: 'Could not refresh chart',
                 error,
                 metadata: {
@@ -256,7 +275,8 @@ class NowPlaying {
         this.app.get('/actions', async (req, res) => {
             let links = {
                 '/spotify/login': 'Re-Login',
-                '/refresh_playlists_manually': 'Refresh Stations (all)',
+                '/crawl_playlists_manually': 'Crawl Stations (all)',
+                '/update_playlists_manually': 'Update Stations Manually (all)',
                 '/playlist/refresh_charts/all': 'Refresh Charts - in batches (all)',
                 '/playlist/slice/all': 'Shorten the playlist to limit (all)',
                 '/debug_channels': 'Debug Channels',
@@ -305,16 +325,21 @@ class NowPlaying {
             res.send(`<pre>${output.join('\n')}</pre>`);
         });
 
-        this.app.get('/refresh_playlists_manually', async (req, res) => {
-            this.triggerRefreshAllStations();
-            res.send('Success, triggerRefreshAllStations!');
+        this.app.get('/crawl_playlists_manually', async (req, res) => {
+            this.triggerCrawlAllStationsToNotifyTrackChanges();
+            res.send('Success, triggerCrawlAllStationsToNotifyTrackChanges!');
+        });
+
+        this.app.get('/update_playlists_manually', async (req, res) => {
+            this.triggerUpdatePlaylistContentForAllStations();
+            res.send('Success, triggerUpdatePlaylistContentForAllStations!');
         });
 
         this.app.get('/refresh_charts_manually/:chart', async (req, res) => {
             let chart = req.params.chart;
 
-            this.triggerRefreshChart(chart);
-            res.send(['Success, triggerRefreshChart!', chart]);
+            this.triggerRefreshChartRemote(chart);
+            res.send(['Success, triggerRefreshChartRemote!', chart]);
         });
 
         this.app.get('/playlist/refresh_charts/all', async (req, res) => {
@@ -340,14 +365,23 @@ class NowPlaying {
 
 
     _loadAutomaticTimers() {
-        // now playing, stations songs
+        // now playing, crawl stations songs
         setInterval(() => {
-            this.triggerRefreshAllStations();
+            this.triggerCrawlAllStationsToNotifyTrackChanges();
 
             this.logger.info({
                 message: '[AUTO REFRESH] STATIONS 45s',
             });
         }, 45 * 1000);
+
+        // update stations playlist once a day
+        setInterval(() => {
+            this.triggerUpdatePlaylistContentForAllStations();
+
+            this.logger.info({
+                message: '[AUTO REFRESH] station playlist - once every 24 hours',
+            });
+        }, 24 * 60 * 60 * 1000);
 
         // update charts once a day
         setInterval(() => {

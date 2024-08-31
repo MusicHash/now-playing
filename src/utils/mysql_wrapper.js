@@ -174,12 +174,17 @@ class MySQLWrapper {
     }
 
 
+    async query(query, params = []) {
+        return await this._execute(query, params, 'query');
+    }
+
+
     async _getConnection() {
         return await this._MySQLInstance.getConnection();
     }
 
 
-    async _execute(query, params = []) {
+    async _execute(query, params = [], command = 'execute') {
         await this.connect();
 
         let connection;
@@ -187,9 +192,9 @@ class MySQLWrapper {
 
         try {
             connection = await this._getConnection();
-            results = await connection.execute(
+            results = await connection[command](
                 query,
-                params
+                params,
             );
         } catch(error) {
             this.logger.error(`ERROR: ${error}`);
@@ -199,8 +204,6 @@ class MySQLWrapper {
 
         return results;
     }
-
-
 }
 
 

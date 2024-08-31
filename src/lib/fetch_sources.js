@@ -1,5 +1,5 @@
 import { getCurrentTracks } from './tracks.js';
-import { updatePlayList, replacePlayList } from './playlist.js';
+import { updatePlayList, replacePlayList, _getPlaylistID } from './playlist.js';
 
 import { stations, charts } from '../../config/sources.js';
 
@@ -9,6 +9,8 @@ import { DURATION } from '../constants/numbers.js';
 import { hash } from '../utils/crypt.js';
 import redisWrapper from '../utils/redis_wrapper.js';
 import eventEmitterWrapper from '../utils/event_emitter_wrapper.js';
+import { getMostPlayedSongsByStation } from './query_log/most_played_songs.js';
+
 
 const didSourceChange = async function(station, response) {
     const hashKey = 'NOWPLAYNG:SORUCES:RECENT_CHANGE_BY_SOURCE';
@@ -35,7 +37,7 @@ const getChartInfo = async function (props) {
     return chartInfo;
 };
 
-const refreshAllStations = async function () {
+const crawlAllStationsToNotifyTrackChanges = async function () {
     for (let station in stations) {
         let props = stations[station];
 
@@ -58,7 +60,7 @@ const refreshAllStations = async function () {
             })
             .catch((error) =>
                 logger.error({
-                    method: 'getCurrentTracks -> refreshAllStations',
+                    method: 'getCurrentTracks -> crawlAllStationsToNotifyTrackChanges',
                     message: 'Failed to refresh station',
                     error,
                     metadata: {
@@ -69,12 +71,64 @@ const refreshAllStations = async function () {
     }
 };
 
-const refreshChart = async function (chartIdx) {
-    let chart = charts[chartIdx];
+const updatePlaylistContentForStationLocal = async function(stationKey) {
+    let station = stations[stationKey];
+
+    if (!station) {
+        logger.error({
+            method: 'updatePlaylistContentForStationLocal',
+            message: 'Station not found',
+            metadata: {
+                stationKey,
+                args: [...arguments],
+            },
+        });
+
+        return Promise.reject();
+    }
+
+    logger.debug({
+        method: 'updatePlaylistContentForStationLocal',
+        error: 'Starting station update for a single station',
+        metadata: {
+            stationKey,
+            station,
+            args: [...arguments],
+        },
+    });
+
+
+    try {
+        const mostPlayedSongsByStation = await getMostPlayedSongsByStation(stationKey, 30, 150);
+
+        const payload = {
+            stationKey: stationKey,
+            spotifyPlaylistID: _getPlaylistID(stationKey),
+            spotifyTracksList: mostPlayedSongsByStation,
+        };
+
+        await eventEmitterWrapper.emit(SYSTEM_EVENTS.ON_SPOTIFY_PLAYLIST_UPDATE, payload);
+    } catch(error) {
+            logger.error({
+                method: 'updatePlaylistContentForStationLocal',
+                message: 'Failed to update a station',
+                error,
+                metadata: {
+                    stationKey,
+                    station,
+                    args: [...arguments],
+                },
+            });
+    }
+
+};
+
+const refreshChartLocal = async function(chartKey) {
+    let chart = charts[chartKey];
 
     if (!chart) {
         logger.error({
-            method: 'refreshChart',
+            method: 'refreshChartLocal',
             message: 'Chart not found',
             metadata: {
                 chart,
@@ -86,7 +140,7 @@ const refreshChart = async function (chartIdx) {
     }
 
     logger.debug({
-        method: 'refreshChart',
+        method: 'refreshChartLocal',
         error: 'Starting chart refreshing for a single chart',
         metadata: {
             chart,
@@ -94,17 +148,62 @@ const refreshChart = async function (chartIdx) {
         },
     });
 
+
+    try {
+        // const mostPlayedSongsByStation = await getMostPlayedSongsByStation(chartKey, 30);
+        // console.log('BLA');
+        // console.log(mostPlayedSongsByStation);
+    } catch(error) {
+            logger.error({
+                method: 'refreshChartLocal',
+                message: 'Failed to refresh a chart',
+                error,
+                metadata: {
+                    chart,
+                    args: [...arguments],
+                },
+            });
+    }
+
+};
+
+const refreshChartRemote = async function (chartKey) {
+    let chart = charts[chartKey];
+
+    if (!chart) {
+        logger.error({
+            method: 'refreshChartRemote',
+            message: 'Chart not found',
+            metadata: {
+                chart,
+                args: [...arguments],
+            },
+        });
+
+        return Promise.reject();
+    }
+
+    logger.debug({
+        method: 'refreshChartRemote',
+        error: 'Starting chart refreshing for a single chart',
+        metadata: {
+            chart,
+            args: [...arguments],
+        },
+    });
+
+    
     getCurrentTracks({
         scraperProps: chart.scraper,
         parserProps: chart.parser,
     })
         .then(async (tracks) => {
-            await replacePlayList(chartIdx, tracks);
+            await replacePlayList(chartKey, tracks);
         })
 
         .catch((error) =>
             logger.error({
-                method: 'refreshChart',
+                method: 'refreshChartRemote',
                 message: 'Failed to refresh a chart',
                 error,
                 metadata: {
@@ -117,22 +216,42 @@ const refreshChart = async function (chartIdx) {
 
 const refreshChartAll = async function () {
     let delaySeconds = 60,
-        chartEnumeration = 1;
+        chartEnumeration = 0;
 
-    for (let chartIdx in charts) {
+    for (let chartKey in charts) {
         let delayBySeconds = delaySeconds * chartEnumeration;
 
         setTimeout(() => {
-            refreshChart(chartIdx);
+            refreshChartRemote(chartKey);
         }, delayBySeconds * 1000);
 
         logger.info({
             method: 'refreshChartAll',
-            message: `Queued chart ${chartIdx} for update in ${delayBySeconds}s`,
+            message: `Queued chart ${chartKey} for update in ${delayBySeconds}s`,
         });
 
         chartEnumeration++;
     }
 };
 
-export { refreshAllStations, refreshChart, refreshChartAll, getChartInfo };
+const updatePlaylistContentForAllStations = async function() {
+    let delaySeconds = 60, // first iteration should instant.
+        stationEnumeration = 0;
+
+    for (let stationKey in stations) {
+        let delayBySeconds = delaySeconds * stationEnumeration;
+
+        setTimeout(() => {
+            updatePlaylistContentForStationLocal(stationKey);
+        }, delayBySeconds * 1000);
+
+        logger.info({
+            method: 'updatePlaylistContentForAllStations',
+            message: `Queued chart ${stationKey} for update in ${delayBySeconds}s`,
+        });
+
+        stationEnumeration++;
+    }
+};
+
+export { crawlAllStationsToNotifyTrackChanges, refreshChartRemote, refreshChartLocal, updatePlaylistContentForAllStations, refreshChartAll, getChartInfo };

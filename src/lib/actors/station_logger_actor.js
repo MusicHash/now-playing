@@ -7,9 +7,9 @@ import Spotify from '../providers/spotify.js';
 
 
 /**
- * TrackLogger
+ * StationLoggerActor
  */
-class StationLogger {
+class StationLoggerActor {
     logger;
     blacklistTracks = [
         '9.7 NOW',
@@ -39,7 +39,7 @@ class StationLogger {
 
 
     init() {
-        this.logger.info('StationLogger Initialized');
+        this.logger.info('StationLoggerActor Initialized');
         this._subscriptions();
     }
 
@@ -127,4 +127,4 @@ class StationLogger {
 }
 
 
-export default StationLogger;
+export default StationLoggerActor;

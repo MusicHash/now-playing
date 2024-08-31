@@ -265,4 +265,4 @@ const isProduction = function () {
 };
 
 
-export { updatePlayList, replacePlayList, slicePlaylist, sliceAllPlaylists, subscriptions };
+export { updatePlayList, replacePlayList, slicePlaylist, sliceAllPlaylists, subscriptions, _getPlaylistID };
