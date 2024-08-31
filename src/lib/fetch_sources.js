@@ -99,7 +99,7 @@ const updatePlaylistContentForStationLocal = async function(stationKey) {
 
 
     try {
-        const mostPlayedSongsByStation = await getMostPlayedSongsByStation(stationKey, 30, 150);
+        const mostPlayedSongsByStation = await getMostPlayedSongsByStation(stationKey, 30, 100);
 
         const payload = {
             stationKey: stationKey,
