@@ -406,19 +406,19 @@ const kanCharts = {
         },
 
         scraper: {
-            type: 'headless',
-            url: 'aHR0cHM6Ly93d3cua2FuLm9yZy5pbC9wYWdlLmFzcHg/bGFuZGluZ1BhZ2VJZD0xMDQ5',
+            type: 'get',
+            url: 'aHR0cHM6Ly93d3cua2FuLm9yZy5pbC9jb250ZW50L2thbi9yYWRpb19hcnRpY2xlcy9wLTExMjAzLzM2NDYwNC8=',
         },
 
         parser: {
             type: 'html',
 
             options: {
-                limit: 26,
+                limit: 100,
             },
 
             fields: {
-                title: '.magazine .magazine_info_title',
+                title: '.magazine-page .article-content ol li',
             },
         },
     },
@@ -557,8 +557,8 @@ const europaPlusCharts = {
             },
 
             fields: {
-                artist: '.song .song__name > div > a:first-child',
-                title: '.song .song__name > p',
+                artist: '.track-and-artists .artist',
+                title: '.track-and-artists .track-name',
             },
         },
     },
@@ -587,8 +587,8 @@ const europaPlusCharts = {
             },
 
             fields: {
-                artist: '.song .song__name > div > a:first-child',
-                title: '.song .song__name > p',
+                artist: '.track-and-artists .artist',
+                title: '.track-and-artists .track-name',
             },
         },
     },
