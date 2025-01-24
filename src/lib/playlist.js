@@ -184,7 +184,7 @@ const updatePlaylistMetadata = async function (playlist) {
         let metadata = {
             name: (_getPlaylistPrefix() + ' ' + nowPlayingMetadata.title).trim(),
             description: nowPlayingMetadata.description.replace('{now}', now()),
-            public: _getPlaylistIsPublic(),
+            //public: _getPlaylistIsPublic(),
         };
 
         await Spotify.playlistUpdateMetadata(playlistID, metadata);
