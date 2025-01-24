@@ -112,6 +112,7 @@ const updatePlaylistContentForStationLocal = async function(stationKey) {
 
         console.log("updatePlaylistContentForStationLocal FAILED")
         console.log(error)
+        logger.error(JSON.stringify(error));
         logger.error({
             method: 'updatePlaylistContentForStationLocal',
             message: 'Failed to update a station',
