@@ -209,7 +209,7 @@ const refreshChartRemote = async function (chartKey) {
             logger.error({
                 method: 'refreshChartRemote',
                 message: 'Failed to refresh a chart',
-                error,
+                error: JSON.stringify(error),
                 metadata: {
                     chart,
                     args: [...arguments],
