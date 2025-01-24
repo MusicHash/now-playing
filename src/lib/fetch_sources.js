@@ -110,6 +110,7 @@ const updatePlaylistContentForStationLocal = async function(stationKey) {
         await eventEmitterWrapper.emit(SYSTEM_EVENTS.ON_SPOTIFY_PLAYLIST_UPDATE, payload);
     } catch(error) {
 
+        console.log("updatePlaylistContentForStationLocal FAILED")
         console.log(error)
         logger.error({
             method: 'updatePlaylistContentForStationLocal',
