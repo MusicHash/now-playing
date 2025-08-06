@@ -138,14 +138,18 @@ class NowPlaying {
 
     _terminateHandle(server) {
         // Handle exit process
-        const exitHandler = terminate(server, {
-            coredump: false,
-        }, () => {
-            // Cleanup intervals when terminating
-            this.intervals.forEach(interval => {
-                if (interval) clearInterval(interval);
-            });
-        });
+        const exitHandler = terminate(
+            server,
+            {
+                coredump: false,
+            },
+            () => {
+                // Cleanup intervals when terminating
+                this.intervals.forEach((interval) => {
+                    if (interval) clearInterval(interval);
+                });
+            },
+        );
 
         // Start reading from stdin so we don't exit.
         process.stdin.resume();
@@ -156,28 +160,30 @@ class NowPlaying {
                 message: 'Caught Unhandled Promise Rejection',
                 error,
                 metadata: {
-                    promise: promise.toString()
-                }
+                    promise: promise.toString(),
+                },
             });
-            
+
             // Report to metrics if available
             if (metricsWrapper) {
-                metricsWrapper.report('unhandled_rejection', [
-                    {
-                        type: 'intField',
-                        key: 'count',
-                        value: 1,
-                    },
-                    {
-                        type: 'stringField',
-                        key: 'error_message',
-                        value: error.message || 'Unknown error',
-                    },
-                ]).catch(() => {
-                    // Ignore metrics errors to prevent recursive issues
-                });
+                metricsWrapper
+                    .report('unhandled_rejection', [
+                        {
+                            type: 'intField',
+                            key: 'count',
+                            value: 1,
+                        },
+                        {
+                            type: 'stringField',
+                            key: 'error_message',
+                            value: error.message || 'Unknown error',
+                        },
+                    ])
+                    .catch(() => {
+                        // Ignore metrics errors to prevent recursive issues
+                    });
             }
-            
+
             // Don't exit immediately, let the application try to recover
         });
 
@@ -186,32 +192,34 @@ class NowPlaying {
                 method: 'uncaughtException',
                 message: 'Caught Uncaught Exception',
                 error,
-                stack: error.stack
+                stack: error.stack,
             });
-            
+
             // Report to metrics if available
             if (metricsWrapper) {
-                metricsWrapper.report('uncaught_exception', [
-                    {
-                        type: 'intField',
-                        key: 'count',
-                        value: 1,
-                    },
-                    {
-                        type: 'stringField',
-                        key: 'error_message',
-                        value: error.message || 'Unknown error',
-                    },
-                ]).catch(() => {
-                    // Ignore metrics errors to prevent recursive issues
-                });
+                metricsWrapper
+                    .report('uncaught_exception', [
+                        {
+                            type: 'intField',
+                            key: 'count',
+                            value: 1,
+                        },
+                        {
+                            type: 'stringField',
+                            key: 'error_message',
+                            value: error.message || 'Unknown error',
+                        },
+                    ])
+                    .catch(() => {
+                        // Ignore metrics errors to prevent recursive issues
+                    });
             }
-            
+
             // Cleanup intervals before exiting
-            this.intervals.forEach(interval => {
+            this.intervals.forEach((interval) => {
                 if (interval) clearInterval(interval);
             });
-            
+
             // Give some time for cleanup before exiting
             setTimeout(() => process.exit(1), 1000);
         });
@@ -374,7 +382,7 @@ class NowPlaying {
                 output.push(`URL: ${rawURL}`);
                 output.push(formattedStationParserInfo);
 
-                let chartRPC = await getChartInfo(props);
+                let chartRPC = await getChartInfo(chartID, props);
                 let formattedRPCInfo = await prettier.format(JSON.stringify(chartRPC), { semi: false, parser: 'json' });
 
                 output.push(`chartRPC: ${chartID}`);
