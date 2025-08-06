@@ -307,7 +307,7 @@ class NowPlaying {
             try {
                 let items = Object.assign({}, stations, charts);
                 let props = items[chartID];
-                let rawURL = new Buffer(props.scraper.url, 'base64').toString('ascii'); // decode
+                let rawURL = Buffer.from(props.scraper.url, 'base64').toString('ascii'); // decode
 
                 let formattedStationParserInfo = await prettier.format(JSON.stringify(props), { semi: false, parser: 'json' });
                 output.push(`formattedStationParserInfo: ${chartID}`);
