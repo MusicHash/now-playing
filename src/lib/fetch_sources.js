@@ -27,8 +27,9 @@ const didSourceChange = async function (station, response) {
     return false;
 };
 
-const getChartInfo = async function (props) {
+const getChartInfo = async function (chartID, props) {
     const chartInfo = await getCurrentTracks({
+        ID: chartID,
         scraperProps: props.scraper,
         parserProps: props.parser,
     });
@@ -42,6 +43,7 @@ const crawlAllStationsToNotifyTrackChanges = async function () {
 
         try {
             const tracks = await getCurrentTracks({
+                ID: station,
                 scraperProps: props.scraper,
                 parserProps: props.parser,
             });
@@ -188,6 +190,7 @@ const refreshChartRemote = async function (chartKey) {
 
     try {
         const tracks = await getCurrentTracks({
+            ID: chartKey,
             scraperProps: chart.scraper,
             parserProps: chart.parser,
         });

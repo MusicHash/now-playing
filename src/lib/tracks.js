@@ -3,7 +3,7 @@ import logger from '../utils/logger.js';
 
 setLogger(logger);
 
-const getCurrentTracks = async function ({ scraperProps, parserProps }) {
+const getCurrentTracks = async function ({ ID, scraperProps, parserProps }) {
     const maxRetries = 3;
     const baseDelay = 1000; // 1 second base delay
 
@@ -13,6 +13,7 @@ const getCurrentTracks = async function ({ scraperProps, parserProps }) {
                 method: 'getCurrentTracks',
                 message: `Attempting to scrape data (attempt ${attempt}/${maxRetries})`,
                 metadata: {
+                    ID,
                     url: Buffer.from(scraperProps.url, 'base64').toString('ascii'),
                     type: scraperProps.type,
                 },
@@ -44,6 +45,7 @@ const getCurrentTracks = async function ({ scraperProps, parserProps }) {
                 method: 'getCurrentTracks',
                 message: 'Successfully scraped data, parsing response',
                 metadata: {
+                    ID,
                     bodyLength: body.length,
                     bodyPreview: body.substring(0, 200),
                 },
@@ -60,6 +62,7 @@ const getCurrentTracks = async function ({ scraperProps, parserProps }) {
                 method: 'getCurrentTracks',
                 message: 'Successfully parsed tracks data',
                 metadata: {
+                    ID,
                     tracksCount: parsed?.length || 0,
                 },
             });
@@ -71,6 +74,7 @@ const getCurrentTracks = async function ({ scraperProps, parserProps }) {
                 message: `Scrape attempt ${attempt}/${maxRetries} failed`,
                 error,
                 metadata: {
+                    ID,
                     attempt,
                     maxRetries,
                     url: Buffer.from(scraperProps.url, 'base64').toString('ascii'),
@@ -85,6 +89,7 @@ const getCurrentTracks = async function ({ scraperProps, parserProps }) {
                     message: 'All scrape attempts failed, giving up',
                     error,
                     metadata: {
+                        ID,
                         totalAttempts: maxRetries,
                         url: Buffer.from(scraperProps.url, 'base64').toString('ascii'),
                     },
@@ -98,6 +103,7 @@ const getCurrentTracks = async function ({ scraperProps, parserProps }) {
                 method: 'getCurrentTracks',
                 message: `Retrying in ${delay}ms...`,
                 metadata: {
+                    ID,
                     nextAttempt: attempt + 1,
                     delay,
                 },
