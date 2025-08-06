@@ -16,7 +16,6 @@ class MySQLWrapper {
         return this;
     }
 
-
     async connect() {
         if (!this._isEnabled()) {
             this.logger.info('MySQL is not enabled');
@@ -46,11 +45,9 @@ class MySQLWrapper {
         return this._MySQLInstance;
     }
 
-
     _isEnabled() {
         return Boolean(this._MySQL_URI);
     }
-
 
     /**
      * Selects rows from the specified table based on the provided parameters.
@@ -67,7 +64,7 @@ class MySQLWrapper {
      */
     async select(table, where = {}, limit) {
         const whereClause = Object.keys(where)
-            .map(key => `\`${key}\` = ?`)
+            .map((key) => `\`${key}\` = ?`)
             .join(' AND ');
         const whereValues = Object.values(where);
 
@@ -81,7 +78,6 @@ class MySQLWrapper {
 
         return rows;
     }
-
 
     /**
      * Inserts a new row into the specified table.
@@ -97,7 +93,9 @@ class MySQLWrapper {
      */
     async insert(table, params = {}) {
         const columns = Object.keys(params).join(', ');
-        const placeholders = Object.keys(params).map(() => '?').join(', ');
+        const placeholders = Object.keys(params)
+            .map(() => '?')
+            .join(', ');
         const values = Object.values(params);
 
         const SQL = `INSERT INTO \`${table}\` (${columns}) VALUES (${placeholders})`;
@@ -106,7 +104,6 @@ class MySQLWrapper {
 
         return result.insertId;
     }
-
 
     /**
      * Updates existing rows in the specified table.
@@ -124,13 +121,13 @@ class MySQLWrapper {
      */
     async update(table, params = {}, where = {}) {
         const setClause = Object.keys(params)
-            .map(key => `\`${key}\` = ?`)
+            .map((key) => `\`${key}\` = ?`)
             .join(', ');
-        
+
         const setValues = Object.values(params);
 
         const whereClause = Object.keys(where)
-            .map(key => `\`${key}\` = ?`)
+            .map((key) => `\`${key}\` = ?`)
             .join(' AND ');
 
         const whereValues = Object.values(where);
@@ -141,7 +138,6 @@ class MySQLWrapper {
 
         return result;
     }
-
 
     /**
      * Checks if a row exists in the specified table based on the provided parameters.
@@ -166,23 +162,20 @@ class MySQLWrapper {
             entryID = await this.insert(table, insertParams);
             return entryID;
         }
-        
+
         // extract an the key
         entryID = existingRows[0][primeryKey];
 
         return entryID;
     }
 
-
     async query(query, params = []) {
         return await this._execute(query, params, 'query');
     }
 
-
     async _getConnection() {
         return await this._MySQLInstance.getConnection();
     }
-
 
     async _execute(query, params = [], command = 'execute') {
         await this.connect();
@@ -192,12 +185,10 @@ class MySQLWrapper {
 
         try {
             connection = await this._getConnection();
-            results = await connection[command](
-                query,
-                params,
-            );
-        } catch(error) {
+            results = await connection[command](query, params);
+        } catch (error) {
             this.logger.error(`ERROR: ${error}`);
+            throw error; // Re-throw the error to maintain proper error handling
         } finally {
             if (connection) connection.release();
         }
@@ -205,6 +196,5 @@ class MySQLWrapper {
         return results;
     }
 }
-
 
 export default new MySQLWrapper();

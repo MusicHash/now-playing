@@ -11,8 +11,7 @@ import redisWrapper from '../utils/redis_wrapper.js';
 import eventEmitterWrapper from '../utils/event_emitter_wrapper.js';
 import { getMostPlayedSongsByStation } from './query_log/most_played_songs.js';
 
-
-const didSourceChange = async function(station, response) {
+const didSourceChange = async function (station, response) {
     const hashKey = 'NOWPLAYNG:SORUCES:RECENT_CHANGE_BY_SOURCE';
     const hashField = station;
     const lastStationResponse = JSON.parse(await redisWrapper.getHash(hashKey, hashField));
@@ -41,37 +40,36 @@ const crawlAllStationsToNotifyTrackChanges = async function () {
     for (let station in stations) {
         let props = stations[station];
 
-        getCurrentTracks({
-            scraperProps: props.scraper,
-            parserProps: props.parser,
-        })
-            .then(async (tracks) => {
-                const payload = {
-                    station: station,
-                    result: tracks,
-                };
+        try {
+            const tracks = await getCurrentTracks({
+                scraperProps: props.scraper,
+                parserProps: props.parser,
+            });
 
-                const shouldSendUpdate = await didSourceChange(station, payload);
+            const payload = {
+                station: station,
+                result: tracks,
+            };
 
-                if (shouldSendUpdate && payload?.result?.total > 0) {
-                    await eventEmitterWrapper.emit(SYSTEM_EVENTS.ON_STATION_TRACK_UPDATED, payload);
-                }
+            const shouldSendUpdate = await didSourceChange(station, payload);
 
-            })
-            .catch((error) =>
-                logger.error({
-                    method: 'getCurrentTracks -> crawlAllStationsToNotifyTrackChanges',
-                    message: 'Failed to refresh station',
-                    error,
-                    metadata: {
-                        station,
-                    },
-                }),
-            );
+            if (shouldSendUpdate && payload?.result?.total > 0) {
+                await eventEmitterWrapper.emit(SYSTEM_EVENTS.ON_STATION_TRACK_UPDATED, payload);
+            }
+        } catch (error) {
+            logger.error({
+                method: 'getCurrentTracks -> crawlAllStationsToNotifyTrackChanges',
+                message: 'Failed to refresh station',
+                error,
+                metadata: {
+                    station,
+                },
+            });
+        }
     }
 };
 
-const updatePlaylistContentForStationLocal = async function(stationKey) {
+const updatePlaylistContentForStationLocal = async function (stationKey) {
     let station = stations[stationKey];
 
     if (!station) {
@@ -97,7 +95,6 @@ const updatePlaylistContentForStationLocal = async function(stationKey) {
         },
     });
 
-
     try {
         const mostPlayedSongsByStation = await getMostPlayedSongsByStation(stationKey, 30, 100);
 
@@ -108,8 +105,7 @@ const updatePlaylistContentForStationLocal = async function(stationKey) {
         };
 
         await eventEmitterWrapper.emit(SYSTEM_EVENTS.ON_SPOTIFY_PLAYLIST_UPDATE, payload);
-    } catch(error) {
-
+    } catch (error) {
         logger.error({
             method: 'updatePlaylistContentForStationLocal',
             message: 'Failed to update a station',
@@ -121,10 +117,9 @@ const updatePlaylistContentForStationLocal = async function(stationKey) {
             },
         });
     }
-
 };
 
-const refreshChartLocal = async function(chartKey) {
+const refreshChartLocal = async function (chartKey) {
     let chart = charts[chartKey];
 
     if (!chart) {
@@ -149,23 +144,21 @@ const refreshChartLocal = async function(chartKey) {
         },
     });
 
-
     try {
         // const mostPlayedSongsByStation = await getMostPlayedSongsByStation(chartKey, 30);
         // console.log('BLA');
         // console.log(mostPlayedSongsByStation);
-    } catch(error) {
-            logger.error({
-                method: 'refreshChartLocal',
-                message: 'Failed to refresh a chart',
-                error,
-                metadata: {
-                    chart,
-                    args: [...arguments],
-                },
-            });
+    } catch (error) {
+        logger.error({
+            method: 'refreshChartLocal',
+            message: 'Failed to refresh a chart',
+            error,
+            metadata: {
+                chart,
+                args: [...arguments],
+            },
+        });
     }
-
 };
 
 const refreshChartRemote = async function (chartKey) {
@@ -193,26 +186,24 @@ const refreshChartRemote = async function (chartKey) {
         },
     });
 
-    
-    getCurrentTracks({
-        scraperProps: chart.scraper,
-        parserProps: chart.parser,
-    })
-        .then(async (tracks) => {
-            await replacePlayList(chartKey, tracks);
-        })
+    try {
+        const tracks = await getCurrentTracks({
+            scraperProps: chart.scraper,
+            parserProps: chart.parser,
+        });
 
-        .catch((error) =>
-            logger.error({
-                method: 'refreshChartRemote',
-                message: 'Failed to refresh a chart',
-                error: error instanceof Error ? error.message : JSON.stringify(error, null, 2),
-                metadata: {
-                    chart,
-                    args: [...arguments],
-                },
-            }),
-        );
+        await replacePlayList(chartKey, tracks);
+    } catch (error) {
+        logger.error({
+            method: 'refreshChartRemote',
+            message: 'Failed to refresh a chart',
+            error: error instanceof Error ? error.message : JSON.stringify(error, null, 2),
+            metadata: {
+                chart,
+                args: [...arguments],
+            },
+        });
+    }
 };
 
 const refreshChartAll = async function () {
@@ -235,7 +226,7 @@ const refreshChartAll = async function () {
     }
 };
 
-const updatePlaylistContentForAllStations = async function() {
+const updatePlaylistContentForAllStations = async function () {
     let delaySeconds = 60, // first iteration should instant.
         stationEnumeration = 0;
 

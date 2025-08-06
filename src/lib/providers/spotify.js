@@ -7,32 +7,35 @@ import metricsWrapper from '../../utils/metrics_wrapper.js';
 
 const scopes = ['playlist-read-private', 'playlist-modify-private', 'playlist-modify-public'];
 
-const wrapSpotifyApi = function(spotifyApi) {
-    const logMetric = function(functionName, duration, success) {
-        return metricsWrapper.report('Spotify', [{
-            type: 'intField',
-            key: 'duration',
-            value: duration,
-        },{
-            type: 'stringField',
-            key: 'function',
-            value: functionName,
-        },{
-            type: 'intField',
-            key: 'success',
-            value: success,
-        }]);
+const wrapSpotifyApi = function (spotifyApi) {
+    const logMetric = function (functionName, duration, success) {
+        return metricsWrapper.report('Spotify', [
+            {
+                type: 'intField',
+                key: 'duration',
+                value: duration,
+            },
+            {
+                type: 'stringField',
+                key: 'function',
+                value: functionName,
+            },
+            {
+                type: 'intField',
+                key: 'success',
+                value: success,
+            },
+        ]);
     };
 
     const wrapper = Object.create(Object.getPrototypeOf(spotifyApi));
-  
+
     // Get all method names of the SpotifyWebApi prototype
     const excludedMethods = ['constructor'];
-    const apiMethods = Object.getOwnPropertyNames(Object.getPrototypeOf(spotifyApi))
-        .filter(name => typeof spotifyApi[name] === 'function' && !excludedMethods.includes(name));
+    const apiMethods = Object.getOwnPropertyNames(Object.getPrototypeOf(spotifyApi)).filter((name) => typeof spotifyApi[name] === 'function' && !excludedMethods.includes(name));
 
-    apiMethods.forEach(methodName => {
-        wrapper[methodName] = async function(...args) {
+    apiMethods.forEach((methodName) => {
+        wrapper[methodName] = async function (...args) {
             console.log(methodName);
             const start = Date.now();
 
@@ -50,7 +53,7 @@ const wrapSpotifyApi = function(spotifyApi) {
                 const end = Date.now();
                 const duration = end - start;
 
-                console.log(`Spotify API call to ${prop} failed after ${duration}ms:`, error);
+                console.log(`Spotify API call to ${methodName} failed after ${duration}ms:`, error);
 
                 logMetric(methodName, duration, 0);
 
@@ -60,15 +63,14 @@ const wrapSpotifyApi = function(spotifyApi) {
     });
 
     // Copy over any non-function properties
-    Object.keys(spotifyApi).forEach(key => {
+    Object.keys(spotifyApi).forEach((key) => {
         if (typeof spotifyApi[key] !== 'function') {
             wrapper[key] = spotifyApi[key];
         }
     });
 
     return wrapper;
-}
-
+};
 
 class Spotify {
     api = null;
@@ -80,10 +82,9 @@ class Spotify {
             clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
             redirectUri: process.env.SPOTIFY_CALLBACK_ENDPOINT,
         });
-        
+
         //this.api = wrapSpotifyApi(this.api);
     }
-
 
     /**
      *
@@ -91,7 +92,7 @@ class Spotify {
      */
     async connect() {
         let token;
-        
+
         if (true === this.#isConnected) {
             return true;
         }
@@ -158,20 +159,23 @@ class Spotify {
 
             res.send('Success! You can now close the window.');
 
-            setInterval(async () => {
-                const token = await this.api.refreshAccessToken();
-                const accessToken = token.body.access_token;
+            setInterval(
+                async () => {
+                    const token = await this.api.refreshAccessToken();
+                    const accessToken = token.body.access_token;
 
-                this.setAccessToken(accessToken);
+                    this.setAccessToken(accessToken);
 
-                logger.info({
-                    method: 'auth',
-                    message: 'The access token has been refreshed',
-                    metadata: {
-                        accessToken,
-                    },
-                });
-            }, (expiresIn / 2) * 1000);
+                    logger.info({
+                        method: 'auth',
+                        message: 'The access token has been refreshed',
+                        metadata: {
+                            accessToken,
+                        },
+                    });
+                },
+                (expiresIn / 2) * 1000,
+            );
         } catch (error) {
             logger.error({
                 method: 'auth',
@@ -740,7 +744,6 @@ class Spotify {
 
         return output;
     }
-
 }
 
 export default new Spotify();

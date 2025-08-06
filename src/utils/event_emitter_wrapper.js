@@ -1,8 +1,7 @@
 import { EventEmitter } from 'events';
 
-
 /**
- * 
+ *
  */
 class EventEmitterWrapper {
     _EventEmitterInstance = null;
@@ -14,8 +13,7 @@ class EventEmitterWrapper {
         return this;
     }
 
-
-   async create() {
+    async create() {
         if (null !== this._EventEmitterInstance) {
             return this._EventEmitterInstance;
         }
@@ -24,9 +22,8 @@ class EventEmitterWrapper {
 
         this._EventEmitterInstance = new EventEmitter();
 
-        return this._EventInstance;
+        return this._EventEmitterInstance;
     }
-
 
     on(event, listener) {
         this.create();
@@ -36,18 +33,29 @@ class EventEmitterWrapper {
         return this;
     }
 
-
     async emit(event, ...args) {
         await this.create();
         const listeners = this._EventEmitterInstance.listeners(event);
 
         for (const listener of listeners) {
-            await listener(...args);
+            try {
+                await listener(...args);
+            } catch (error) {
+                this.logger.error({
+                    method: 'emit',
+                    message: `Error in event listener for event: ${event}`,
+                    error,
+                    metadata: {
+                        event,
+                        args,
+                    },
+                });
+                // Don't re-throw to prevent cascading failures
+            }
         }
 
         return this;
     }
-
 
     off(event, listener) {
         this.create();
@@ -56,7 +64,6 @@ class EventEmitterWrapper {
 
         return this;
     }
-
 }
 
 export default new EventEmitterWrapper();

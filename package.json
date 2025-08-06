@@ -8,6 +8,7 @@
     "test": "NODE_ENV=development node --experimental-vm-modules --env-file .env node_modules/.bin/jest",
     "start": "NODE_ENV=production NODE_OPTIONS='--experimental-specifier-resolution=node' node --env-file .env ./src/now_playing.js",
     "debug": "NODE_ENV=development PINO_LOG_LEVEL=debug NODE_OPTIONS='--experimental-specifier-resolution=node' node --env-file .env ./src/now_playing.js",
+    "monitor": "NODE_ENV=production NODE_OPTIONS='--experimental-specifier-resolution=node' node --env-file .env ./monitor.js",
     "coverage": "NODE_ENV=development jest --env-file .env --collect-coverage"
   },
   "repository": {
