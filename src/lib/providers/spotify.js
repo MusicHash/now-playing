@@ -75,6 +75,7 @@ const wrapSpotifyApi = function (spotifyApi) {
 class Spotify {
     api = null;
     #isConnected = false;
+    #refreshInterval = null;
 
     constructor() {
         this.api = new SpotifyWebApi({
@@ -159,20 +160,33 @@ class Spotify {
 
             res.send('Success! You can now close the window.');
 
-            setInterval(
+            // Clear any existing refresh interval
+            if (this.#refreshInterval) {
+                clearInterval(this.#refreshInterval);
+            }
+
+            this.#refreshInterval = setInterval(
                 async () => {
-                    const token = await this.api.refreshAccessToken();
-                    const accessToken = token.body.access_token;
+                    try {
+                        const token = await this.api.refreshAccessToken();
+                        const accessToken = token.body.access_token;
 
-                    this.setAccessToken(accessToken);
+                        this.setAccessToken(accessToken);
 
-                    logger.info({
-                        method: 'auth',
-                        message: 'The access token has been refreshed',
-                        metadata: {
-                            accessToken,
-                        },
-                    });
+                        logger.info({
+                            method: 'auth',
+                            message: 'The access token has been refreshed',
+                            metadata: {
+                                accessToken,
+                            },
+                        });
+                    } catch (error) {
+                        logger.error({
+                            method: 'auth',
+                            message: 'Error refreshing access token',
+                            error,
+                        });
+                    }
                 },
                 (expiresIn / 2) * 1000,
             );
@@ -196,6 +210,17 @@ class Spotify {
      */
     setAccessToken(accessToken) {
         return this.api.setAccessToken(accessToken);
+    }
+
+    /**
+     * Cleanup method to clear the refresh interval
+     */
+    cleanup() {
+        if (this.#refreshInterval) {
+            clearInterval(this.#refreshInterval);
+            this.#refreshInterval = null;
+            logger.info('Spotify token refresh interval cleared');
+        }
     }
 
     /**
