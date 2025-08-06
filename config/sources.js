@@ -1,39 +1,5 @@
 // Charts
 const shzmCharts = {
-    'shzm-discovery-uk': {
-        spotify: {
-            playlist: 'https://spoti.fi/2WGAow0',
-        },
-
-        now_playing: {
-            title: 'SHZM - Discovery - UK (#Music)',
-            description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 35 * 1000,
-        },
-
-        scraper: {
-            type: 'get',
-            url: 'aHR0cHM6Ly93d3cuc2hhemFtLmNvbS9zZXJ2aWNlcy9jaGFydHMvY3N2L2Rpc2NvdmVyeS91bml0ZWQta2luZ2RvbQ==',
-            regExp: [new RegExp('days]"\n(.*)', 's')],
-        },
-
-        parser: {
-            type: 'csv',
-
-            options: {
-                limit: 10,
-                delimiter: {
-                    field: ',',
-                },
-            },
-
-            fields: {
-                artist: '{Iterator}.Artist',
-                title: '{Iterator}.Title',
-            },
-        },
-    },
-
     'shzm-top200-uk': {
         spotify: {
             playlist: 'https://spoti.fi/2KQmXXo',
