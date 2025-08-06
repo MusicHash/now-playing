@@ -28,7 +28,7 @@ class RedisWrapper {
         }
 
         const redis = new Redis(this.redisURI, {
-            retryStrategy(times) {
+            retryStrategy: (times) => {
                 this.logger.warn(`Redis reconnecting attempt: ${times}`);
 
                 return 5000;
@@ -95,7 +95,11 @@ class RedisWrapper {
     async set(key, value, ttl = -1) {
         await this.connect();
 
-        return await this._redisInstance.set(key, value, 'ex', ttl);
+        if (ttl > 0) {
+            return await this._redisInstance.set(key, value, 'ex', ttl);
+        } else {
+            return await this._redisInstance.set(key, value);
+        }
     }
 
 
