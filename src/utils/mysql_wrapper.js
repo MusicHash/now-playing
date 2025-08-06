@@ -36,6 +36,21 @@ class MySQLWrapper {
             queueLimit: 0,
             enableKeepAlive: true,
             keepAliveInitialDelay: 3 * 1000, // 3 seconds,
+            acquireTimeout: 60000, // 60 seconds timeout for getting connection
+            timeout: 60000, // 60 seconds query timeout
+        });
+
+        // Add error handlers
+        pool.on('connection', (connection) => {
+            this.logger.debug(`MySQL connection ${connection.threadId} established`);
+        });
+
+        pool.on('error', (error) => {
+            this.logger.error({
+                method: 'MySQL.pool.error',
+                message: 'MySQL pool error',
+                error,
+            });
         });
 
         this.logger.info('MySQL Initialized');
@@ -187,7 +202,25 @@ class MySQLWrapper {
             connection = await this._getConnection();
             results = await connection[command](query, params);
         } catch (error) {
-            this.logger.error(`ERROR: ${error}`);
+            this.logger.error({
+                method: '_execute',
+                message: 'MySQL query execution failed',
+                error,
+                metadata: {
+                    query: query.substring(0, 100), // First 100 chars to avoid logging sensitive data
+                    command,
+                    paramsCount: params.length,
+                },
+            });
+            
+            // Check if it's a connection issue
+            if (error.code === 'PROTOCOL_CONNECTION_LOST' || 
+                error.code === 'ECONNRESET' || 
+                error.code === 'ETIMEDOUT') {
+                this.logger.warn('MySQL connection lost, resetting connection instance');
+                this._MySQLInstance = null; // Force reconnection on next call
+            }
+            
             throw error; // Re-throw the error to maintain proper error handling
         } finally {
             if (connection) connection.release();

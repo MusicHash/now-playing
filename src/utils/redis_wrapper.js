@@ -30,9 +30,34 @@ class RedisWrapper {
         const redis = new Redis(this.redisURI, {
             retryStrategy: (times) => {
                 this.logger.warn(`Redis reconnecting attempt: ${times}`);
+                
+                // Stop retrying after 10 attempts
+                if (times > 10) {
+                    this.logger.error('Redis: Maximum retry attempts reached, giving up');
+                    return null;
+                }
 
-                return 5000;
+                return Math.min(times * 1000, 10000); // Exponential backoff with max 10s
             },
+            maxRetriesPerRequest: 3,
+            lazyConnect: true,
+        });
+
+        // Add error handlers
+        redis.on('error', (error) => {
+            this.logger.error({
+                method: 'Redis.on.error',
+                message: 'Redis connection error',
+                error,
+            });
+        });
+
+        redis.on('reconnecting', () => {
+            this.logger.info('Redis reconnecting...');
+        });
+
+        redis.on('connect', () => {
+            this.logger.info('Redis connected successfully');
         });
 
         this.logger.info('Redis Initialized');
@@ -61,20 +86,41 @@ class RedisWrapper {
 
 
     async addHash(key, field, value, ttl = null) {
-        await this.connect();
+        try {
+            await this.connect();
 
-        await this._redisInstance.hset(key, field, value);
+            await this._redisInstance.hset(key, field, value);
 
-        if (ttl) {
-            await this._redisInstance.expire(key, ttl);
+            if (ttl) {
+                await this._redisInstance.expire(key, ttl);
+            }
+        } catch (error) {
+            this.logger.error({
+                method: 'addHash',
+                message: 'Failed to add hash to Redis',
+                error,
+                metadata: { key, field, ttl },
+            });
+            throw error;
         }
     }
 
 
     async getHash(key, field) {
-        await this.connect();
+        try {
+            await this.connect();
 
-        return await this._redisInstance.hget(key, field);
+            return await this._redisInstance.hget(key, field);
+        } catch (error) {
+            this.logger.error({
+                method: 'getHash',
+                message: 'Failed to get hash from Redis',
+                error,
+                metadata: { key, field },
+            });
+            // Return null instead of throwing to allow graceful degradation
+            return null;
+        }
     }
 
 

@@ -25,6 +25,7 @@ class NowPlaying {
     logger;
     app;
     server;
+    intervals = [];
 
     constructor(Logger) {
         this.logger = Logger;
@@ -139,19 +140,78 @@ class NowPlaying {
         // Handle exit process
         const exitHandler = terminate(server, {
             coredump: false,
+        }, () => {
+            // Cleanup intervals when terminating
+            this.intervals.forEach(interval => {
+                if (interval) clearInterval(interval);
+            });
         });
 
         // Start reading from stdin so we don't exit.
         process.stdin.resume();
 
         process.on('unhandledRejection', (error, promise) => {
-            this.logger.error('Caught Unhandled Rejection at: Promise', promise, 'reason:', error);
-            console.log(error);
+            this.logger.error({
+                method: 'unhandledRejection',
+                message: 'Caught Unhandled Promise Rejection',
+                error,
+                metadata: {
+                    promise: promise.toString()
+                }
+            });
+            
+            // Report to metrics if available
+            if (metricsWrapper) {
+                metricsWrapper.report('unhandled_rejection', [
+                    {
+                        type: 'intField',
+                        key: 'count',
+                        value: 1,
+                    },
+                    {
+                        type: 'stringField',
+                        key: 'error_message',
+                        value: error.message || 'Unknown error',
+                    },
+                ]).catch(() => {
+                    // Ignore metrics errors to prevent recursive issues
+                });
+            }
+            
             // Don't exit immediately, let the application try to recover
         });
 
         process.on('uncaughtException', (error) => {
-            this.logger.error('Caught Uncaught Exception thrown:', error);
+            this.logger.error({
+                method: 'uncaughtException',
+                message: 'Caught Uncaught Exception',
+                error,
+                stack: error.stack
+            });
+            
+            // Report to metrics if available
+            if (metricsWrapper) {
+                metricsWrapper.report('uncaught_exception', [
+                    {
+                        type: 'intField',
+                        key: 'count',
+                        value: 1,
+                    },
+                    {
+                        type: 'stringField',
+                        key: 'error_message',
+                        value: error.message || 'Unknown error',
+                    },
+                ]).catch(() => {
+                    // Ignore metrics errors to prevent recursive issues
+                });
+            }
+            
+            // Cleanup intervals before exiting
+            this.intervals.forEach(interval => {
+                if (interval) clearInterval(interval);
+            });
+            
             // Give some time for cleanup before exiting
             setTimeout(() => process.exit(1), 1000);
         });
@@ -367,37 +427,64 @@ class NowPlaying {
 
     _loadAutomaticTimers() {
         // now playing, crawl stations songs
-        setInterval(() => {
-            this.triggerCrawlAllStationsToNotifyTrackChanges();
+        const stationInterval = setInterval(async () => {
+            try {
+                await this.triggerCrawlAllStationsToNotifyTrackChanges();
 
-            this.logger.info({
-                message: '[AUTO REFRESH] STATIONS 45s',
-            });
+                this.logger.info({
+                    message: '[AUTO REFRESH] STATIONS 45s',
+                });
+            } catch (error) {
+                this.logger.error({
+                    method: '_loadAutomaticTimers',
+                    message: 'Error in station refresh timer',
+                    error,
+                });
+            }
         }, 45 * 1000);
 
         // update stations playlist once a day
-        setInterval(
-            () => {
-                this.triggerUpdatePlaylistContentForAllStations();
+        const playlistInterval = setInterval(
+            async () => {
+                try {
+                    await this.triggerUpdatePlaylistContentForAllStations();
 
-                this.logger.info({
-                    message: '[AUTO REFRESH] station playlist - once every 24 hours',
-                });
+                    this.logger.info({
+                        message: '[AUTO REFRESH] station playlist - once every 24 hours',
+                    });
+                } catch (error) {
+                    this.logger.error({
+                        method: '_loadAutomaticTimers',
+                        message: 'Error in playlist update timer',
+                        error,
+                    });
+                }
             },
             24 * 60 * 60 * 1000,
         );
 
         // update charts once a day
-        setInterval(
-            () => {
-                this.triggerRefreshChartAll();
+        const chartsInterval = setInterval(
+            async () => {
+                try {
+                    await this.triggerRefreshChartAll();
 
-                this.logger.info({
-                    message: '[AUTO REFRESH] CHARTS - once every 24 hours',
-                });
+                    this.logger.info({
+                        message: '[AUTO REFRESH] CHARTS - once every 24 hours',
+                    });
+                } catch (error) {
+                    this.logger.error({
+                        method: '_loadAutomaticTimers',
+                        message: 'Error in charts refresh timer',
+                        error,
+                    });
+                }
             },
             24 * 60 * 60 * 1000,
         );
+
+        // Store intervals for cleanup
+        this.intervals = [stationInterval, playlistInterval, chartsInterval];
 
         // Shorten all playlists to 220 rows
         /* currently disabled, no need at this point.

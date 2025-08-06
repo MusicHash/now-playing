@@ -1,7 +1,7 @@
 import logger from './logger.js';
 
 
-const terminate = function(server, options = { coredump: false, timeout: 500 }) {
+const terminate = function(server, options = { coredump: false, timeout: 500 }, cleanupCallback = null) {
     return function(code, exceptionStack, exceptionType) {
         // Exit wrapper
         const exit = (exitCode) => {
@@ -10,6 +10,16 @@ const terminate = function(server, options = { coredump: false, timeout: 500 }) 
         }
 
         logger.info(`got ${code}, starting shutdown process`);
+
+        // Run cleanup callback if provided
+        if (cleanupCallback && typeof cleanupCallback === 'function') {
+            try {
+                logger.info('Running cleanup callback...');
+                cleanupCallback();
+            } catch (error) {
+                logger.error('Error during cleanup:', error);
+            }
+        }
 
         if (!server.listening) exit(0);
         logger.info('Closing HTTP Server...');
