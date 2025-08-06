@@ -63,7 +63,7 @@ const getCurrentTracks = async function ({ ID, scraperProps, parserProps }) {
                 message: 'Successfully parsed tracks data',
                 metadata: {
                     ID,
-                    tracksCount: parsed?.fields?.length || 0,
+                    responseFieldsCount: parsed?.fields?.length || 0,
                 },
             });
 
