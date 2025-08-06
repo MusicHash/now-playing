@@ -169,7 +169,7 @@ class MySQLWrapper {
      * const insertParams = { LICENCE: 'FREE', public: 1, title: 'New Song' };
      * const result = await checkAndInsert('SONGS_LIST', checkParams, insertParams);
      */
-    async checkAndInsert(table, primeryKey, checkParams = {}, insertParams = {}) {
+    async checkAndInsert(table, primaryKey, checkParams = {}, insertParams = {}) {
         const existingRows = await this.select(table, checkParams, 1);
         let entryID = null;
 
@@ -179,7 +179,7 @@ class MySQLWrapper {
         }
 
         // extract an the key
-        entryID = existingRows[0][primeryKey];
+        entryID = existingRows[0][primaryKey];
 
         return entryID;
     }
