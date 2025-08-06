@@ -382,11 +382,13 @@ class NowPlaying {
                 output.push(`URL: ${rawURL}`);
                 output.push(formattedStationParserInfo);
 
+                //
                 let chartRPC = await getChartInfo(chartID, props);
                 let formattedRPCInfo = await prettier.format(JSON.stringify(chartRPC), { semi: false, parser: 'json' });
 
                 output.push(`chartRPC: ${chartID}`);
                 output.push(formattedRPCInfo);
+                output.push(`<a href="spotify://?context=spotify:search:${chartRPC?.fields[0]?.artist} ${chartRPC?.fields[0]?.title}">Play '${chartRPC?.fields[0]?.artist} ${chartRPC?.fields[0]?.title}' on Spotify</a>`);
             } catch (error) {
                 output.push(`Error: ${chartID}`);
                 output.push(error);
