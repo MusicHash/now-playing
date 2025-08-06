@@ -18,7 +18,6 @@ import { slicePlaylist, sliceAllPlaylists, subscriptions as playlistSubscription
 
 import Spotify from './lib/providers/spotify.js';
 
-
 /**
  * NowPlaying
  */
@@ -26,6 +25,7 @@ class NowPlaying {
     logger;
     app;
     server;
+    intervals = [];
 
     constructor(Logger) {
         this.logger = Logger;
@@ -33,55 +33,61 @@ class NowPlaying {
         const server = this._getExpressServer(this.app);
         this._terminateHandle(server);
 
-        // init
-        this._createEventEmitter();
-        this._loadRoutes();
-
-        this._connectToRedis();
-        this._connectToMySQL();
-        this._connectToMetrics();
-
-        this._spotifyConnect();
-        this._loadAutomaticTimers();
-        playlistSubscriptions();
-
-        new StationLoggerActor(Logger).init();
-        new SpotifyActor(Logger).init();
-
-        metricsWrapper.report('app_started', [{
-            type: 'intField',
-            key: 'started',
-            value: 1,
-        }]);
-
-        return this;
+        // Initialize components with proper error handling
+        this._initializeComponents();
     }
 
+    async _initializeComponents() {
+        try {
+            // init
+            await this._createEventEmitter();
+            this._loadRoutes();
+
+            await this._connectToRedis();
+            await this._connectToMySQL();
+            await this._connectToMetrics();
+
+            await this._spotifyConnect();
+            this._loadAutomaticTimers();
+            playlistSubscriptions();
+
+            new StationLoggerActor(this.logger).init();
+            new SpotifyActor(this.logger).init();
+
+            metricsWrapper.report('app_started', [
+                {
+                    type: 'intField',
+                    key: 'started',
+                    value: 1,
+                },
+            ]);
+
+            this.logger.info('Application initialized successfully');
+        } catch (error) {
+            this.logger.error({
+                method: '_initializeComponents',
+                message: 'Failed to initialize application components',
+                error,
+            });
+            // Don't exit, let the application try to continue
+        }
+    }
 
     async _connectToMetrics() {
-        metricsWrapper.init(
-            this.logger,
-            process.env.INFLUX_URL,
-            process.env.INFLUX_TOKEN,
-            process.env.INFLUX_ORG,
-            process.env.INFLUX_BUCKET);
+        metricsWrapper.init(this.logger, process.env.INFLUX_URL, process.env.INFLUX_TOKEN, process.env.INFLUX_ORG, process.env.INFLUX_BUCKET);
 
         return this;
     }
-
 
     async _createEventEmitter() {
         this.logger.info('Creating EventEmitter...');
 
-        await eventEmitterWrapper
-            .init(this.logger)
-            .create();
+        await eventEmitterWrapper.init(this.logger).create();
 
         this.logger.info('Created to EventEmitter!');
 
         return this;
     }
-
 
     async _connectToRedis() {
         const redisURI = process.env.REDIS_URI;
@@ -99,7 +105,6 @@ class NowPlaying {
         return this;
     }
 
-
     async _connectToMySQL() {
         const MySQL_URI = process.env.MYSQL_URI;
 
@@ -116,7 +121,6 @@ class NowPlaying {
         return this;
     }
 
-
     _getExpressServer(app) {
         return http
             .createServer(app)
@@ -132,33 +136,97 @@ class NowPlaying {
             );
     }
 
-
     _terminateHandle(server) {
         // Handle exit process
         const exitHandler = terminate(server, {
             coredump: false,
+        }, () => {
+            // Cleanup intervals when terminating
+            this.intervals.forEach(interval => {
+                if (interval) clearInterval(interval);
+            });
         });
 
         // Start reading from stdin so we don't exit.
         process.stdin.resume();
 
         process.on('unhandledRejection', (error, promise) => {
-            this.logger.error('Caught Unhandled Rejection at: Promise', promise, 'reason:', error);
-            console.log(error);
-        });
-    
-        process.on('uncaughtException', (error) => {
-            this.logger.error('Caught Uncaught Exception thrown:', error);
-            process.exit(1);
+            this.logger.error({
+                method: 'unhandledRejection',
+                message: 'Caught Unhandled Promise Rejection',
+                error,
+                metadata: {
+                    promise: promise.toString()
+                }
+            });
+            
+            // Report to metrics if available
+            if (metricsWrapper) {
+                metricsWrapper.report('unhandled_rejection', [
+                    {
+                        type: 'intField',
+                        key: 'count',
+                        value: 1,
+                    },
+                    {
+                        type: 'stringField',
+                        key: 'error_message',
+                        value: error.message || 'Unknown error',
+                    },
+                ]).catch(() => {
+                    // Ignore metrics errors to prevent recursive issues
+                });
+            }
+            
+            // Don't exit immediately, let the application try to recover
         });
 
-        ['SIGTERM', 'SIGINT', 'SIGUSR1', 'SIGUSR2', 'SIGHUP', 'uncaughtException', 'unhandledRejection'].forEach((eventType) => {
+        process.on('uncaughtException', (error) => {
+            this.logger.error({
+                method: 'uncaughtException',
+                message: 'Caught Uncaught Exception',
+                error,
+                stack: error.stack
+            });
+            
+            // Report to metrics if available
+            if (metricsWrapper) {
+                metricsWrapper.report('uncaught_exception', [
+                    {
+                        type: 'intField',
+                        key: 'count',
+                        value: 1,
+                    },
+                    {
+                        type: 'stringField',
+                        key: 'error_message',
+                        value: error.message || 'Unknown error',
+                    },
+                ]).catch(() => {
+                    // Ignore metrics errors to prevent recursive issues
+                });
+            }
+            
+            // Cleanup intervals before exiting
+            this.intervals.forEach(interval => {
+                if (interval) clearInterval(interval);
+            });
+            
+            // Give some time for cleanup before exiting
+            setTimeout(() => process.exit(1), 1000);
+        });
+
+        // Handle process warnings
+        process.on('warning', (warning) => {
+            this.logger.warn('Process warning:', warning);
+        });
+
+        ['SIGTERM', 'SIGINT', 'SIGUSR1', 'SIGUSR2', 'SIGHUP'].forEach((eventType) => {
             process.on(eventType, exitHandler.bind(null, eventType));
         });
 
         return this;
     }
-
 
     async triggerCrawlAllStationsToNotifyTrackChanges() {
         try {
@@ -211,7 +279,6 @@ class NowPlaying {
         }
     }
 
-
     async triggerRefreshChartRemote(chart) {
         try {
             let res = await refreshChartRemote(chart);
@@ -232,7 +299,6 @@ class NowPlaying {
             });
         }
     }
-
 
     async triggerSliceAllPlaylist(chart) {
         try {
@@ -257,12 +323,10 @@ class NowPlaying {
         }
     }
 
-
     _loadRoutes() {
         this.app.get('/spotify/login', async (req, res) => {
             res.redirect(await Spotify.createAuthorizeURL());
         });
-
 
         this.app.get('/spotify/auth/redirect', async (req, res) => {
             const error = req.query.error;
@@ -270,7 +334,6 @@ class NowPlaying {
 
             Spotify.auth(code, error, res);
         });
-
 
         this.app.get('/actions', async (req, res) => {
             let links = {
@@ -297,7 +360,6 @@ class NowPlaying {
             res.send(`<ul>${html}</ul>`);
         });
 
-
         this.app.get('/debug/fetch/:chartID', async (req, res) => {
             let chartID = req.params.chartID;
             let output = [];
@@ -321,7 +383,7 @@ class NowPlaying {
                 output.push(`Error: ${chartID}`);
                 output.push(error);
             }
-                
+
             res.send(`<pre>${output.join('\n')}</pre>`);
         });
 
@@ -363,34 +425,66 @@ class NowPlaying {
         return this;
     }
 
-
     _loadAutomaticTimers() {
         // now playing, crawl stations songs
-        setInterval(() => {
-            this.triggerCrawlAllStationsToNotifyTrackChanges();
+        const stationInterval = setInterval(async () => {
+            try {
+                await this.triggerCrawlAllStationsToNotifyTrackChanges();
 
-            this.logger.info({
-                message: '[AUTO REFRESH] STATIONS 45s',
-            });
+                this.logger.info({
+                    message: '[AUTO REFRESH] STATIONS 45s',
+                });
+            } catch (error) {
+                this.logger.error({
+                    method: '_loadAutomaticTimers',
+                    message: 'Error in station refresh timer',
+                    error,
+                });
+            }
         }, 45 * 1000);
 
         // update stations playlist once a day
-        setInterval(() => {
-            this.triggerUpdatePlaylistContentForAllStations();
+        const playlistInterval = setInterval(
+            async () => {
+                try {
+                    await this.triggerUpdatePlaylistContentForAllStations();
 
-            this.logger.info({
-                message: '[AUTO REFRESH] station playlist - once every 24 hours',
-            });
-        }, 24 * 60 * 60 * 1000);
+                    this.logger.info({
+                        message: '[AUTO REFRESH] station playlist - once every 24 hours',
+                    });
+                } catch (error) {
+                    this.logger.error({
+                        method: '_loadAutomaticTimers',
+                        message: 'Error in playlist update timer',
+                        error,
+                    });
+                }
+            },
+            24 * 60 * 60 * 1000,
+        );
 
         // update charts once a day
-        setInterval(() => {
-            this.triggerRefreshChartAll();
+        const chartsInterval = setInterval(
+            async () => {
+                try {
+                    await this.triggerRefreshChartAll();
 
-            this.logger.info({
-                message: '[AUTO REFRESH] CHARTS - once every 24 hours',
-            });
-        }, 24 * 60 * 60 * 1000);
+                    this.logger.info({
+                        message: '[AUTO REFRESH] CHARTS - once every 24 hours',
+                    });
+                } catch (error) {
+                    this.logger.error({
+                        method: '_loadAutomaticTimers',
+                        message: 'Error in charts refresh timer',
+                        error,
+                    });
+                }
+            },
+            24 * 60 * 60 * 1000,
+        );
+
+        // Store intervals for cleanup
+        this.intervals = [stationInterval, playlistInterval, chartsInterval];
 
         // Shorten all playlists to 220 rows
         /* currently disabled, no need at this point.
@@ -406,18 +500,20 @@ class NowPlaying {
         return this;
     }
 
-
-    _spotifyConnect() {
-        Spotify.connect().then(() => {
+    async _spotifyConnect() {
+        try {
+            await Spotify.connect();
             this.logger.info({
                 message: 'Spotify initialized successfully',
             });
-        });
-
-        return this;
+        } catch (error) {
+            this.logger.error({
+                method: '_spotifyConnect',
+                message: 'Failed to connect to Spotify',
+                error,
+            });
+        }
     }
-  
-
 }
 
 export default new NowPlaying(logger);
