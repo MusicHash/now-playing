@@ -198,6 +198,7 @@ class MySQLWrapper {
             );
         } catch(error) {
             this.logger.error(`ERROR: ${error}`);
+            throw error; // Re-throw the error instead of silently swallowing it
         } finally {
             if (connection) connection.release();
         }
