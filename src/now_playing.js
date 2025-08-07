@@ -8,6 +8,7 @@ import MySQLWrapper from './utils/mysql_wrapper.js';
 import eventEmitterWrapper from './utils/event_emitter_wrapper.js';
 import metricsWrapper from './utils/metrics_wrapper.js';
 import { terminate } from './utils/terminate.js';
+import { addSpotifyHyperLinks } from './utils/spotify_link_generator.js';
 
 import { crawlAllStationsToNotifyTrackChanges, refreshChartLocal, refreshChartRemote, updatePlaylistContentForAllStations, refreshChartAll, getChartInfo } from './lib/fetch_sources.js';
 import StationLoggerActor from './lib/actors/station_logger_actor.js';
@@ -383,8 +384,9 @@ class NowPlaying {
                 output.push(formattedStationParserInfo);
 
                 //
-                let chartRPC = await getChartInfo(chartID, props);
-                let formattedRPCInfo = await prettier.format(JSON.stringify(chartRPC), { semi: false, parser: 'json' });
+                const chartRPC = await getChartInfo(chartID, props);
+                const RPCInfo = addSpotifyHyperLinks(chartRPC);
+                const formattedRPCInfo = await prettier.format(JSON.stringify(RPCInfo), { semi: false, parser: 'json' });
 
                 output.push(`chartRPC: ${chartID}`);
                 output.push(formattedRPCInfo);
