@@ -337,7 +337,7 @@ const bpCharts = {
         scraper: {
             type: 'get',
             url: 'aHR0cHM6Ly93d3cuYmVhdHBvcnQuY29tL3RvcC0xMDA=',
-            regExp: [new RegExp('<script id="__NEXT_DATA__" type="application\/json">(.*)<\/script>')],
+            regExp: [new RegExp('<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>', 's')],
         },
 
         parser: {
@@ -376,7 +376,7 @@ const bpCharts = {
         scraper: {
             type: 'get',
             url: 'aHR0cHM6Ly93d3cuYmVhdHBvcnQuY29tL2dlbnJlL3BzeS10cmFuY2UvMTMvdG9wLTEwMA==',
-            regExp: [new RegExp('<script id="__NEXT_DATA__" type="application\/json">(.*)<\/script>')],
+            regExp: [new RegExp('<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>', 's')],
         },
 
         parser: {
