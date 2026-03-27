@@ -31,6 +31,9 @@ class NowPlaying {
     constructor(Logger) {
         this.logger = Logger;
         this.app = express();
+        
+        app.disable('x-powered-by'); // This must be in lowercase
+
         const server = this._getExpressServer(this.app);
         this._terminateHandle(server);
 
