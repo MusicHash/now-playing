@@ -25,6 +25,7 @@
     "@influxdata/influxdb-client": "^1.35.0",
     "acrcloud": "^1.4.0",
     "audd.io": "^3.0.2",
+    "prettier": "^3.8.1",
     "express": "^5.2.1",
     "ioredis": "^5.10.1",
     "mysql2": "^3.20.0",
@@ -38,7 +39,6 @@
   },
   "devDependencies": {
     "@babel/preset-env": "^7.29.2",
-    "prettier": "^3.8.1",
     "babel-jest": "^30.3.0",
     "eslint": "^10.1.0",
     "jest": "^30.3.0",
