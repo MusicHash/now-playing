@@ -19,11 +19,16 @@ const getCurrentTracks = async function ({ ID, scraperProps, parserProps }) {
                 },
             });
 
+            const proxy = scraperProps.useProxy && process.env.PROXY_URI
+                ? { proxy: process.env.PROXY_URI }
+                : null;
+
             let scrapeResponse = await scrape({
                 url: Buffer.from(scraperProps.url, 'base64').toString('ascii'),
                 type: scraperProps.type,
                 regExp: scraperProps.regExp,
                 payload: scraperProps.payload || {},
+                ...proxy,
             });
 
             // Validate scrape response
