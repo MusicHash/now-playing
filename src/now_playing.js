@@ -398,7 +398,7 @@ class NowPlaying {
 
                 trackIds = (RPCInfo.fields || []).map(field => field.SPOTIFY_TRACK_ID).filter(Boolean);
 
-                songListHTML = `<h2>PlayList</h2><ol id="playlist">${(RPCInfo.fields || []).map((field, i) => `<li id="track-${i}">${field.artist} - ${field.title} ${field.SPOTIFY_SEARCH_HYPER_LINK || ''}</li>`).join('')}</ol>`;
+                songListHTML = `<h2>PlayList</h2><ol id="playlist">${(RPCInfo.fields || []).map((field, i) => `<li id="track-${i}" class="track" data-index="${i}" data-spotify-id="${field.SPOTIFY_TRACK_ID || ''}" style="cursor:pointer">${field.artist} - ${field.title} ${field.SPOTIFY_SEARCH_HYPER_LINK || ''}</li>`).join('')}</ol>`;
 
             } catch (error) {
                 output.push(`Error: ${chartID}`);
@@ -443,18 +443,21 @@ class NowPlaying {
                             };
 
                             const callback = (EmbedController) => {
+                                let trackEndFired = false;
                                 updateNowPlaying(currentIndex);
 
-                                document.querySelectorAll('.track').forEach(
-                                track => {
+                                document.querySelectorAll('.track').forEach(track => {
                                     track.addEventListener('click', () => {
+                                        const idx = parseInt(track.dataset.index, 10);
+                                        currentIndex = idx;
+                                        trackEndFired = false;
+                                        updateNowPlaying(currentIndex);
                                         EmbedController.loadUri(track.dataset.spotifyId);
                                         EmbedController.play();
                                     });
                                 });
 
                                 // Listen for playback updates to know when a track finishes
-                                let trackEndFired = false;
                                 EmbedController.addListener('playback_update', e => {
                                     const { position, duration } = e.data;
                                     
