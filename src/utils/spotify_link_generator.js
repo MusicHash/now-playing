@@ -32,7 +32,7 @@ const addSpotifyHyperLinks = async function (data) {
     });
 
     // Process each field in the array
-    data.fields = data.fields.map((field, index) => {
+    data.fields = await Promise.all(data.fields.map(async (field, index) => {
         // Check if both title and artist exist and are not empty
         const hasTitle = field.title && typeof field.title === 'string' && field.title.trim() !== '';
         const hasArtist = field.artist && typeof field.artist === 'string' && field.artist.trim() !== '';
@@ -51,7 +51,7 @@ const addSpotifyHyperLinks = async function (data) {
 
             return field;
         }
-    });
+    }));
 
     return data;
 };
