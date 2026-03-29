@@ -439,22 +439,22 @@ class NowPlaying {
                                 });
 
                                 // Listen for playback updates to know when a track finishes
+                                let trackEndFired = false;
                                 EmbedController.addListener('playback_update', e => {
-                                    const { position, duration, isPaused } = e.data;
+                                    const { position, duration } = e.data;
                                     
-                                    // If the position matches the duration, the track has ended
-                                    if (position === duration && duration > 0 && isPaused) {
+                                    // position and duration are floats so use a small threshold,
+                                    // and guard with a flag so we only advance once per track end
+                                    if (!trackEndFired && duration > 0 && position >= duration - 0.5) {
+                                        trackEndFired = true;
+                                        currentIndex++;
                                         
-                                        currentIndex++; // Move to the next track in your array
-                                        
-                                        // 4. Check if there are still tracks left in your array
-                                        if (currentIndex < myPlaylist.length) {
-                                            // Load the next track string and play it
-                                            EmbedController.loadUri(myPlaylist[currentIndex]);
+                                        if (currentIndex < trackIds.length) {
+                                            trackEndFired = false;
+                                            EmbedController.loadUri(trackIds[currentIndex]);
                                             EmbedController.play();
                                         } else {
                                             console.log("End of custom playlist!");
-                                            // Optional: reset to 0 to loop the playlist
                                         }
                                     }
                                 });
