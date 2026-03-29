@@ -375,6 +375,7 @@ class NowPlaying {
         this.app.get('/debug/fetch/:chartID', async (req, res) => {
             let chartID = req.params.chartID;
             let output = [];
+            let songListHTML = '';
 
             try {
                 let items = Object.assign({}, stations, charts);
@@ -388,12 +389,15 @@ class NowPlaying {
 
                 //
                 const chartRPC = await getChartInfo(chartID, props);
-                const songTitle = `${chartRPC.fields[0].title} ${chartRPC.fields[0].artist}`;
                 const RPCInfo = await addSpotifyHyperLinks(chartRPC);
                 const formattedRPCInfo = await prettier.format(JSON.stringify(RPCInfo), { semi: false, parser: 'json' });
 
                 output.push(`chartRPC: ${chartID}`);
                 output.push(formattedRPCInfo);
+
+                songListHTML = `<h2>PlayList</h2><ol>${(RPCInfo.fields || []).map(field => `<li>${field.artist} - ${field.title} ${field.SPOTIFY_SEARCH_HYPER_LINK || ''}</li>`).join('')}</ol>`;
+
+                
             } catch (error) {
                 output.push(`Error: ${chartID}`);
                 output.push(error);
@@ -406,14 +410,14 @@ class NowPlaying {
                   </head>
                   <body>
                     <div id="embed-iframe"></div>
+                    ${songListHTML}
                     <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
                     <script type="text/javascript">
                         window.onSpotifyIframeApiReady = (IFrameAPI) => {
                         const element = document.getElementById('embed-iframe');
                         const options = {
                             width: '100%',
-                            height: '160',
-                            uri: 'spotify:episode:7makk4oTQel546B0PZlDM5'
+                            height: '160'
                         };
                         const callback = (EmbedController) => {
                             document.querySelectorAll('.episode').forEach(
