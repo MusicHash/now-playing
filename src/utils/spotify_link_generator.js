@@ -42,8 +42,18 @@ const addSpotifyHyperLinks = async function (data) {
             const searchQuery = `${field.artist} ${field.title}`.trim();
 
             const spotifySong = await Spotify.searchTracksWithCache(searchQuery, 1);
-            const spotifySongID = spotifySong.tracks.items[0].id;
-            // Create the Spotify hyperlink
+            const firstTrack = spotifySong?.tracks?.items?.[0];
+
+            if (!firstTrack) {
+                logger.warn({
+                    method: 'addSpotifyHyperLinks',
+                    message: 'No Spotify track found for search query',
+                    metadata: { searchQuery, index },
+                });
+                return field;
+            }
+
+            const spotifySongID = firstTrack.id;
             const spotifyHyperLink = `<button class="episode" data-spotify-id="spotify:episode:${spotifySongID}">${searchQuery}</button>`;
 
             // Add the SPOTIFY_HYPER_LINK field
