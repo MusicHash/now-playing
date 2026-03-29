@@ -53,11 +53,17 @@ const addSpotifyHyperLinks = async function (data) {
                 return field;
             }
 
+            const spotifyTrackTitle = firstTrack.name;
+            const spotifyTrackArtist = firstTrack.artists?.map(a => a.name).join(', ');
             const spotifySongID = `spotify:track:${firstTrack.id}`;
-            const spotifyHyperLink = `<button class="track" data-spotify-id="${spotifySongID}">${searchQuery}</button>`;
+            const spotifyPlayButton = `<button class="track" data-spotify-id="${spotifySongID}">${spotifyTrackArtist} - ${spotifyTrackTitle}</button>`;
+            const spotifyAppDeepLink = `<a class="track-deeplink" href="${spotifySongID}" title="Play on Spotify app">${spotifyTrackArtist} - ${spotifyTrackTitle}</a>`;
 
             field['SPOTIFY_TRACK_ID'] = spotifySongID;
-            field['SPOTIFY_SEARCH_HYPER_LINK'] = spotifyHyperLink;
+            field['SPOTIFY_PLAY_BUTTON'] = spotifyPlayButton;
+            field['SPOTIFY_APP_PLAY_DEEPLINK'] = spotifyAppDeepLink;
+
+
 
             return field;
         }
