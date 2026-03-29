@@ -398,7 +398,7 @@ class NowPlaying {
 
                 trackIds = (RPCInfo.fields || []).map(field => field.SPOTIFY_TRACK_ID).filter(Boolean);
 
-                songListHTML = `<h2>PlayList</h2><ol>${(RPCInfo.fields || []).map(field => `<li>${field.artist} - ${field.title} ${field.SPOTIFY_SEARCH_HYPER_LINK || ''}</li>`).join('')}</ol>`;
+                songListHTML = `<h2>PlayList</h2><ol id="playlist">${(RPCInfo.fields || []).map((field, i) => `<li id="track-${i}">${field.artist} - ${field.title} ${field.SPOTIFY_SEARCH_HYPER_LINK || ''}</li>`).join('')}</ol>`;
 
             } catch (error) {
                 output.push(`Error: ${chartID}`);
@@ -409,6 +409,13 @@ class NowPlaying {
                 <html>
                   <head>
                     <title>Debug Fetch</title>
+                    <style>
+                      #playlist li { padding: 2px 6px; }
+                      #playlist li.now-playing {
+                        font-weight: bold;
+                        list-style-type: '▶ ';
+                      }
+                    </style>
                   </head>
                   <body>
                     <div id="embed-iframe"></div>
@@ -420,6 +427,12 @@ class NowPlaying {
                         // Keep track of which song is currently playing
                         let currentIndex = 0;
 
+                        function updateNowPlaying(index) {
+                            document.querySelectorAll('#playlist li').forEach((li, i) => {
+                                li.classList.toggle('now-playing', i === index);
+                            });
+                        }
+
                         window.onSpotifyIframeApiReady = (IFrameAPI) => {
                             const element = document.getElementById('embed-iframe');
                             
@@ -430,6 +443,8 @@ class NowPlaying {
                             };
 
                             const callback = (EmbedController) => {
+                                updateNowPlaying(currentIndex);
+
                                 document.querySelectorAll('.track').forEach(
                                 track => {
                                     track.addEventListener('click', () => {
@@ -451,6 +466,7 @@ class NowPlaying {
                                         
                                         if (currentIndex < trackIds.length) {
                                             trackEndFired = false;
+                                            updateNowPlaying(currentIndex);
                                             EmbedController.loadUri(trackIds[currentIndex]);
                                             EmbedController.play();
                                         } else {
