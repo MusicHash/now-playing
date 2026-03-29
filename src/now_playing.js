@@ -376,6 +376,7 @@ class NowPlaying {
             let chartID = req.params.chartID;
             let output = [];
             let songListHTML = '';
+            let trackIds = [];
 
             try {
                 let items = Object.assign({}, stations, charts);
@@ -395,9 +396,10 @@ class NowPlaying {
                 output.push(`chartRPC: ${chartID}`);
                 output.push(formattedRPCInfo);
 
+                trackIds = (RPCInfo.fields || []).map(field => field.SPOTIFY_TRACK_ID).filter(Boolean);
+
                 songListHTML = `<h2>PlayList</h2><ol>${(RPCInfo.fields || []).map(field => `<li>${field.artist} - ${field.title} ${field.SPOTIFY_SEARCH_HYPER_LINK || ''}</li>`).join('')}</ol>`;
 
-                
             } catch (error) {
                 output.push(`Error: ${chartID}`);
                 output.push(error);
@@ -413,12 +415,18 @@ class NowPlaying {
                     ${songListHTML}
                     <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
                     <script type="text/javascript">
+                        const trackIds = ${JSON.stringify(trackIds)};
+
+                        // Keep track of which song is currently playing
+                        let currentIndex = 0;
+
                         window.onSpotifyIframeApiReady = (IFrameAPI) => {
                             const element = document.getElementById('embed-iframe');
                             
                             const options = {
                                 width: '100%',
-                                height: '160'
+                                height: '160',
+                                uri: trackIds[currentIndex],
                             };
 
                             const callback = (EmbedController) => {
@@ -428,7 +436,28 @@ class NowPlaying {
                                         EmbedController.loadUri(track.dataset.spotifyId);
                                         EmbedController.play();
                                     });
-                                })
+                                });
+
+                                // Listen for playback updates to know when a track finishes
+                                EmbedController.addListener('playback_update', e => {
+                                    const { position, duration, isPaused } = e.data;
+                                    
+                                    // If the position matches the duration, the track has ended
+                                    if (position === duration && duration > 0 && isPaused) {
+                                        
+                                        currentIndex++; // Move to the next track in your array
+                                        
+                                        // 4. Check if there are still tracks left in your array
+                                        if (currentIndex < myPlaylist.length) {
+                                            // Load the next track string and play it
+                                            EmbedController.loadUri(myPlaylist[currentIndex]);
+                                            EmbedController.play();
+                                        } else {
+                                            console.log("End of custom playlist!");
+                                            // Optional: reset to 0 to loop the playlist
+                                        }
+                                    }
+                                });
                             };
                             
                             IFrameAPI.createController(element, options, callback);
