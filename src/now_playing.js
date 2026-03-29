@@ -388,19 +388,19 @@ class NowPlaying {
 
                 //
                 const chartRPC = await getChartInfo(chartID, props);
-                let songTitle = `${chartRPC.fields[0].title} ${chartRPC.fields[0].artist}`;
+                const songTitle = `${chartRPC.fields[0].title} ${chartRPC.fields[0].artist}`;
                 const RPCInfo = addSpotifyHyperLinks(chartRPC);
                 const formattedRPCInfo = await prettier.format(JSON.stringify(RPCInfo), { semi: false, parser: 'json' });
 
                 output.push(`chartRPC: ${chartID}`);
                 output.push(formattedRPCInfo);
 
-                let spotifySong = await Spotify.searchTracksWithCache(songTitle, 1);
-                const formattedSpotifySong = await prettier.format(JSON.stringify(formattedSpotifySong), { semi: false, parser: 'json' });
+                const spotifySong = await Spotify.searchTracksWithCache(songTitle, 1);
+                const formattedSpotifySong = await prettier.format(JSON.stringify(spotifySong), { semi: false, parser: 'json' });
                 
                 output.push(`spotifySong: ${chartID}`);
                 output.push(formattedSpotifySong);
-                
+
             } catch (error) {
                 output.push(`Error: ${chartID}`);
                 output.push(error);
