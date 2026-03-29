@@ -1,5 +1,5 @@
 import logger from './logger.js';
-
+import Spotify from '../lib/providers/spotify.js';
 /**
  * Processes an object containing a fields array and adds SPOTIFY_HYPER_LINK
  * when both title and artist fields are found
@@ -41,8 +41,10 @@ const addSpotifyHyperLinks = function (data) {
             // Create the search query by combining artist and title
             const searchQuery = `${field.artist} ${field.title}`.trim();
 
+            const spotifySong = await Spotify.searchTracksWithCache(searchQuery, 1);
+            const spotifySongID = spotifySong.tracks.items[0].id;
             // Create the Spotify hyperlink
-            const spotifyHyperLink = `<a href='spotify://?context=spotify:search:${encodeURIComponent(searchQuery)}'>Play '${searchQuery}' on Spotify</a>`;
+            const spotifyHyperLink = `<button class="episode" data-spotify-id="spotify:episode:${spotifySongID}">${searchQuery}</button>`;
 
             // Add the SPOTIFY_HYPER_LINK field
             field['SPOTIFY_SEARCH_HYPER_LINK'] = spotifyHyperLink;

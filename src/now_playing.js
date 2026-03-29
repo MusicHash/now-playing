@@ -394,19 +394,12 @@ class NowPlaying {
 
                 output.push(`chartRPC: ${chartID}`);
                 output.push(formattedRPCInfo);
-
-                const spotifySong = await Spotify.searchTracksWithCache(songTitle, 1);
-                const formattedSpotifySong = await prettier.format(JSON.stringify(spotifySong), { semi: false, parser: 'json' });
-                
-                output.push(`spotifySong: ${chartID}`);
-                output.push(formattedSpotifySong);
-
             } catch (error) {
                 output.push(`Error: ${chartID}`);
                 output.push(error);
             }
 
-            res.send(`<pre>${output.join('\n')}</pre>`);
+            res.send(`<script src="https://open.spotify.com/embed/iframe-api/v1" async></script><div id="embed-iframe"></div><pre>${output.join('\n')}</pre>`);
         });
 
         this.app.get('/crawl_playlists_manually', async (req, res) => {
