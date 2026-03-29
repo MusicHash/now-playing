@@ -389,7 +389,7 @@ class NowPlaying {
                 //
                 const chartRPC = await getChartInfo(chartID, props);
                 const songTitle = `${chartRPC.fields[0].title} ${chartRPC.fields[0].artist}`;
-                const RPCInfo = addSpotifyHyperLinks(chartRPC);
+                const RPCInfo = await addSpotifyHyperLinks(chartRPC);
                 const formattedRPCInfo = await prettier.format(JSON.stringify(RPCInfo), { semi: false, parser: 'json' });
 
                 output.push(`chartRPC: ${chartID}`);

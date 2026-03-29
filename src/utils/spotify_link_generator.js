@@ -8,7 +8,7 @@ import Spotify from '../lib/providers/spotify.js';
  * @param {Array} data.fields - Array of field objects
  * @returns {Object} The modified object with SPOTIFY_HYPER_LINK fields added
  */
-const addSpotifyHyperLinks = function (data) {
+const addSpotifyHyperLinks = async function (data) {
     // Validate input
     if (!data || typeof data !== 'object' || !data.fields || !Array.isArray(data.fields)) {
         logger.warn({
