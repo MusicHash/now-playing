@@ -63,8 +63,6 @@ const addSpotifyHyperLinks = async function (data) {
             field['SPOTIFY_PLAY_BUTTON'] = spotifyPlayButton;
             field['SPOTIFY_APP_PLAY_DEEPLINK'] = spotifyAppDeepLink;
 
-
-
             return field;
         }
     }));

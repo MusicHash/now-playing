@@ -398,7 +398,7 @@ class NowPlaying {
 
                 trackIds = (RPCInfo.fields || []).map(field => field.SPOTIFY_TRACK_ID).filter(Boolean);
 
-                songListHTML = `<h2>PlayList</h2><ol id="playlist">${(RPCInfo.fields || []).map((field, i) => `<li id="track-${i}" class="track" data-index="${i}" data-spotify-id="${field.SPOTIFY_TRACK_ID || ''}" style="cursor:pointer">${field.artist} - ${field.title} ${field.SPOTIFY_PLAY_BUTTON || ''}</li>`).join('')}</ol>`;
+                songListHTML = `<h2>PlayList</h2><ol id="playlist">${(RPCInfo.fields || []).map((field, i) => `<li id="track-${i}" class="track" data-index="${i}" data-spotify-id="${field.SPOTIFY_TRACK_ID || ''}" style="cursor:pointer">${field.artist} - ${field.title} ${field.SPOTIFY_PLAY_BUTTON || ''} ${field.SPOTIFY_APP_PLAY_DEEPLINK || ''}</li>`).join('')}</ol>`;
 
             } catch (error) {
                 output.push(`Error: ${chartID}`);
