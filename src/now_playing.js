@@ -420,10 +420,10 @@ class NowPlaying {
                             height: '160'
                         };
                         const callback = (EmbedController) => {
-                            document.querySelectorAll('.episode').forEach(
-                            episode => {
-                                episode.addEventListener('click', () => {
-                                EmbedController.loadUri(episode.dataset.spotifyId)
+                            document.querySelectorAll('.track').forEach(
+                            track => {
+                                track.addEventListener('click', () => {
+                                EmbedController.loadUri(track.dataset.spotifyId)
                                 });
                             })
                         };
