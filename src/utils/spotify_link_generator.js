@@ -48,7 +48,7 @@ const addSpotifyHyperLinks = async function (data) {
                 logger.warn({
                     method: 'addSpotifyHyperLinks',
                     message: 'No Spotify track found for search query',
-                    metadata: { searchQuery, index },
+                    metadata: { spotifySong, searchQuery, index },
                 });
                 return field;
             }
