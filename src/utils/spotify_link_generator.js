@@ -53,8 +53,8 @@ const addSpotifyHyperLinks = async function (data) {
                 return field;
             }
 
-            const spotifySongID = firstTrack.id;
-            const spotifyHyperLink = `<button class="track" data-spotify-id="spotify:track:${spotifySongID}">${searchQuery}</button>`;
+            const spotifySongID = `spotify:track:${firstTrack.id}`;
+            const spotifyHyperLink = `<button class="track" data-spotify-id="${spotifySongID}">${searchQuery}</button>`;
 
             field['SPOTIFY_TRACK_ID'] = spotifySongID;
             field['SPOTIFY_SEARCH_HYPER_LINK'] = spotifyHyperLink;
