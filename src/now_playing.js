@@ -414,20 +414,24 @@ class NowPlaying {
                     <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
                     <script type="text/javascript">
                         window.onSpotifyIframeApiReady = (IFrameAPI) => {
-                        const element = document.getElementById('embed-iframe');
-                        const options = {
-                            width: '100%',
-                            height: '160'
-                        };
-                        const callback = (EmbedController) => {
-                            document.querySelectorAll('.track').forEach(
-                            track => {
-                                track.addEventListener('click', () => {
-                                EmbedController.loadUri(track.dataset.spotifyId)
-                                });
-                            })
-                        };
-                        IFrameAPI.createController(element, options, callback);
+                            const element = document.getElementById('embed-iframe');
+                            
+                            const options = {
+                                width: '100%',
+                                height: '160'
+                            };
+
+                            const callback = (EmbedController) => {
+                                document.querySelectorAll('.track').forEach(
+                                track => {
+                                    track.addEventListener('click', () => {
+                                        EmbedController.loadUri(track.dataset.spotifyId);
+                                        EmbedController.play();
+                                    });
+                                })
+                            };
+                            
+                            IFrameAPI.createController(element, options, callback);
                         };
                     </script>
                     <pre>${output.join('\n')}</pre>
