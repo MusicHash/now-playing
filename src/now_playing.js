@@ -399,7 +399,7 @@ class NowPlaying {
                 output.push(error);
             }
 
-            res.send(`<script src="https://open.spotify.com/embed/iframe-api/v1" async></script><div id="embed-iframe"></div><pre>${output.join('\n')}</pre>`);
+            res.send(`<html><head><title>Debug Fetch</title></head><body><div id="embed-iframe"></div><script src="https://open.spotify.com/embed/iframe-api/v1" async></script><pre>${output.join('\n')}</pre></body></html>`);
         });
 
         this.app.get('/crawl_playlists_manually', async (req, res) => {
