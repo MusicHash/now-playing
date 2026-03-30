@@ -57,7 +57,7 @@ const addSpotifyHyperLinks = async function (data) {
             const spotifyTrackArtist = firstTrack.artists?.map(a => a.name).join(', ');
             const spotifySongID = `spotify:track:${firstTrack.id}`;
             const spotifyPlayButton = `<button class="track" data-spotify-id="${spotifySongID}">${spotifyTrackArtist} - ${spotifyTrackTitle}</button>`;
-            const spotifyAppDeepLink = `<a class="track-deeplink" href="${spotifySongID}" title="Play ${spotifyTrackArtist} - ${spotifyTrackTitle} on Spotify app">play @ spotify</a>`;
+            const spotifyAppDeepLink = `<a class="track-deeplink" href="${spotifySongID}:play" title="Play ${spotifyTrackArtist} - ${spotifyTrackTitle} on Spotify app">play @ spotify</a>`;
 
             field['SPOTIFY_TRACK_ID'] = spotifySongID;
             field['SPOTIFY_PLAY_BUTTON'] = spotifyPlayButton;
