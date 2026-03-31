@@ -38,6 +38,10 @@ _cache: dict[str, dict] = {}
 _locks: dict[str, asyncio.Lock] = {}
 _locks_mutex = asyncio.Lock()
 
+# Single persistent Chrome instance shared across all requests
+_browser: uc.Browser | None = None
+_browser_lock = asyncio.Lock()
+
 
 async def _get_lock(url: str) -> asyncio.Lock:
     async with _locks_mutex:
@@ -46,13 +50,29 @@ async def _get_lock(url: str) -> asyncio.Lock:
         return _locks[url]
 
 
-async def fetch_via_browser(url: str) -> str:
-    log.info("Launching headless browser for %s", url)
+def _chrome_kwargs() -> dict:
     kwargs = {}
     if CHROME_BINARY and os.path.isfile(CHROME_BINARY):
         kwargs["browser_executable_path"] = CHROME_BINARY
-    browser = await uc.start(**kwargs)
+    return kwargs
+
+
+async def _get_browser() -> uc.Browser:
+    """Return the shared browser, (re)starting it if necessary."""
+    global _browser
+    async with _browser_lock:
+        if _browser is None:
+            log.info("Starting shared Chrome instance")
+            _browser = await uc.start(**_chrome_kwargs())
+            log.info("Chrome instance ready")
+        return _browser
+
+
+async def fetch_via_browser(url: str) -> str:
+    global _browser
+    log.info("Fetching via shared browser: %s", url)
     try:
+        browser = await _get_browser()
         page = await browser.get(url)
         await page.sleep(PAGE_SETTLE_SECONDS)
         # When the response is plain JSON/text, Chrome wraps it in its JSON viewer:
@@ -64,8 +84,13 @@ async def fetch_via_browser(url: str) -> str:
             "  return pre ? pre.textContent : document.documentElement.outerHTML;"
             "})()"
         )
-    finally:
-        browser.stop()
+    except Exception:
+        # If Chrome crashed or became unresponsive, discard the instance so the
+        # next request triggers a fresh start rather than retrying a dead browser.
+        log.warning("Browser fetch failed — discarding Chrome instance for restart on next request")
+        async with _browser_lock:
+            _browser = None
+        raise
 
 
 async def get_cached(url: str) -> str:
@@ -137,6 +162,25 @@ async def handle_health(request: web.Request) -> web.Response:
     return web.Response(text="ok")
 
 
+async def on_startup(app: web.Application) -> None:
+    """Pre-warm Chrome so the first real request isn't slow."""
+    try:
+        await _get_browser()
+    except Exception:
+        log.warning("Chrome pre-warm failed — will retry on first request")
+
+
+async def on_shutdown(app: web.Application) -> None:
+    global _browser
+    if _browser is not None:
+        log.info("Stopping shared Chrome instance")
+        try:
+            _browser.stop()
+        except Exception:
+            pass
+        _browser = None
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Headless-browser HTTP proxy")
     parser.add_argument("--port", type=int, default=50015, help="Port to listen on (default: 50015)")
@@ -146,6 +190,8 @@ def main() -> None:
     app = web.Application()
     app.router.add_get("/", handle_request)
     app.router.add_get("/health", handle_health)
+    app.on_startup.append(on_startup)
+    app.on_shutdown.append(on_shutdown)
 
     log.info("Starting proxy on %s:%d", args.host, args.port)
     web.run_app(app, host=args.host, port=args.port, print=lambda msg: log.info(msg))
