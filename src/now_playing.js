@@ -400,7 +400,7 @@ class NowPlaying {
 
                 songListHTML = `<h2>PlayList</h2><ol id="playlist">${
                     (RPCInfo.fields || []).map((field, i) =>
-                        `<li id="track-${i}" class="track" data-index="${i}">` +
+                        `<li id="track-${i}" class="track_item" data-index="${i}">` +
                             `${field.artist} - ${field.title} ` +
                             `${field.SPOTIFY_PLAY_BUTTON || ''} ` +
                             `${field.SPOTIFY_APP_PLAY_DEEPLINK || ''}` +
@@ -454,7 +454,7 @@ class NowPlaying {
                                 let trackEndFired = false;
                                 updateNowPlaying(currentIndex);
 
-                                document.querySelectorAll('.track button').forEach(track => {
+                                document.querySelectorAll('.track').forEach(track => {
                                     track.addEventListener('click', () => {
                                         const idx = parseInt(track.dataset.index, 10);
                                         currentIndex = idx;
