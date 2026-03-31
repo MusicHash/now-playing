@@ -454,7 +454,7 @@ class NowPlaying {
                                 let trackEndFired = false;
                                 updateNowPlaying(currentIndex);
 
-                                document.querySelectorAll('.track').forEach(track => {
+                                document.querySelectorAll('.track button').forEach(track => {
                                     track.addEventListener('click', () => {
                                         const idx = parseInt(track.dataset.index, 10);
                                         currentIndex = idx;
