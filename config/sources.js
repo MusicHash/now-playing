@@ -590,7 +590,7 @@ const virginStations = {
 
         scraper: {
             type: 'get',
-            url: 'aHR0cHM6Ly92aXJnaW5yYWRpby5jby51ay9hcGkvZ2V0LXN0YXRpb24tZGF0YT9zdGF0aW9uPXZpcmdpbnJhZGlvdWsmd2l0aFNvbmdzPTEmaGFzUHJvZ3JhbXM9MSZudW1iZXJPZlNvbmdzPTIw',
+            url: 'aHR0cDovL2xvY2FsaG9zdDo1MDAxNS8/dXJsPWh0dHBzOi8vdmlyZ2lucmFkaW8uY28udWsvYXBpL2dldC1zdGF0aW9uLWRhdGE/c3RhdGlvbj12aXJnaW5yYWRpb3VrJndpdGhTb25ncz0xJmhhc1Byb2dyYW1zPTEmbnVtYmVyT2ZTb25ncz0yMA==',
         },
 
         parser: {
