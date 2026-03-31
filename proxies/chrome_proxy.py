@@ -55,7 +55,15 @@ async def fetch_via_browser(url: str) -> str:
     try:
         page = await browser.get(url)
         await page.sleep(PAGE_SETTLE_SECONDS)
-        return await page.get_content()
+        # When the response is plain JSON/text, Chrome wraps it in its JSON viewer:
+        # <body><pre>...</pre></body>.  Extract the raw text instead of returning
+        # the full HTML wrapper.
+        return await page.evaluate(
+            "(function(){"
+            "  var pre = document.querySelector('body > pre');"
+            "  return pre ? pre.textContent : document.documentElement.outerHTML;"
+            "})()"
+        )
     finally:
         browser.stop()
 
@@ -111,7 +119,15 @@ async def handle_request(request: web.Request) -> web.Response:
 
     try:
         content = await get_cached(url)
-        return web.Response(text=content, content_type="text/html")
+        # Sniff content type: if the body starts with { or [ it's JSON.
+        stripped = content.lstrip()
+        if stripped.startswith(("{", "[")):
+            ct = "application/json"
+        elif stripped.startswith("<"):
+            ct = "text/html"
+        else:
+            ct = "text/plain"
+        return web.Response(text=content, content_type=ct)
     except Exception:
         log.exception("Failed to fetch %s", url)
         return web.Response(text=f"Error fetching {url}", status=502)
