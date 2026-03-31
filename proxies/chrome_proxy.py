@@ -90,7 +90,14 @@ def validate_url(raw: str) -> str | None:
 
 
 async def handle_request(request: web.Request) -> web.Response:
-    raw_url = request.rel_url.query.get("url", "").strip()
+    # Read from the raw query string so that params like &foo=1&bar=2 that follow
+    # the target URL are preserved as part of it rather than being parsed as
+    # separate proxy-level query params (which is what .query.get("url") would do).
+    query_string = request.rel_url.query_string
+    if "url=" in query_string:
+        raw_url = unquote(query_string.split("url=", 1)[1]).strip()
+    else:
+        raw_url = ""
     if not raw_url:
         return web.Response(
             text='Missing required query parameter: ?url=https://...', status=400
