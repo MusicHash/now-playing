@@ -454,13 +454,13 @@ class NowPlaying {
                                 let trackEndFired = false;
                                 updateNowPlaying(currentIndex);
 
-                                document.querySelectorAll('.track').forEach(track => {
+                                document.querySelectorAll('.track_item').forEach(track => {
                                     track.addEventListener('click', () => {
                                         const idx = parseInt(track.dataset.index, 10);
                                         currentIndex = idx;
                                         trackEndFired = false;
                                         updateNowPlaying(currentIndex);
-                                        EmbedController.loadUri(track.dataset.spotifyId);
+                                        EmbedController.loadUri(trackIds[idx]);
                                         EmbedController.play();
                                     });
                                 });
