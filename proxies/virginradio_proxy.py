@@ -5,6 +5,7 @@ to bypass Cloudflare/bot protection. Requires xvfb and nodriver.
 
 Usage:
     xvfb-run python3 virginradio_proxy.py [--port PORT]
+    screen -dmS virginradio_proxy xvfb-run python3 virginradio_proxy.py [--port PORT]
 
 Dependencies:
     pip install nodriver aiohttp
