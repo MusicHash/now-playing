@@ -32,9 +32,15 @@ _cache = {"content": None, "fetched_at": 0}
 _fetch_lock = asyncio.Lock()
 
 
+CHROME_BINARY = "~/.cache/puppeteer/chrome/linux-146.0.7680.153/chrome-linux64/chrome"  # e.g. "/usr/bin/chromium" to override auto-detection
+
+
 async def fetch_via_browser():
     log.info("Launching headless browser for %s", TARGET_URL)
-    browser = await uc.start()
+    kwargs = {}
+    if CHROME_BINARY:
+        kwargs["browser_executable_path"] = CHROME_BINARY
+    browser = await uc.start(**kwargs)
     try:
         page = await browser.get(TARGET_URL)
         await page.sleep(3)
