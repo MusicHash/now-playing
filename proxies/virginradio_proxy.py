@@ -16,6 +16,8 @@ import asyncio
 import logging
 import time
 
+import os
+
 import nodriver as uc
 from aiohttp import web
 
@@ -32,7 +34,7 @@ _cache = {"content": None, "fetched_at": 0}
 _fetch_lock = asyncio.Lock()
 
 
-CHROME_BINARY = "~/.cache/puppeteer/chrome/linux-146.0.7680.153/chrome-linux64/chrome"  # e.g. "/usr/bin/chromium" to override auto-detection
+CHROME_BINARY = os.path.expanduser("~/.cache/puppeteer/chrome/linux-146.0.7680.153/chrome-linux64/chrome")
 
 
 async def fetch_via_browser():
