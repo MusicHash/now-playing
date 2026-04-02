@@ -3,14 +3,8 @@ import MySQLWrapper from '../../utils/mysql_wrapper.js';
 /** Default rolling window in days (`days` query param on stats routes). */
 export const DEFAULT_STATS_DAYS = 7;
 
-/**
- * Calendar days per comparison window: rank by (plays in last N days) minus (plays in the N days before that).
- * Larger N smooths noise and better reflects a sustained uptick than a 3-day slice.
- */
-export const MOMENTUM_COMPARE_DAYS = 7;
-
-/** Min combined plays across both windows (2×{@link MOMENTUM_COMPARE_DAYS} days) to qualify for ranking. */
-export const MOMENTUM_MIN_PLAYS_COMBINED = 12;
+/** Min total plays in the rolling `days` window to include a track in momentum ranking (noise floor). */
+export const MOMENTUM_MIN_PLAYS_IN_WINDOW = 10;
 
 /** `direction` query param: rising vs falling play counts between windows. */
 export const MOMENTUM_DIRECTION_UP = 'up';
@@ -62,6 +56,36 @@ export function clampBucketMinutes(value) {
 }
 
 /**
+ * OLS slope of daily plays vs day index 0..n-1 (plays per day trend; matches chart spine order).
+ * @param {number[]} y
+ * @returns {number | null}
+ */
+function olsSlopePlaysPerDay(y) {
+    const n = y.length;
+    if (n < 2) {
+        return null;
+    }
+    let sumX = 0;
+    let sumX2 = 0;
+    let sumY = 0;
+    let sumXY = 0;
+    for (let i = 0; i < n; i++) {
+        sumX += i;
+        sumX2 += i * i;
+        const yi = y[i];
+        sumY += yi;
+        sumXY += i * yi;
+    }
+    const denom = n * sumX2 - sumX * sumX;
+    if (Math.abs(denom) < 1e-12) {
+        return null;
+    }
+    return (n * sumXY - sumX * sumY) / denom;
+}
+
+/**
+ * Station filter for joined `station_log` queries in stats helpers.
+ *
  * @param {{ days?: unknown, limit?: unknown, station?: string, stationLike?: string }} opts
  */
 function stationWhereClause(opts) {
@@ -152,9 +176,9 @@ export async function getMostPlayedTracks(opts = {}) {
 }
 
 /**
- * Tracks ranked by rising plays: (last {@link MOMENTUM_COMPARE_DAYS} calendar days) minus
- * (same-length window immediately before). Positive diff and {@link MOMENTUM_MIN_PLAYS_COMBINED} required.
- * `daily_plays` still follows the rolling `days` window (same as {@link getMostPlayedTracks}).
+ * Tracks ranked by OLS linear trend of daily plays over the rolling `days` window (same spine as the chart).
+ * `momentum_score` is estimated change in plays per calendar day (positive = rising, negative = falling).
+ * {@link MOMENTUM_MIN_PLAYS_IN_WINDOW} filters very sparse series. `direction` selects positive vs negative slope.
  *
  * @param {{ days?: unknown, limit?: unknown, station?: string, stationLike?: string, direction?: unknown }} opts
  * @returns {Promise<Array<Record<string, unknown> & { daily_plays: Array<{ play_date: string, play_count: number }> }>>}
@@ -165,118 +189,6 @@ export async function getTopTracksByMomentum(opts = {}) {
     const { sql: extraWhere, params: extraParams } = stationWhereClause(opts);
     const direction = parseMomentumDirection(opts.direction);
     const rising = direction === MOMENTUM_DIRECTION_UP;
-    const scoreCmp = rising ? '> 0' : '< 0';
-    const scoreOrder = rising ? 'DESC' : 'ASC';
-
-    const n = MOMENTUM_COMPARE_DAYS;
-    const recentStartDays = n - 1;
-    const priorStartDays = 2 * n - 1;
-
-    const momentumSql = `
-        WITH per_track AS (
-            SELECT
-                spotify_tracks.spotify_track_id,
-                SUM(
-                    CASE
-                        WHEN DATE(station_log.log_datetime_played) >= CURDATE() - INTERVAL ${recentStartDays} DAY
-                            AND DATE(station_log.log_datetime_played) <= CURDATE()
-                        THEN 1
-                        ELSE 0
-                    END
-                ) AS recent_plays,
-                SUM(
-                    CASE
-                        WHEN DATE(station_log.log_datetime_played) BETWEEN CURDATE() - INTERVAL ${priorStartDays} DAY
-                            AND CURDATE() - INTERVAL ${n} DAY
-                        THEN 1
-                        ELSE 0
-                    END
-                ) AS prior_plays
-            FROM
-                nowplaying_station_log station_log
-            JOIN
-                nowplaying_spotify_tracks spotify_tracks
-                ON station_log.spotify_id = spotify_tracks.spotify_id
-            WHERE
-                DATE(station_log.log_datetime_played) >= CURDATE() - INTERVAL ${priorStartDays} DAY
-                AND DATE(station_log.log_datetime_played) <= CURDATE()
-                ${extraWhere}
-            GROUP BY
-                spotify_tracks.spotify_track_id
-        ),
-        scored AS (
-            SELECT
-                spotify_track_id,
-                recent_plays,
-                prior_plays,
-                (recent_plays - prior_plays) AS momentum_score
-            FROM
-                per_track
-            WHERE
-                (recent_plays + prior_plays) >= ${MOMENTUM_MIN_PLAYS_COMBINED}
-                AND (recent_plays - prior_plays) ${scoreCmp}
-        ),
-        ranked AS (
-            SELECT
-                spotify_track_id,
-                recent_plays,
-                prior_plays,
-                momentum_score
-            FROM
-                scored
-            ORDER BY
-                momentum_score ${scoreOrder}
-            LIMIT
-                ?
-        ),
-        play_totals AS (
-            SELECT
-                spotify_tracks.spotify_track_id,
-                COUNT(*) AS play_count
-            FROM
-                nowplaying_station_log station_log
-            JOIN
-                nowplaying_spotify_tracks spotify_tracks
-                ON station_log.spotify_id = spotify_tracks.spotify_id
-            WHERE
-                station_log.log_datetime_played >= NOW() - INTERVAL ? DAY
-                ${extraWhere}
-            GROUP BY
-                spotify_tracks.spotify_track_id
-        )
-        SELECT
-            ranked.spotify_track_id,
-            ranked.recent_plays,
-            ranked.prior_plays,
-            ranked.momentum_score,
-            ANY_VALUE(tr.spotify_artist_title) AS spotify_artist_title,
-            ANY_VALUE(tr.spotify_track_title) AS spotify_track_title,
-            ANY_VALUE(tr.spotify_popularity) AS spotify_popularity,
-            pt.play_count
-        FROM
-            ranked
-        JOIN
-            nowplaying_spotify_tracks tr
-            ON ranked.spotify_track_id = tr.spotify_track_id
-        JOIN
-            play_totals pt
-            ON pt.spotify_track_id = ranked.spotify_track_id
-        GROUP BY
-            ranked.spotify_track_id,
-            ranked.recent_plays,
-            ranked.prior_plays,
-            ranked.momentum_score,
-            pt.play_count
-        ORDER BY
-            ranked.momentum_score ${scoreOrder}
-    `;
-
-    const momentumParams = [...extraParams, limit, days, ...extraParams];
-    const [momentumRows] = await MySQLWrapper.query(momentumSql, momentumParams);
-
-    if (!momentumRows.length) {
-        return [];
-    }
 
     const spineSql = `
         WITH RECURSIVE dates AS (
@@ -295,9 +207,11 @@ export async function getTopTracksByMomentum(opts = {}) {
         return String(raw).slice(0, 10);
     });
 
-    const trackIds = momentumRows.map((r) => r.spotify_track_id);
-    const inList = trackIds.map(() => '?').join(', ');
-    const dailySql = `
+    if (spineDates.length < 2) {
+        return [];
+    }
+
+    const dailyAggSql = `
         SELECT
             spotify_tracks.spotify_track_id,
             DATE(station_log.log_datetime_played) AS play_date,
@@ -310,21 +224,16 @@ export async function getTopTracksByMomentum(opts = {}) {
         WHERE
             station_log.log_datetime_played >= NOW() - INTERVAL ? DAY
             ${extraWhere}
-            AND spotify_tracks.spotify_track_id IN (${inList})
         GROUP BY
             spotify_tracks.spotify_track_id,
             DATE(station_log.log_datetime_played)
-        ORDER BY
-            spotify_tracks.spotify_track_id ASC,
-            play_date ASC
     `;
-    const dailyParams = [days, ...extraParams, ...trackIds];
-    const [dailyRows] = await MySQLWrapper.query(dailySql, dailyParams);
+    const [dailyAggRows] = await MySQLWrapper.query(dailyAggSql, [days, ...extraParams]);
 
     /** @type {Map<string, Map<string, number>>} */
     const byTrackDate = new Map();
-    for (const row of dailyRows) {
-        const tid = row.spotify_track_id;
+    for (const row of dailyAggRows) {
+        const tid = String(row.spotify_track_id);
         let dateKey = row.play_date;
         if (dateKey instanceof Date) {
             dateKey = dateKey.toISOString().slice(0, 10);
@@ -337,14 +246,83 @@ export async function getTopTracksByMomentum(opts = {}) {
         byTrackDate.get(tid).set(dateKey, Number(row.play_count) || 0);
     }
 
-    return momentumRows.map((row) => {
+    /** @type {Array<{ spotify_track_id: string, momentum_score: number }>} */
+    const scored = [];
+    for (const [tid, dayMap] of byTrackDate) {
+        const y = spineDates.map((d) => dayMap.get(d) ?? 0);
+        const total = y.reduce((a, b) => a + b, 0);
+        if (total < MOMENTUM_MIN_PLAYS_IN_WINDOW) {
+            continue;
+        }
+        const slope = olsSlopePlaysPerDay(y);
+        if (slope === null) {
+            continue;
+        }
+        if (rising && slope <= 0) {
+            continue;
+        }
+        if (!rising && slope >= 0) {
+            continue;
+        }
+        scored.push({
+            spotify_track_id: String(tid),
+            momentum_score: Number(slope.toFixed(6)),
+        });
+    }
+
+    scored.sort((a, b) => {
+        const diff = rising ? b.momentum_score - a.momentum_score : a.momentum_score - b.momentum_score;
+        if (diff !== 0) {
+            return diff;
+        }
+        return a.spotify_track_id.localeCompare(b.spotify_track_id);
+    });
+
+    const top = scored.slice(0, limit);
+    if (!top.length) {
+        return [];
+    }
+
+    const trackIds = top.map((r) => r.spotify_track_id);
+    const inList = trackIds.map(() => '?').join(', ');
+    const metaSql = `
+        SELECT
+            tr.spotify_track_id,
+            ANY_VALUE(tr.spotify_artist_title) AS spotify_artist_title,
+            ANY_VALUE(tr.spotify_track_title) AS spotify_track_title,
+            ANY_VALUE(tr.spotify_popularity) AS spotify_popularity,
+            COUNT(*) AS play_count
+        FROM
+            nowplaying_station_log station_log
+        JOIN
+            nowplaying_spotify_tracks tr
+            ON station_log.spotify_id = tr.spotify_id
+        WHERE
+            station_log.log_datetime_played >= NOW() - INTERVAL ? DAY
+            ${extraWhere}
+            AND tr.spotify_track_id IN (${inList})
+        GROUP BY
+            tr.spotify_track_id
+    `;
+    const [metaRows] = await MySQLWrapper.query(metaSql, [days, ...extraParams, ...trackIds]);
+
+    /** @type {Map<string, Record<string, unknown>>} */
+    const metaById = new Map(metaRows.map((r) => [String(r.spotify_track_id), r]));
+
+    return top.map((row) => {
         const tid = row.spotify_track_id;
+        const meta = metaById.get(tid);
         const dayMap = byTrackDate.get(tid) ?? new Map();
         const daily_plays = spineDates.map((play_date) => ({
             play_date,
             play_count: dayMap.get(play_date) ?? 0,
         }));
-        return { ...row, daily_plays };
+        return {
+            ...(meta || {}),
+            spotify_track_id: tid,
+            momentum_score: row.momentum_score,
+            daily_plays,
+        };
     });
 }
 

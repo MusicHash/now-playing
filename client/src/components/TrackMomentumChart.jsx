@@ -227,19 +227,19 @@ export default function TrackMomentumChart({
 
     const scopeHint = scopeAllStations
         ? rising
-            ? 'Across all stations · ranked by (plays in last 7 days) minus (plays in the 7 days before that), largest gains first'
-            : 'Across all stations · same comparison, largest drops first'
+            ? 'Across all stations · linear trend of daily plays over the selected window (largest positive slope first)'
+            : 'Across all stations · same trend line; largest negative slopes first'
         : rising
-          ? 'On this station · ranked by (plays in last 7 days) minus (plays in the 7 days before that), largest gains first'
-          : 'On this station · same comparison, largest drops first';
+          ? 'On this station · linear trend of daily plays over the selected window (largest positive slope first)'
+          : 'On this station · same trend line; largest negative slopes first';
 
     const title = scopeAllStations
         ? rising
-            ? 'Rising tracks (7-day vs prior 7-day) — all stations'
-            : 'Falling tracks (7-day vs prior 7-day) — all stations'
+            ? 'Rising tracks (daily trend) — all stations'
+            : 'Falling tracks (daily trend) — all stations'
         : rising
-          ? 'Rising tracks (7-day vs prior 7-day) — this station'
-          : 'Falling tracks (7-day vs prior 7-day) — this station';
+          ? 'Rising tracks (daily trend) — this station'
+          : 'Falling tracks (daily trend) — this station';
 
     return (
         <div style={{ width: '100%' }}>
@@ -274,9 +274,9 @@ export default function TrackMomentumChart({
             <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', color: '#94a3b8' }}>{scopeHint}</p>
             {onRowClick && (
                 <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', color: '#94a3b8' }}>
-                    Click a line or legend entry for track detail. Showing up to {CHART_LINE_CAP} tracks by
-                    {rising ? ' play increase ' : ' play decrease '}
-                    (last 7 days vs prior 7 days).
+                    Click a line or legend entry for track detail. Showing up to {CHART_LINE_CAP} tracks with
+                    the strongest {rising ? 'positive' : 'negative'} daily trend (linear fit over the chart
+                    window).
                 </p>
             )}
             {loading && <p style={{ color: '#64748b' }}>Loading…</p>}
