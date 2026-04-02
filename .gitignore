@@ -112,3 +112,5 @@ dist
 # SSL proxy — generated certificates (never commit private keys)
 server/proxies/ssl/certs/
 
+## custom mcp and might contain secrets
+.vscode/settings.json
