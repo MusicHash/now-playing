@@ -1,0 +1,213 @@
+import MySQLWrapper from '../../utils/mysql_wrapper.js';
+
+export const DEFAULT_STATS_DAYS = 30;
+export const MAX_STATS_DAYS = 365;
+export const DEFAULT_STATS_LIMIT = 100;
+export const MAX_STATS_LIMIT = 200;
+export const DEFAULT_RECENT_LIMIT = 50;
+export const MAX_RECENT_LIMIT = 500;
+
+/**
+ * @param {unknown} value
+ * @param {number} fallback
+ * @param {number} max
+ */
+export function clampInt(value, fallback, max) {
+    const n = Number.parseInt(String(value), 10);
+    if (!Number.isFinite(n) || n < 1) {
+        return fallback;
+    }
+    return Math.min(n, max);
+}
+
+/**
+ * @param {{ days?: unknown, limit?: unknown, station?: string, stationLike?: string }} opts
+ */
+function stationWhereClause(opts) {
+    if (opts.station) {
+        return { sql: ' AND station_log.log_station_id = ?', params: [opts.station] };
+    }
+    if (opts.stationLike) {
+        return {
+            sql: ' AND station_log.log_station_id LIKE CONCAT(\'%\', ?, \'%\')',
+            params: [opts.stationLike],
+        };
+    }
+    return { sql: '', params: [] };
+}
+
+/**
+ * @param {{ days?: unknown, station?: string, stationLike?: string }} opts
+ */
+export async function getPlaysByDay(opts = {}) {
+    const days = clampInt(opts.days, DEFAULT_STATS_DAYS, MAX_STATS_DAYS);
+
+    let sql = `
+        SELECT
+            DATE(log_datetime_played) AS play_date,
+            DAYNAME(log_datetime_played) AS weekday,
+            COUNT(*) AS play_count
+        FROM
+            nowplaying_station_log
+        WHERE
+            log_datetime_played >= NOW() - INTERVAL ? DAY
+    `;
+    const params = [days];
+
+    if (opts.station) {
+        sql += ' AND log_station_id = ?';
+        params.push(opts.station);
+    } else if (opts.stationLike) {
+        sql += ' AND log_station_id LIKE CONCAT(\'%\', ?, \'%\')';
+        params.push(opts.stationLike);
+    }
+
+    sql += `
+        GROUP BY
+            play_date,
+            weekday
+        ORDER BY
+            play_date DESC
+    `;
+
+    const [rows] = await MySQLWrapper.query(sql, params);
+    return rows;
+}
+
+/**
+ * @param {{ days?: unknown, limit?: unknown, station?: string, stationLike?: string }} opts
+ */
+export async function getMostPlayedTracks(opts = {}) {
+    const days = clampInt(opts.days, DEFAULT_STATS_DAYS, MAX_STATS_DAYS);
+    const limit = clampInt(opts.limit, DEFAULT_STATS_LIMIT, MAX_STATS_LIMIT);
+    const { sql: extraWhere, params: extraParams } = stationWhereClause(opts);
+
+    const sql = `
+        SELECT
+            spotify_tracks.spotify_track_id,
+            spotify_tracks.spotify_artist_title,
+            spotify_tracks.spotify_track_title,
+            spotify_tracks.spotify_popularity,
+            COUNT(*) AS play_count
+        FROM
+            nowplaying_station_log station_log
+        JOIN
+            nowplaying_spotify_tracks spotify_tracks
+            ON station_log.spotify_id = spotify_tracks.spotify_id
+        WHERE
+            station_log.log_datetime_played >= NOW() - INTERVAL ? DAY
+            ${extraWhere}
+        GROUP BY
+            spotify_tracks.spotify_track_id,
+            spotify_tracks.spotify_artist_title,
+            spotify_tracks.spotify_track_title,
+            spotify_tracks.spotify_popularity
+        ORDER BY play_count DESC
+        LIMIT ?
+    `;
+
+    const [rows] = await MySQLWrapper.query(sql, [days, ...extraParams, limit]);
+    return rows;
+}
+
+/**
+ * @param {{ days?: unknown, limit?: unknown, station?: string, stationLike?: string }} opts
+ */
+export async function getTopArtists(opts = {}) {
+    const days = clampInt(opts.days, DEFAULT_STATS_DAYS, MAX_STATS_DAYS);
+    const limit = clampInt(opts.limit, DEFAULT_STATS_LIMIT, MAX_STATS_LIMIT);
+
+    let sql = `
+        SELECT
+            log_artist,
+            COUNT(*) AS play_count
+        FROM
+            nowplaying_station_log
+        WHERE
+            log_datetime_played >= NOW() - INTERVAL ? DAY
+    `;
+    const params = [days];
+
+    if (opts.station) {
+        sql += ' AND log_station_id = ?';
+        params.push(opts.station);
+    } else if (opts.stationLike) {
+        sql += ' AND log_station_id LIKE CONCAT(\'%\', ?, \'%\')';
+        params.push(opts.stationLike);
+    }
+
+    sql += `
+        GROUP BY
+            log_artist
+        ORDER BY
+            play_count DESC
+        LIMIT ?
+    `;
+    params.push(limit);
+
+    const [rows] = await MySQLWrapper.query(sql, params);
+    return rows;
+}
+
+/**
+ * @param {{ days?: unknown, limit?: unknown }} opts
+ */
+export async function getTopStations(opts = {}) {
+    const days = clampInt(opts.days, DEFAULT_STATS_DAYS, MAX_STATS_DAYS);
+    const limit = clampInt(opts.limit, DEFAULT_STATS_LIMIT, MAX_STATS_LIMIT);
+
+    const sql = `
+        SELECT
+            log_station_id,
+            COUNT(*) AS play_count
+        FROM
+            nowplaying_station_log
+        WHERE
+            log_datetime_played >= NOW() - INTERVAL ? DAY
+        GROUP BY
+            log_station_id
+        ORDER BY
+            play_count DESC
+        LIMIT ?
+    `;
+
+    const [rows] = await MySQLWrapper.query(sql, [days, limit]);
+    return rows;
+}
+
+/**
+ * Most recent log rows with Spotify metadata, optionally scoped to one station or LIKE pattern.
+ *
+ * @param {{ limit?: unknown, station?: string, stationLike?: string }} opts
+ */
+export async function getRecentPlays(opts = {}) {
+    const limit = clampInt(opts.limit, DEFAULT_RECENT_LIMIT, MAX_RECENT_LIMIT);
+    const { sql: extraWhere, params: extraParams } = stationWhereClause(opts);
+
+    const sql = `
+        SELECT
+            station_log.log_id,
+            station_log.log_station_id,
+            station_log.log_datetime_played,
+            station_log.log_artist,
+            station_log.log_title,
+            spotify_tracks.spotify_track_id,
+            spotify_tracks.spotify_artist_title,
+            spotify_tracks.spotify_track_title,
+            spotify_tracks.spotify_popularity
+        FROM
+            nowplaying_station_log station_log
+        JOIN
+            nowplaying_spotify_tracks spotify_tracks
+            ON station_log.spotify_id = spotify_tracks.spotify_id
+        WHERE
+            1 = 1
+            ${extraWhere}
+        ORDER BY
+            station_log.log_datetime_played DESC
+        LIMIT ?
+    `;
+
+    const [rows] = await MySQLWrapper.query(sql, [...extraParams, limit]);
+    return rows;
+}

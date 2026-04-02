@@ -25,6 +25,35 @@ export default function debugRoutes(logger) {
             .join('\r\n');
 
         let channelsList = Object.assign({}, stations, charts);
+        const exampleStation = Object.keys(channelsList)[0] || '';
+
+        html += "<li style='margin-top:30px'><strong>Play stats API (JSON)</strong></li>";
+        html += "<li style='list-style:none;font-size:12px;color:#555;margin:4px 0 8px'>Optional query params: <code>days</code>, <code>limit</code>, <code>station</code> (exact id), <code>stationLike</code> (substring).</li>";
+
+        const dataStatLinks = [
+            ['/api/data/stats/plays-by-day', 'plays-by-day'],
+            ['/api/data/stats/plays-by-day?days=7', 'plays-by-day · 7d'],
+            ['/api/data/stats/top-tracks', 'top-tracks'],
+            ['/api/data/stats/top-tracks?days=7&limit=25', 'top-tracks · 7d, limit 25'],
+            ['/api/data/stats/top-artists', 'top-artists'],
+            ['/api/data/stats/top-stations', 'top-stations'],
+            ['/api/data/stats/recent-plays', 'recent-plays'],
+            ['/api/data/stats/recent-plays?limit=30', 'recent-plays · limit 30'],
+            ['/api/data/stats/top-tracks?stationLike=glz&limit=20', 'top-tracks · stationLike=glz'],
+        ];
+        if (exampleStation) {
+            const enc = encodeURIComponent(exampleStation);
+            dataStatLinks.push(
+                [`/api/data/stats/plays-by-day?station=${enc}`, `plays-by-day · station=${exampleStation}`],
+                [`/api/data/stats/top-tracks?station=${enc}&limit=20`, `top-tracks · station=${exampleStation}`],
+                [`/api/data/stats/top-artists?station=${enc}&limit=20`, `top-artists · station=${exampleStation}`],
+                [`/api/data/stats/recent-plays?station=${enc}&limit=20`, `recent-plays · station=${exampleStation}`],
+            );
+        }
+        for (const [href, label] of dataStatLinks) {
+            html += `<li><a href="${href}">${label}</a></li>`;
+        }
+
         html += "<li style='margin-top:30px'>Channels List:</li>";
         for (let channelID in channelsList) {
             html += `<li>${channelID} (<a href="/api/debug/fetch/${channelID}">Debug Fetch</a>)</li>`;

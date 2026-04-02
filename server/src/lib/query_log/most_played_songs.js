@@ -1,5 +1,4 @@
-import MySQLWrapper from '../../utils/mysql_wrapper.js';
-
+import { getMostPlayedTracks } from './stats_queries.js';
 
 /*
     -- Description:
@@ -36,43 +35,16 @@ import MySQLWrapper from '../../utils/mysql_wrapper.js';
     -- | 1YsU8rW2u8z4F0pwOBQ4Ea     | Coldplay               | feelslikeimfallinginlove | 83                  | 177         |
     -- +----------------------------+------------------------+--------------------------+---------------------+-------------+
 */
-const getMostPlayedSongsByStation = async function(stationKey, daysRange = 30, limit = 100) {
-    const query = `
-        SELECT
-            spotify_tracks.spotify_track_id,
-            spotify_tracks.spotify_artist_title,
-            spotify_tracks.spotify_track_title,
-            spotify_tracks.spotify_popularity,
-            COUNT(*) AS play_count
-        FROM
-            nowplaying_station_log station_log
-        JOIN
-            nowplaying_spotify_tracks spotify_tracks
-            ON station_log.spotify_id = spotify_tracks.spotify_id
-        WHERE
-            station_log.log_datetime_played >= NOW() - INTERVAL ? DAY -- 30
-            AND 
-            station_log.log_station_id = ? -- glz-onair
-        GROUP BY
-            spotify_tracks.spotify_track_id,
-            spotify_tracks.spotify_artist_title,
-            spotify_tracks.spotify_track_title,
-            spotify_tracks.spotify_popularity  
-        ORDER BY play_count DESC
-        LIMIT ?
-    `;
-
-    // fetch
-    const [result] = await MySQLWrapper.query(query, [
-        daysRange,
-        stationKey,
+const getMostPlayedSongsByStation = async function (stationKey, daysRange = 30, limit = 100) {
+    const result = await getMostPlayedTracks({
+        days: daysRange,
         limit,
-    ]);
+        station: stationKey,
+    });
 
-    const trackIds = result.map(item => 'spotify:track:' + item.spotify_track_id);
+    const trackIds = result.map((item) => 'spotify:track:' + item.spotify_track_id);
     return trackIds;
-}
-
+};
 
 export {
     getMostPlayedSongsByStation,

@@ -64,6 +64,11 @@ class MySQLWrapper {
         return Boolean(this._MySQL_URI);
     }
 
+    /** @returns {boolean} Whether MySQL was configured (URI set at init). */
+    isEnabled() {
+        return this._isEnabled();
+    }
+
     /**
      * Selects rows from the specified table based on the provided parameters.
      *
