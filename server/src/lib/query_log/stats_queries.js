@@ -214,3 +214,19 @@ export async function getRecentPlays(opts = {}) {
     const [rows] = await MySQLWrapper.query(sql, [days, ...extraParams, limit]);
     return rows;
 }
+
+/**
+ * Distinct station ids present in the play log (any time), sorted alphabetically.
+ *
+ * @returns {Promise<string[]>}
+ */
+export async function getDistinctStationsLogged() {
+    const sql = `
+        SELECT DISTINCT log_station_id
+        FROM nowplaying_station_log
+        ORDER BY log_station_id ASC
+    `;
+
+    const [rows] = await MySQLWrapper.query(sql, []);
+    return rows.map((row) => row.log_station_id);
+}

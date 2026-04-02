@@ -1,7 +1,9 @@
 import { Router } from 'express';
 
 import MySQLWrapper from '../utils/mysql_wrapper.js';
+import { stations, charts } from '../../config/sources.js';
 import {
+    getDistinctStationsLogged,
     getMostPlayedTracks,
     getPlaysByDay,
     getRecentPlays,
@@ -36,6 +38,18 @@ export default function dataRoutes(_logger) {
     const router = Router();
 
     router.use(requireMysql);
+
+    router.get('/data/stations', async (_req, res) => {
+        try {
+            const configured = [
+                ...new Set([...Object.keys(stations), ...Object.keys(charts)]),
+            ].sort();
+            const logged = await getDistinctStationsLogged();
+            res.json({ configured, logged });
+        } catch (error) {
+            res.status(500).json({ error: 'Query failed', message: String(error?.message || error) });
+        }
+    });
 
     router.get('/data/stats/plays-by-day', async (req, res) => {
         try {

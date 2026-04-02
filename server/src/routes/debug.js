@@ -34,6 +34,7 @@ export default function debugRoutes(logger) {
         html += `<li style='list-style:none;font-size:12px;color:#555;margin:4px 0 8px'>Window: <code>days</code> (default <code>${d}</code>). Also: <code>limit</code>, <code>station</code>, <code>stationLike</code>. Links below include <code>days=${d}</code> where applicable.</li>`;
 
         const dataStatLinks = [
+            ['/api/data/stations', 'stations · configured (sources.js) + logged (distinct DB)'],
             [`/api/data/stats/plays-by-day?days=${d}`, `plays-by-day · days=${d}`],
             ['/api/data/stats/plays-by-day?days=30', 'plays-by-day · days=30'],
             [`/api/data/stats/top-tracks?days=${d}`, `top-tracks · days=${d}`],
