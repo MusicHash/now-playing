@@ -67,7 +67,7 @@ export default function TrackMomentumChart({
                 .attr('y', height / 2)
                 .attr('text-anchor', 'middle')
                 .attr('fill', '#64748b')
-                .text('No momentum data in this window');
+                .text('No rising tracks in this window');
             return;
         }
 
@@ -124,7 +124,7 @@ export default function TrackMomentumChart({
             .attr('font-size', '13px')
             .attr('font-weight', 600)
             .attr('fill', '#334155')
-            .text('Daily plays (momentum leaders)');
+            .text('Daily plays (rising tracks)');
 
         const plot = g.append('g');
 
@@ -210,12 +210,12 @@ export default function TrackMomentumChart({
     }, [data, width, height, loading, error, onRowClick]);
 
     const scopeHint = scopeAllStations
-        ? 'Across all stations · sum of positive day-over-day play changes (calendar days, zero-filled)'
-        : 'On this station · sum of positive day-over-day play changes (calendar days, zero-filled)';
+        ? 'Across all stations · ranked by (plays in last 3 days) minus (plays in the 3 days before that)'
+        : 'On this station · ranked by (plays in last 3 days) minus (plays in the 3 days before that)';
 
     const title = scopeAllStations
-        ? 'Track momentum (day-over-day growth) — all stations'
-        : 'Track momentum (day-over-day growth) — this station';
+        ? 'Rising tracks (3-day vs prior 3-day) — all stations'
+        : 'Rising tracks (3-day vs prior 3-day) — this station';
 
     return (
         <div style={{ width: '100%' }}>
@@ -224,7 +224,7 @@ export default function TrackMomentumChart({
             {onRowClick && (
                 <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', color: '#94a3b8' }}>
                     Click a line or legend entry for track detail. Showing up to {CHART_LINE_CAP} tracks by
-                    momentum score.
+                    play increase (last 3 days vs prior 3 days).
                 </p>
             )}
             {loading && <p style={{ color: '#64748b' }}>Loading…</p>}

@@ -2,6 +2,9 @@ import MySQLWrapper from '../../utils/mysql_wrapper.js';
 
 /** Default rolling window in days (`days` query param on stats routes). */
 export const DEFAULT_STATS_DAYS = 7;
+
+/** Min combined plays (last 3 days + prior 3 days) to rank a track for momentum (reduces one-off noise). */
+export const MOMENTUM_MIN_PLAYS_IN_6D = 5;
 export const MAX_STATS_DAYS = 365;
 export const DEFAULT_STATS_LIMIT = 35;
 export const MAX_STATS_LIMIT = 200;
@@ -127,8 +130,9 @@ export async function getMostPlayedTracks(opts = {}) {
 }
 
 /**
- * Tracks ranked by sum of positive calendar day-over-day play deltas (zero-filled days) in the window.
- * Same `days` / `station` / `limit` semantics as {@link getMostPlayedTracks}.
+ * Tracks ranked by rising plays: (last 3 calendar days) minus (previous 3 calendar days).
+ * Only includes tracks with a positive diff and enough combined plays in those 6 days to limit noise.
+ * `daily_plays` still follows the rolling `days` window (same as {@link getMostPlayedTracks}).
  *
  * @param {{ days?: unknown, limit?: unknown, station?: string, stationLike?: string }} opts
  * @returns {Promise<Array<Record<string, unknown> & { daily_plays: Array<{ play_date: string, play_count: number }> }>>}
@@ -139,59 +143,60 @@ export async function getTopTracksByMomentum(opts = {}) {
     const { sql: extraWhere, params: extraParams } = stationWhereClause(opts);
 
     const momentumSql = `
-        WITH RECURSIVE dates AS (
-            SELECT DATE(NOW() - INTERVAL ? DAY) AS d
-            UNION ALL
-            SELECT d + INTERVAL 1 DAY FROM dates WHERE d < DATE(NOW())
-        ),
-        daily AS (
+        WITH per_track AS (
             SELECT
                 spotify_tracks.spotify_track_id,
-                DATE(station_log.log_datetime_played) AS d,
-                COUNT(*) AS c
+                SUM(
+                    CASE
+                        WHEN DATE(station_log.log_datetime_played) >= CURDATE() - INTERVAL 2 DAY
+                        THEN 1
+                        ELSE 0
+                    END
+                ) AS recent_3d,
+                SUM(
+                    CASE
+                        WHEN DATE(station_log.log_datetime_played) BETWEEN CURDATE() - INTERVAL 5 DAY
+                            AND CURDATE() - INTERVAL 3 DAY
+                        THEN 1
+                        ELSE 0
+                    END
+                ) AS prior_3d
             FROM
                 nowplaying_station_log station_log
             JOIN
                 nowplaying_spotify_tracks spotify_tracks
                 ON station_log.spotify_id = spotify_tracks.spotify_id
             WHERE
-                station_log.log_datetime_played >= NOW() - INTERVAL ? DAY
+                DATE(station_log.log_datetime_played) >= CURDATE() - INTERVAL 5 DAY
+                AND DATE(station_log.log_datetime_played) <= CURDATE()
                 ${extraWhere}
             GROUP BY
-                spotify_tracks.spotify_track_id,
-                DATE(station_log.log_datetime_played)
-        ),
-        tracks AS (
-            SELECT DISTINCT spotify_track_id FROM daily
-        ),
-        grid AS (
-            SELECT
-                dates.d,
-                tracks.spotify_track_id,
-                COALESCE(daily.c, 0) AS c
-            FROM
-                dates
-            CROSS JOIN tracks
-            LEFT JOIN daily
-                ON daily.d = dates.d AND daily.spotify_track_id = tracks.spotify_track_id
-        ),
-        with_lag AS (
-            SELECT
-                spotify_track_id,
-                d,
-                c,
-                GREATEST(0, c - LAG(c) OVER (PARTITION BY spotify_track_id ORDER BY d)) AS pos_delta
-            FROM
-                grid
+                spotify_tracks.spotify_track_id
         ),
         scored AS (
             SELECT
                 spotify_track_id,
-                SUM(pos_delta) AS momentum_score
+                recent_3d AS recent_plays_3d,
+                prior_3d AS prior_plays_3d,
+                (recent_3d - prior_3d) AS momentum_score
             FROM
-                with_lag
-            GROUP BY
-                spotify_track_id
+                per_track
+            WHERE
+                (recent_3d + prior_3d) >= ${MOMENTUM_MIN_PLAYS_IN_6D}
+                AND (recent_3d - prior_3d) > 0
+        ),
+        ranked AS (
+            SELECT
+                spotify_track_id,
+                recent_plays_3d,
+                prior_plays_3d,
+                momentum_score
+            FROM
+                scored
+            ORDER BY
+                momentum_score DESC
+            LIMIT
+                ?
         ),
         play_totals AS (
             SELECT
@@ -207,20 +212,11 @@ export async function getTopTracksByMomentum(opts = {}) {
                 ${extraWhere}
             GROUP BY
                 spotify_tracks.spotify_track_id
-        ),
-        ranked AS (
-            SELECT
-                spotify_track_id,
-                momentum_score
-            FROM
-                scored
-            ORDER BY
-                momentum_score DESC
-            LIMIT
-                ?
         )
         SELECT
             ranked.spotify_track_id,
+            ranked.recent_plays_3d,
+            ranked.prior_plays_3d,
             ranked.momentum_score,
             ANY_VALUE(tr.spotify_artist_title) AS spotify_artist_title,
             ANY_VALUE(tr.spotify_track_title) AS spotify_track_title,
@@ -236,13 +232,15 @@ export async function getTopTracksByMomentum(opts = {}) {
             ON pt.spotify_track_id = ranked.spotify_track_id
         GROUP BY
             ranked.spotify_track_id,
+            ranked.recent_plays_3d,
+            ranked.prior_plays_3d,
             ranked.momentum_score,
             pt.play_count
         ORDER BY
             ranked.momentum_score DESC
     `;
 
-    const momentumParams = [days, days, ...extraParams, days, ...extraParams, limit];
+    const momentumParams = [...extraParams, limit, days, ...extraParams];
     const [momentumRows] = await MySQLWrapper.query(momentumSql, momentumParams);
 
     if (!momentumRows.length) {
