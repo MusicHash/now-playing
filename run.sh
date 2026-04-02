@@ -30,7 +30,7 @@ is_port_bound() {
 }
 
 is_healthy() {
-    curl -sf "http://${HOST}:${PORT}/api/actions" -o /dev/null --max-time 3
+    curl -sf "http://${HOST}:${PORT}/api/health" -o /dev/null --max-time 3
 }
 
 # ── already up? ───────────────────────────────────────────────────────────────

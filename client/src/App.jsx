@@ -4,7 +4,7 @@ function App() {
     const [status, setStatus] = useState('loading');
 
     useEffect(() => {
-        fetch('/api/actions')
+        fetch('/api/health')
             .then((res) => {
                 setStatus(res.ok ? 'connected' : 'error');
             })
