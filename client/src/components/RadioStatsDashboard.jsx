@@ -81,7 +81,7 @@ export default function RadioStatsDashboard() {
     useEffect(() => {
         fetchJson(getStationsUrl())
             .then((body) => {
-                setStationOptions(mergeStationIds(body.configured, body.logged));
+                setStationOptions(mergeStationIds([], body.logged));
             })
             .catch(() => {
                 setStationOptions([]);
