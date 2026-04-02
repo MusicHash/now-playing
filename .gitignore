@@ -109,3 +109,6 @@ dist
 
 *-lock.json
 
+# SSL proxy — generated certificates (never commit private keys)
+proxies/ssl/certs/
+
