@@ -10,12 +10,12 @@ export default function debugRoutes(logger) {
 
     router.get('/actions', async (req, res) => {
         let links = {
-            '/spotify/login': 'Re-Login',
-            '/crawl_playlists_manually': 'Crawl Stations (all)',
-            '/update_playlists_manually': 'Update Stations Manually (all)',
-            '/playlist/refresh_charts/all': 'Refresh Charts - in batches (all)',
-            '/playlist/slice/all': 'Shorten the playlist to limit (all)',
-            '/debug_channels': 'Debug Channels',
+            '/api/spotify/login': 'Re-Login',
+            '/api/crawl_playlists_manually': 'Crawl Stations (all)',
+            '/api/update_playlists_manually': 'Update Stations Manually (all)',
+            '/api/playlist/refresh_charts/all': 'Refresh Charts - in batches (all)',
+            '/api/playlist/slice/all': 'Shorten the playlist to limit (all)',
+            '/api/debug_channels': 'Debug Channels',
         };
 
         let html = Object.keys(links)
@@ -27,7 +27,7 @@ export default function debugRoutes(logger) {
         let channelsList = Object.assign({}, stations, charts);
         html += "<li style='margin-top:30px'>Channels List:</li>";
         for (let channelID in channelsList) {
-            html += `<li>${channelID} (<a href="/debug/fetch/${channelID}">Debug Fetch</a>)</li>`;
+            html += `<li>${channelID} (<a href="/api/debug/fetch/${channelID}">Debug Fetch</a>)</li>`;
         }
 
         res.send(`<ul>${html}</ul>`);

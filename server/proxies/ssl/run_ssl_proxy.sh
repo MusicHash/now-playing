@@ -30,7 +30,7 @@ is_port_bound() {
 
 is_healthy() {
     # -k: accept self-signed cert
-    curl -sf -k "https://${HOST}:${HTTPS_PORT}/actions" -o /dev/null --max-time 3
+    curl -sf -k "https://${HOST}:${HTTPS_PORT}/api/actions" -o /dev/null --max-time 3
 }
 
 # ── already up? ───────────────────────────────────────────────────────────────

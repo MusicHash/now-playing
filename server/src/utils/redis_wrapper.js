@@ -74,6 +74,10 @@ class RedisWrapper {
 
 
     async addSet(ids) {
+        if (!this._isEnabled()) {
+            return this;
+        }
+
         await this.connect();
 
         for (let i = 0; i < ids.length; i++) {
@@ -86,6 +90,10 @@ class RedisWrapper {
 
 
     async addHash(key, field, value, ttl = null) {
+        if (!this._isEnabled()) {
+            return;
+        }
+
         try {
             await this.connect();
 
@@ -107,6 +115,10 @@ class RedisWrapper {
 
 
     async getHash(key, field) {
+        if (!this._isEnabled()) {
+            return null;
+        }
+
         try {
             await this.connect();
 
@@ -125,6 +137,10 @@ class RedisWrapper {
 
 
     async getAll(key) {
+        if (!this._isEnabled()) {
+            return null;
+        }
+
         await this.connect();
 
         return await this._redisInstance.hgetall(key);
@@ -132,6 +148,10 @@ class RedisWrapper {
 
 
     async get(key) {
+        if (!this._isEnabled()) {
+            return null;
+        }
+
         await this.connect();
 
         return await this._redisInstance.get(key);
@@ -139,6 +159,10 @@ class RedisWrapper {
 
 
     async set(key, value, ttl = -1) {
+        if (!this._isEnabled()) {
+            return null;
+        }
+
         await this.connect();
 
         if (ttl > 0) {
@@ -150,6 +174,10 @@ class RedisWrapper {
 
 
     async del(key) {
+        if (!this._isEnabled()) {
+            return null;
+        }
+
         await this.connect();
 
         return await this._redisInstance.del(key);

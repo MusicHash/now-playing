@@ -1,4 +1,6 @@
 import http from 'http';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import express from 'express';
 
 import logger from './utils/logger.js';
@@ -42,7 +44,8 @@ class NowPlaying {
     async _initializeComponents() {
         try {
             await this._createEventEmitter();
-            this.app.use(createRoutes(this.logger));
+            this.app.use('/api', createRoutes(this.logger));
+            this._serveClient();
 
             await this._connectToRedis();
             await this._connectToMySQL();
@@ -92,10 +95,12 @@ class NowPlaying {
     async _connectToRedis() {
         const redisURI = process.env.REDIS_URI;
 
+        redisWrapper.init(this.logger, redisURI);
+
         if (redisURI) {
             this.logger.info('Connecting to Redis...');
 
-            await redisWrapper.init(this.logger, redisURI).connect();
+            await redisWrapper.connect();
 
             this.logger.info('Connected to Redis!');
         } else {
@@ -119,6 +124,16 @@ class NowPlaying {
         }
 
         return this;
+    }
+
+    _serveClient() {
+        const __dirname = path.dirname(fileURLToPath(import.meta.url));
+        const clientDist = path.join(__dirname, '../../client/dist');
+
+        this.app.use(express.static(clientDist));
+        this.app.get('*all', (req, res) => {
+            res.sendFile(path.join(clientDist, 'index.html'));
+        });
     }
 
     _getExpressServer(app) {
@@ -160,8 +175,8 @@ class NowPlaying {
             });
 
             if (metricsWrapper) {
-                metricsWrapper
-                    .report('unhandled_rejection', [
+                try {
+                    metricsWrapper.report('unhandled_rejection', [
                         {
                             type: 'intField',
                             key: 'count',
@@ -172,8 +187,8 @@ class NowPlaying {
                             key: 'error_message',
                             value: error.message || 'Unknown error',
                         },
-                    ])
-                    .catch(() => {});
+                    ]);
+                } catch (_) {}
             }
         });
 
@@ -186,8 +201,8 @@ class NowPlaying {
             });
 
             if (metricsWrapper) {
-                metricsWrapper
-                    .report('uncaught_exception', [
+                try {
+                    metricsWrapper.report('uncaught_exception', [
                         {
                             type: 'intField',
                             key: 'count',
@@ -198,8 +213,8 @@ class NowPlaying {
                             key: 'error_message',
                             value: error.message || 'Unknown error',
                         },
-                    ])
-                    .catch(() => {});
+                    ]);
+                } catch (_) {}
             }
 
             this.scheduler.stop();

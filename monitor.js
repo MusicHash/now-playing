@@ -20,7 +20,7 @@ class ProcessMonitor {
     }
 
     spawnProcess() {
-        const appPath = join(__dirname, 'src', 'now_playing.js');
+        const appPath = join(__dirname, 'server', 'src', 'now_playing.js');
 
         console.log(`Spawning process: ${appPath}`);
 

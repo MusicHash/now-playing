@@ -14,10 +14,13 @@ jobs:
         with:
           node-version: 20.x
 
-      - name: Deps
+      - name: Install dependencies
         run: npm install
 
-      - name: Test
+      - name: Build client
+        run: npm run build:client
+
+      - name: Test server
         env:
           SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
           SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
