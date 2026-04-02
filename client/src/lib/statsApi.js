@@ -101,6 +101,13 @@ export function getTopTracksUrl(params) {
 /**
  * @param {{ days?: unknown, limit?: unknown, station?: string }} params
  */
+export function getTopTracksMomentumUrl(params) {
+    return `/api/data/stats/top-tracks-momentum?${buildRankedQuery(params)}`;
+}
+
+/**
+ * @param {{ days?: unknown, limit?: unknown, station?: string }} params
+ */
 export function getTopArtistsUrl(params) {
     return `/api/data/stats/top-artists?${buildRankedQuery(params)}`;
 }

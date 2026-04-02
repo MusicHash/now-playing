@@ -11,6 +11,7 @@ import {
     getRecentPlays,
     getTopArtists,
     getTopStations,
+    getTopTracksByMomentum,
 } from '../lib/query_log/stats_queries.js';
 
 function requireMysql(_req, res, next) {
@@ -65,6 +66,15 @@ export default function dataRoutes(_logger) {
     router.get('/data/stats/top-tracks', async (req, res) => {
         try {
             const rows = await getMostPlayedTracks(parseQuery(req));
+            res.json(rows);
+        } catch (error) {
+            res.status(500).json({ error: 'Query failed', message: String(error?.message || error) });
+        }
+    });
+
+    router.get('/data/stats/top-tracks-momentum', async (req, res) => {
+        try {
+            const rows = await getTopTracksByMomentum(parseQuery(req));
             res.json(rows);
         } catch (error) {
             res.status(500).json({ error: 'Query failed', message: String(error?.message || error) });

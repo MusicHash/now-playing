@@ -39,6 +39,8 @@ export default function debugRoutes(logger) {
             ['/api/data/stats/plays-by-day?days=30', 'plays-by-day · days=30'],
             [`/api/data/stats/top-tracks?days=${d}`, `top-tracks · days=${d}`],
             ['/api/data/stats/top-tracks?days=30&limit=25', 'top-tracks · days=30, limit 25'],
+            [`/api/data/stats/top-tracks-momentum?days=${d}`, `top-tracks-momentum · days=${d}`],
+            ['/api/data/stats/top-tracks-momentum?days=30&limit=10', 'top-tracks-momentum · days=30, limit 10'],
             [`/api/data/stats/top-artists?days=${d}`, `top-artists · days=${d}`],
             [`/api/data/stats/top-stations?days=${d}`, `top-stations · days=${d}`],
             [`/api/data/stats/recent-plays?days=${d}`, `recent-plays · days=${d}`],
@@ -50,6 +52,7 @@ export default function debugRoutes(logger) {
             dataStatLinks.push(
                 [`/api/data/stats/plays-by-day?days=${d}&station=${enc}`, `plays-by-day · days=${d}, station=${exampleStation}`],
                 [`/api/data/stats/top-tracks?days=${d}&station=${enc}&limit=20`, `top-tracks · days=${d}, station=${exampleStation}`],
+                [`/api/data/stats/top-tracks-momentum?days=${d}&station=${enc}&limit=20`, `top-tracks-momentum · days=${d}, station=${exampleStation}`],
                 [`/api/data/stats/top-artists?days=${d}&station=${enc}&limit=20`, `top-artists · days=${d}, station=${exampleStation}`],
                 [`/api/data/stats/recent-plays?days=${d}&station=${enc}&limit=20`, `recent-plays · days=${d}, station=${exampleStation}`],
             );

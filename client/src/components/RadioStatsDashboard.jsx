@@ -3,6 +3,7 @@ import DrillDownPlaysPanel from './DrillDownPlaysPanel.jsx';
 import PlaysByDayChart from './PlaysByDayChart.jsx';
 import RankedBarChart from './RankedBarChart.jsx';
 import StatsControls from './StatsControls.jsx';
+import TrackMomentumChart from './TrackMomentumChart.jsx';
 import {
     clampInt,
     DEFAULT_STATS_DAYS,
@@ -11,6 +12,7 @@ import {
     getPlaysByDayUrl,
     getStationsUrl,
     getTopArtistsUrl,
+    getTopTracksMomentumUrl,
     getTopTracksUrl,
     MAX_STATS_DAYS,
     MAX_STATS_LIMIT,
@@ -53,6 +55,10 @@ export default function RadioStatsDashboard() {
     const [artistsData, setArtistsData] = useState(null);
     const [artistsLoading, setArtistsLoading] = useState(true);
     const [artistsError, setArtistsError] = useState(null);
+
+    const [momentumData, setMomentumData] = useState(null);
+    const [momentumLoading, setMomentumLoading] = useState(true);
+    const [momentumError, setMomentumError] = useState(null);
 
     const [containerRef, chartWidth] = useChartWidth();
 
@@ -165,6 +171,34 @@ export default function RadioStatsDashboard() {
         };
     }, [days, limit, station]);
 
+    useEffect(() => {
+        let cancelled = false;
+        setMomentumLoading(true);
+        setMomentumError(null);
+        const d = clampInt(days, DEFAULT_STATS_DAYS, MAX_STATS_DAYS);
+        const l = clampInt(limit, DEFAULT_STATS_LIMIT, MAX_STATS_LIMIT);
+        const url = getTopTracksMomentumUrl({ days: d, limit: l, station });
+        (async () => {
+            try {
+                const data = await fetchJson(url);
+                if (!cancelled) {
+                    setMomentumData(data);
+                }
+            } catch (e) {
+                if (!cancelled) {
+                    setMomentumError(e);
+                }
+            } finally {
+                if (!cancelled) {
+                    setMomentumLoading(false);
+                }
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [days, limit, station]);
+
     const onDaysChange = (n) => setDays(clampInt(n, DEFAULT_STATS_DAYS, MAX_STATS_DAYS));
     const onLimitChange = (n) => setLimit(clampInt(n, DEFAULT_STATS_LIMIT, MAX_STATS_LIMIT));
 
@@ -188,6 +222,14 @@ export default function RadioStatsDashboard() {
                     width={chartWidth}
                     loading={playsLoading}
                     error={playsError}
+                />
+                <TrackMomentumChart
+                    data={momentumData}
+                    width={chartWidth}
+                    loading={momentumLoading}
+                    error={momentumError}
+                    scopeAllStations={!station}
+                    onRowClick={handleTrackRowClick}
                 />
                 {drill && (
                     <DrillDownPlaysPanel

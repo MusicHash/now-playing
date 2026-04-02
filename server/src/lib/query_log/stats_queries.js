@@ -127,6 +127,199 @@ export async function getMostPlayedTracks(opts = {}) {
 }
 
 /**
+ * Tracks ranked by sum of positive calendar day-over-day play deltas (zero-filled days) in the window.
+ * Same `days` / `station` / `limit` semantics as {@link getMostPlayedTracks}.
+ *
+ * @param {{ days?: unknown, limit?: unknown, station?: string, stationLike?: string }} opts
+ * @returns {Promise<Array<Record<string, unknown> & { daily_plays: Array<{ play_date: string, play_count: number }> }>>}
+ */
+export async function getTopTracksByMomentum(opts = {}) {
+    const days = clampInt(opts.days, DEFAULT_STATS_DAYS, MAX_STATS_DAYS);
+    const limit = clampInt(opts.limit, DEFAULT_STATS_LIMIT, MAX_STATS_LIMIT);
+    const { sql: extraWhere, params: extraParams } = stationWhereClause(opts);
+
+    const momentumSql = `
+        WITH RECURSIVE dates AS (
+            SELECT DATE(NOW() - INTERVAL ? DAY) AS d
+            UNION ALL
+            SELECT d + INTERVAL 1 DAY FROM dates WHERE d < DATE(NOW())
+        ),
+        daily AS (
+            SELECT
+                spotify_tracks.spotify_track_id,
+                DATE(station_log.log_datetime_played) AS d,
+                COUNT(*) AS c
+            FROM
+                nowplaying_station_log station_log
+            JOIN
+                nowplaying_spotify_tracks spotify_tracks
+                ON station_log.spotify_id = spotify_tracks.spotify_id
+            WHERE
+                station_log.log_datetime_played >= NOW() - INTERVAL ? DAY
+                ${extraWhere}
+            GROUP BY
+                spotify_tracks.spotify_track_id,
+                DATE(station_log.log_datetime_played)
+        ),
+        tracks AS (
+            SELECT DISTINCT spotify_track_id FROM daily
+        ),
+        grid AS (
+            SELECT
+                dates.d,
+                tracks.spotify_track_id,
+                COALESCE(daily.c, 0) AS c
+            FROM
+                dates
+            CROSS JOIN tracks
+            LEFT JOIN daily
+                ON daily.d = dates.d AND daily.spotify_track_id = tracks.spotify_track_id
+        ),
+        with_lag AS (
+            SELECT
+                spotify_track_id,
+                d,
+                c,
+                GREATEST(0, c - LAG(c) OVER (PARTITION BY spotify_track_id ORDER BY d)) AS pos_delta
+            FROM
+                grid
+        ),
+        scored AS (
+            SELECT
+                spotify_track_id,
+                SUM(pos_delta) AS momentum_score
+            FROM
+                with_lag
+            GROUP BY
+                spotify_track_id
+        ),
+        play_totals AS (
+            SELECT
+                spotify_tracks.spotify_track_id,
+                COUNT(*) AS play_count
+            FROM
+                nowplaying_station_log station_log
+            JOIN
+                nowplaying_spotify_tracks spotify_tracks
+                ON station_log.spotify_id = spotify_tracks.spotify_id
+            WHERE
+                station_log.log_datetime_played >= NOW() - INTERVAL ? DAY
+                ${extraWhere}
+            GROUP BY
+                spotify_tracks.spotify_track_id
+        ),
+        ranked AS (
+            SELECT
+                spotify_track_id,
+                momentum_score
+            FROM
+                scored
+            ORDER BY
+                momentum_score DESC
+            LIMIT
+                ?
+        )
+        SELECT
+            ranked.spotify_track_id,
+            ranked.momentum_score,
+            ANY_VALUE(tr.spotify_artist_title) AS spotify_artist_title,
+            ANY_VALUE(tr.spotify_track_title) AS spotify_track_title,
+            ANY_VALUE(tr.spotify_popularity) AS spotify_popularity,
+            pt.play_count
+        FROM
+            ranked
+        JOIN
+            nowplaying_spotify_tracks tr
+            ON ranked.spotify_track_id = tr.spotify_track_id
+        JOIN
+            play_totals pt
+            ON pt.spotify_track_id = ranked.spotify_track_id
+        GROUP BY
+            ranked.spotify_track_id,
+            ranked.momentum_score,
+            pt.play_count
+        ORDER BY
+            ranked.momentum_score DESC
+    `;
+
+    const momentumParams = [days, days, ...extraParams, days, ...extraParams, limit];
+    const [momentumRows] = await MySQLWrapper.query(momentumSql, momentumParams);
+
+    if (!momentumRows.length) {
+        return [];
+    }
+
+    const spineSql = `
+        WITH RECURSIVE dates AS (
+            SELECT DATE(NOW() - INTERVAL ? DAY) AS d
+            UNION ALL
+            SELECT d + INTERVAL 1 DAY FROM dates WHERE d < DATE(NOW())
+        )
+        SELECT d AS play_date FROM dates ORDER BY d ASC
+    `;
+    const [spineRows] = await MySQLWrapper.query(spineSql, [days]);
+    const spineDates = spineRows.map((r) => {
+        const raw = r.play_date;
+        if (raw instanceof Date) {
+            return raw.toISOString().slice(0, 10);
+        }
+        return String(raw).slice(0, 10);
+    });
+
+    const trackIds = momentumRows.map((r) => r.spotify_track_id);
+    const inList = trackIds.map(() => '?').join(', ');
+    const dailySql = `
+        SELECT
+            spotify_tracks.spotify_track_id,
+            DATE(station_log.log_datetime_played) AS play_date,
+            COUNT(*) AS play_count
+        FROM
+            nowplaying_station_log station_log
+        JOIN
+            nowplaying_spotify_tracks spotify_tracks
+            ON station_log.spotify_id = spotify_tracks.spotify_id
+        WHERE
+            station_log.log_datetime_played >= NOW() - INTERVAL ? DAY
+            ${extraWhere}
+            AND spotify_tracks.spotify_track_id IN (${inList})
+        GROUP BY
+            spotify_tracks.spotify_track_id,
+            DATE(station_log.log_datetime_played)
+        ORDER BY
+            spotify_tracks.spotify_track_id ASC,
+            play_date ASC
+    `;
+    const dailyParams = [days, ...extraParams, ...trackIds];
+    const [dailyRows] = await MySQLWrapper.query(dailySql, dailyParams);
+
+    /** @type {Map<string, Map<string, number>>} */
+    const byTrackDate = new Map();
+    for (const row of dailyRows) {
+        const tid = row.spotify_track_id;
+        let dateKey = row.play_date;
+        if (dateKey instanceof Date) {
+            dateKey = dateKey.toISOString().slice(0, 10);
+        } else {
+            dateKey = String(dateKey).slice(0, 10);
+        }
+        if (!byTrackDate.has(tid)) {
+            byTrackDate.set(tid, new Map());
+        }
+        byTrackDate.get(tid).set(dateKey, Number(row.play_count) || 0);
+    }
+
+    return momentumRows.map((row) => {
+        const tid = row.spotify_track_id;
+        const dayMap = byTrackDate.get(tid) ?? new Map();
+        const daily_plays = spineDates.map((play_date) => ({
+            play_date,
+            play_count: dayMap.get(play_date) ?? 0,
+        }));
+        return { ...row, daily_plays };
+    });
+}
+
+/**
  * @param {{ days?: unknown, limit?: unknown, station?: string, stationLike?: string }} opts
  */
 export async function getTopArtists(opts = {}) {
