@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import DrillDownPlaysPanel from './DrillDownPlaysPanel.jsx';
 import PlaysByDayChart from './PlaysByDayChart.jsx';
 import RankedBarChart from './RankedBarChart.jsx';
 import StatsControls from './StatsControls.jsx';
@@ -54,6 +55,28 @@ export default function RadioStatsDashboard() {
     const [artistsError, setArtistsError] = useState(null);
 
     const [containerRef, chartWidth] = useChartWidth();
+
+    const [drill, setDrill] = useState(null);
+
+    const handleTrackRowClick = useCallback((row) => {
+        const id = row.spotify_track_id;
+        if (typeof id !== 'string' || !id.trim()) {
+            return;
+        }
+        const title = String(row.spotify_track_title ?? '');
+        const artist = String(row.spotify_artist_title ?? row.log_artist ?? '');
+        const label = `${title} — ${artist}`.trim() || id;
+        setDrill({ type: 'track', trackId: id.trim(), label });
+    }, []);
+
+    const handleArtistRowClick = useCallback((row) => {
+        const name = row.log_artist;
+        if (typeof name !== 'string' || !name.trim()) {
+            return;
+        }
+        const label = name.trim();
+        setDrill({ type: 'artist', artistName: label, label });
+    }, []);
 
     useEffect(() => {
         fetchJson(getStationsUrl())
@@ -166,6 +189,20 @@ export default function RadioStatsDashboard() {
                     loading={playsLoading}
                     error={playsError}
                 />
+                {drill && (
+                    <DrillDownPlaysPanel
+                        key={
+                            drill.type === 'track'
+                                ? `track:${drill.trackId}`
+                                : `artist:${drill.artistName}`
+                        }
+                        drill={drill}
+                        days={days}
+                        station={station}
+                        width={chartWidth}
+                        onClose={() => setDrill(null)}
+                    />
+                )}
                 <RankedBarChart
                     data={rankedData}
                     width={chartWidth}
@@ -173,6 +210,7 @@ export default function RadioStatsDashboard() {
                     error={rankedError}
                     mode="tracks"
                     scopeAllStations={!station}
+                    onRowClick={handleTrackRowClick}
                 />
                 <RankedBarChart
                     data={artistsData}
@@ -181,6 +219,7 @@ export default function RadioStatsDashboard() {
                     error={artistsError}
                     mode="artists"
                     scopeAllStations={!station}
+                    onRowClick={handleArtistRowClick}
                 />
             </div>
         </section>

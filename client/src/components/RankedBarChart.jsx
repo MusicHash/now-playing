@@ -36,9 +36,18 @@ function truncate(s, maxLen) {
  *   error: Error | null,
  *   mode: 'tracks' | 'artists',
  *   scopeAllStations?: boolean,
+ *   onRowClick?: (row: Record<string, unknown>) => void,
  * }} props
  */
-export default function RankedBarChart({ data, width, loading, error, mode, scopeAllStations = true }) {
+export default function RankedBarChart({
+    data,
+    width,
+    loading,
+    error,
+    mode,
+    scopeAllStations = true,
+    onRowClick,
+}) {
     const svgRef = useRef(null);
     const height = RANKED_HEIGHT;
 
@@ -66,6 +75,7 @@ export default function RankedBarChart({ data, width, loading, error, mode, scop
         const rows = data.map((row) => ({
             label: rowLabel(row, mode),
             count: Number(row.play_count) || 0,
+            raw: row,
         }));
 
         const barFill =
@@ -112,8 +122,11 @@ export default function RankedBarChart({ data, width, loading, error, mode, scop
             .attr('transform', (_d, i) => `translate(0,${y(String(i))})`);
 
         rowG.each(function (d) {
-            const te = d3
-                .select(this)
+            const g = d3.select(this);
+            if (onRowClick) {
+                g.style('cursor', 'pointer');
+            }
+            const te = g
                 .append('text')
                 .attr('x', 0)
                 .attr('y', y.bandwidth() / 2)
@@ -124,6 +137,13 @@ export default function RankedBarChart({ data, width, loading, error, mode, scop
                 .text(truncate(d.label, 42));
             te.append('title').text(d.label);
         });
+
+        if (onRowClick) {
+            rowG.on('click', (event, d) => {
+                event.stopPropagation();
+                onRowClick(/** @type {Record<string, unknown>} */ (d.raw));
+            });
+        }
 
         rowG
             .append('rect')
@@ -145,7 +165,7 @@ export default function RankedBarChart({ data, width, loading, error, mode, scop
         g.append('g')
             .attr('transform', `translate(${barStart},${innerH})`)
             .call(d3.axisBottom(x).ticks(5));
-    }, [data, width, height, loading, error, mode]);
+    }, [data, width, height, loading, error, mode, onRowClick]);
 
     const title =
         mode === 'artists'
@@ -159,6 +179,11 @@ export default function RankedBarChart({ data, width, loading, error, mode, scop
     return (
         <div style={{ width: '100%' }}>
             <h2 style={{ fontSize: '1rem', margin: '0 0 0.5rem', color: '#64748b' }}>{title}</h2>
+            {onRowClick && (
+                <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', color: '#94a3b8' }}>
+                    Click a row for a time-series view.
+                </p>
+            )}
             {loading && <p style={{ color: '#64748b' }}>Loading…</p>}
             {error && (
                 <p style={{ color: '#b91c1c' }}>

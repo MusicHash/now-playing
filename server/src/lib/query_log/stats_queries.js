@@ -3,10 +3,14 @@ import MySQLWrapper from '../../utils/mysql_wrapper.js';
 /** Default rolling window in days (`days` query param on stats routes). */
 export const DEFAULT_STATS_DAYS = 7;
 export const MAX_STATS_DAYS = 365;
-export const DEFAULT_STATS_LIMIT = 100;
+export const DEFAULT_STATS_LIMIT = 35;
 export const MAX_STATS_LIMIT = 200;
 export const DEFAULT_RECENT_LIMIT = 50;
 export const MAX_RECENT_LIMIT = 500;
+
+/** Allowed `resolutionMinutes` for plays-by-bucket drill-down APIs. */
+export const ALLOWED_BUCKET_MINUTES = [1, 5, 10, 15, 30, 60, 120, 240, 480, 1440];
+export const DEFAULT_BUCKET_MINUTES = 60;
 
 /**
  * @param {unknown} value
@@ -19,6 +23,17 @@ export function clampInt(value, fallback, max) {
         return fallback;
     }
     return Math.min(n, max);
+}
+
+/**
+ * @param {unknown} value
+ */
+export function clampBucketMinutes(value) {
+    const n = Number.parseInt(String(value), 10);
+    if (!Number.isFinite(n) || !ALLOWED_BUCKET_MINUTES.includes(n)) {
+        return DEFAULT_BUCKET_MINUTES;
+    }
+    return n;
 }
 
 /**
@@ -229,4 +244,81 @@ export async function getDistinctStationsLogged() {
 
     const [rows] = await MySQLWrapper.query(sql, []);
     return rows.map((row) => row.log_station_id);
+}
+
+/**
+ * Plays per time bucket for one Spotify track, within the rolling `days` window.
+ *
+ * @param {{ days?: unknown, station?: string, stationLike?: string, resolutionMinutes?: unknown, trackId: string }} opts
+ */
+export async function getPlaysByBucketForTrack(opts = {}) {
+    const days = clampInt(opts.days, DEFAULT_STATS_DAYS, MAX_STATS_DAYS);
+    const bucketMin = clampBucketMinutes(opts.resolutionMinutes);
+    const bucketSec = bucketMin * 60;
+    const { sql: extraWhere, params: extraParams } = stationWhereClause(opts);
+
+    const sql = `
+        SELECT
+            FROM_UNIXTIME(FLOOR(UNIX_TIMESTAMP(station_log.log_datetime_played) / ?) * ?) AS bucket_start,
+            COUNT(*) AS play_count
+        FROM
+            nowplaying_station_log station_log
+        INNER JOIN
+            nowplaying_spotify_tracks spotify_tracks
+            ON station_log.spotify_id = spotify_tracks.spotify_id
+        WHERE
+            station_log.log_datetime_played >= NOW() - INTERVAL ? DAY
+            AND spotify_tracks.spotify_track_id = ?
+            ${extraWhere}
+        GROUP BY
+            FROM_UNIXTIME(FLOOR(UNIX_TIMESTAMP(station_log.log_datetime_played) / ?) * ?)
+        ORDER BY
+            bucket_start ASC
+    `;
+
+    const params = [bucketSec, bucketSec, days, opts.trackId, ...extraParams, bucketSec, bucketSec];
+    const [rows] = await MySQLWrapper.query(sql, params);
+    return rows;
+}
+
+/**
+ * Plays per time bucket for one artist (`log_artist` exact match), within the rolling `days` window.
+ *
+ * @param {{ days?: unknown, station?: string, stationLike?: string, resolutionMinutes?: unknown, artist: string }} opts
+ */
+export async function getPlaysByBucketForArtist(opts = {}) {
+    const days = clampInt(opts.days, DEFAULT_STATS_DAYS, MAX_STATS_DAYS);
+    const bucketMin = clampBucketMinutes(opts.resolutionMinutes);
+    const bucketSec = bucketMin * 60;
+
+    let sql = `
+        SELECT
+            FROM_UNIXTIME(FLOOR(UNIX_TIMESTAMP(log_datetime_played) / ?) * ?) AS bucket_start,
+            COUNT(*) AS play_count
+        FROM
+            nowplaying_station_log
+        WHERE
+            log_datetime_played >= NOW() - INTERVAL ? DAY
+            AND log_artist = ?
+    `;
+    const params = [bucketSec, bucketSec, days, opts.artist];
+
+    if (opts.station) {
+        sql += ' AND log_station_id = ?';
+        params.push(opts.station);
+    } else if (opts.stationLike) {
+        sql += ' AND log_station_id LIKE CONCAT(\'%\', ?, \'%\')';
+        params.push(opts.stationLike);
+    }
+
+    sql += `
+        GROUP BY
+            FROM_UNIXTIME(FLOOR(UNIX_TIMESTAMP(log_datetime_played) / ?) * ?)
+        ORDER BY
+            bucket_start ASC
+    `;
+    params.push(bucketSec, bucketSec);
+
+    const [rows] = await MySQLWrapper.query(sql, params);
+    return rows;
 }
