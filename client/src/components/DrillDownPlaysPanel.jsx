@@ -61,17 +61,17 @@ export default function DrillDownPlaysPanel({ drill, days, station, width, onClo
         const url =
             drill.type === 'track'
                 ? getPlaysByBucketTrackUrl({
-                      days: d,
-                      station,
-                      resolutionMinutes: res,
-                      spotify_track_id: drill.trackId,
-                  })
+                    days: d,
+                    station,
+                    resolutionMinutes: res,
+                    spotify_track_id: drill.trackId,
+                })
                 : getPlaysByBucketArtistUrl({
-                      days: d,
-                      station,
-                      resolutionMinutes: res,
-                      artist: drill.artistName,
-                  });
+                    days: d,
+                    station,
+                    resolutionMinutes: res,
+                    artist: drill.artistName,
+                });
         fetchJson(url)
             .then((rows) => {
                 if (!cancelled) {
@@ -119,7 +119,7 @@ export default function DrillDownPlaysPanel({ drill, days, station, width, onClo
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: '0.75rem' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                         <label htmlFor="drill-resolution" style={labelStyle}>
-                            Bucket size
+                            Resolution
                         </label>
                         <select
                             id="drill-resolution"
