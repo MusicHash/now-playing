@@ -29,11 +29,13 @@ function parseQuery(req) {
     const station = typeof req.query.station === 'string' ? req.query.station : undefined;
     const stationLike =
         typeof req.query.stationLike === 'string' ? req.query.stationLike : undefined;
+    const direction = typeof req.query.direction === 'string' ? req.query.direction : undefined;
     return {
         days: req.query.days,
         limit: req.query.limit,
         station,
         stationLike,
+        direction,
     };
 }
 

@@ -4,6 +4,10 @@ export const MAX_STATS_DAYS = 365;
 export const DEFAULT_STATS_LIMIT = 30;
 export const MAX_STATS_LIMIT = 200;
 
+/** Must match server `MOMENTUM_DIRECTION_*` — `top-tracks-momentum` only. */
+export const MOMENTUM_DIRECTION_UP = 'up';
+export const MOMENTUM_DIRECTION_DOWN = 'down';
+
 /** Must match server `ALLOWED_BUCKET_MINUTES`. */
 export const ALLOWED_BUCKET_MINUTES = [1, 5, 10, 15, 30, 60, 120, 240, 480, 1440];
 export const DEFAULT_BUCKET_MINUTES = 1440;
@@ -99,10 +103,31 @@ export function getTopTracksUrl(params) {
 }
 
 /**
- * @param {{ days?: unknown, limit?: unknown, station?: string }} params
+ * @param {{
+ *   days?: unknown,
+ *   limit?: unknown,
+ *   station?: string,
+ *   direction?: typeof MOMENTUM_DIRECTION_UP | typeof MOMENTUM_DIRECTION_DOWN,
+ * }} params
+ */
+export function buildMomentumQuery(params) {
+    const p = buildRankedQuery(params);
+    const dir =
+        params.direction === MOMENTUM_DIRECTION_DOWN ? MOMENTUM_DIRECTION_DOWN : MOMENTUM_DIRECTION_UP;
+    p.set('direction', dir);
+    return p;
+}
+
+/**
+ * @param {{
+ *   days?: unknown,
+ *   limit?: unknown,
+ *   station?: string,
+ *   direction?: typeof MOMENTUM_DIRECTION_UP | typeof MOMENTUM_DIRECTION_DOWN,
+ * }} params
  */
 export function getTopTracksMomentumUrl(params) {
-    return `/api/data/stats/top-tracks-momentum?${buildRankedQuery(params)}`;
+    return `/api/data/stats/top-tracks-momentum?${buildMomentumQuery(params)}`;
 }
 
 /**

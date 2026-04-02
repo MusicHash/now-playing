@@ -17,6 +17,7 @@ import {
     MAX_STATS_DAYS,
     MAX_STATS_LIMIT,
     mergeStationIds,
+    MOMENTUM_DIRECTION_UP,
 } from '../lib/statsApi.js';
 
 function useChartWidth() {
@@ -59,6 +60,7 @@ export default function RadioStatsDashboard() {
     const [momentumData, setMomentumData] = useState(null);
     const [momentumLoading, setMomentumLoading] = useState(true);
     const [momentumError, setMomentumError] = useState(null);
+    const [momentumDirection, setMomentumDirection] = useState(MOMENTUM_DIRECTION_UP);
 
     const [containerRef, chartWidth] = useChartWidth();
 
@@ -177,7 +179,12 @@ export default function RadioStatsDashboard() {
         setMomentumError(null);
         const d = clampInt(days, DEFAULT_STATS_DAYS, MAX_STATS_DAYS);
         const l = clampInt(limit, DEFAULT_STATS_LIMIT, MAX_STATS_LIMIT);
-        const url = getTopTracksMomentumUrl({ days: d, limit: l, station });
+        const url = getTopTracksMomentumUrl({
+            days: d,
+            limit: l,
+            station,
+            direction: momentumDirection,
+        });
         (async () => {
             try {
                 const data = await fetchJson(url);
@@ -197,7 +204,7 @@ export default function RadioStatsDashboard() {
         return () => {
             cancelled = true;
         };
-    }, [days, limit, station]);
+    }, [days, limit, station, momentumDirection]);
 
     const onDaysChange = (n) => setDays(clampInt(n, DEFAULT_STATS_DAYS, MAX_STATS_DAYS));
     const onLimitChange = (n) => setLimit(clampInt(n, DEFAULT_STATS_LIMIT, MAX_STATS_LIMIT));
@@ -229,6 +236,8 @@ export default function RadioStatsDashboard() {
                     loading={momentumLoading}
                     error={momentumError}
                     scopeAllStations={!station}
+                    direction={momentumDirection}
+                    onDirectionChange={setMomentumDirection}
                     onRowClick={handleTrackRowClick}
                 />
                 {drill && (

@@ -1,6 +1,8 @@
 import * as d3 from 'd3';
 import { useEffect, useRef } from 'react';
 
+import { MOMENTUM_DIRECTION_DOWN, MOMENTUM_DIRECTION_UP } from '../lib/statsApi.js';
+
 const MOMENTUM_CHART_HEIGHT = 400;
 /** Max simultaneous lines so the chart stays readable (plan: ~8–10). */
 const CHART_LINE_CAP = 8;
@@ -36,6 +38,8 @@ function trackLabel(row) {
  *   loading: boolean,
  *   error: Error | null,
  *   scopeAllStations?: boolean,
+ *   direction?: typeof MOMENTUM_DIRECTION_UP | typeof MOMENTUM_DIRECTION_DOWN,
+ *   onDirectionChange?: (direction: typeof MOMENTUM_DIRECTION_UP | typeof MOMENTUM_DIRECTION_DOWN) => void,
  *   onRowClick?: (row: Record<string, unknown>) => void,
  * }} props
  */
@@ -45,6 +49,8 @@ export default function TrackMomentumChart({
     loading,
     error,
     scopeAllStations = true,
+    direction = MOMENTUM_DIRECTION_UP,
+    onDirectionChange,
     onRowClick,
 }) {
     const svgRef = useRef(null);
@@ -67,7 +73,11 @@ export default function TrackMomentumChart({
                 .attr('y', height / 2)
                 .attr('text-anchor', 'middle')
                 .attr('fill', '#64748b')
-                .text('No rising tracks in this window');
+                .text(
+                    direction === MOMENTUM_DIRECTION_DOWN
+                        ? 'No falling tracks in this window'
+                        : 'No rising tracks in this window',
+                );
             return;
         }
 
@@ -124,7 +134,11 @@ export default function TrackMomentumChart({
             .attr('font-size', '13px')
             .attr('font-weight', 600)
             .attr('fill', '#334155')
-            .text('Daily plays (rising tracks)');
+            .text(
+                direction === MOMENTUM_DIRECTION_DOWN
+                    ? 'Daily plays (falling tracks)'
+                    : 'Daily plays (rising tracks)',
+            );
 
         const plot = g.append('g');
 
@@ -207,24 +221,62 @@ export default function TrackMomentumChart({
 
             rowG.append('title').text(s.label);
         });
-    }, [data, width, height, loading, error, onRowClick]);
+    }, [data, width, height, loading, error, onRowClick, direction]);
+
+    const rising = direction === MOMENTUM_DIRECTION_UP;
 
     const scopeHint = scopeAllStations
-        ? 'Across all stations · ranked by (plays in last 7 days) minus (plays in the 7 days before that)'
-        : 'On this station · ranked by (plays in last 7 days) minus (plays in the 7 days before that)';
+        ? rising
+            ? 'Across all stations · ranked by (plays in last 7 days) minus (plays in the 7 days before that), largest gains first'
+            : 'Across all stations · same comparison, largest drops first'
+        : rising
+          ? 'On this station · ranked by (plays in last 7 days) minus (plays in the 7 days before that), largest gains first'
+          : 'On this station · same comparison, largest drops first';
 
     const title = scopeAllStations
-        ? 'Rising tracks (7-day vs prior 7-day) — all stations'
-        : 'Rising tracks (7-day vs prior 7-day) — this station';
+        ? rising
+            ? 'Rising tracks (7-day vs prior 7-day) — all stations'
+            : 'Falling tracks (7-day vs prior 7-day) — all stations'
+        : rising
+          ? 'Rising tracks (7-day vs prior 7-day) — this station'
+          : 'Falling tracks (7-day vs prior 7-day) — this station';
 
     return (
         <div style={{ width: '100%' }}>
+            {onDirectionChange && (
+                <div style={{ margin: '0 0 0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <label style={{ fontSize: '0.8rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <span style={{ fontWeight: 600 }}>Momentum</span>
+                        <select
+                            value={direction}
+                            onChange={(e) => {
+                                const v = e.target.value;
+                                onDirectionChange(
+                                    v === MOMENTUM_DIRECTION_DOWN ? MOMENTUM_DIRECTION_DOWN : MOMENTUM_DIRECTION_UP,
+                                );
+                            }}
+                            style={{
+                                fontSize: '0.8rem',
+                                padding: '0.25rem 0.35rem',
+                                borderRadius: '4px',
+                                border: '1px solid #cbd5e1',
+                                color: '#334155',
+                                background: '#fff',
+                            }}
+                        >
+                            <option value={MOMENTUM_DIRECTION_UP}>Going up (more plays recently)</option>
+                            <option value={MOMENTUM_DIRECTION_DOWN}>Going down (fewer plays recently)</option>
+                        </select>
+                    </label>
+                </div>
+            )}
             <h2 style={{ fontSize: '1rem', margin: '0 0 0.5rem', color: '#64748b' }}>{title}</h2>
             <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', color: '#94a3b8' }}>{scopeHint}</p>
             {onRowClick && (
                 <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', color: '#94a3b8' }}>
                     Click a line or legend entry for track detail. Showing up to {CHART_LINE_CAP} tracks by
-                    play increase (last 7 days vs prior 7 days).
+                    {rising ? ' play increase ' : ' play decrease '}
+                    (last 7 days vs prior 7 days).
                 </p>
             )}
             {loading && <p style={{ color: '#64748b' }}>Loading…</p>}

@@ -11,6 +11,22 @@ export const MOMENTUM_COMPARE_DAYS = 7;
 
 /** Min combined plays across both windows (2×{@link MOMENTUM_COMPARE_DAYS} days) to qualify for ranking. */
 export const MOMENTUM_MIN_PLAYS_COMBINED = 12;
+
+/** `direction` query param: rising vs falling play counts between windows. */
+export const MOMENTUM_DIRECTION_UP = 'up';
+export const MOMENTUM_DIRECTION_DOWN = 'down';
+
+/**
+ * @param {unknown} value
+ * @returns {typeof MOMENTUM_DIRECTION_UP | typeof MOMENTUM_DIRECTION_DOWN}
+ */
+export function parseMomentumDirection(value) {
+    const s = String(value ?? '').trim().toLowerCase();
+    if (s === MOMENTUM_DIRECTION_DOWN || s === 'falling' || s === 'negative') {
+        return MOMENTUM_DIRECTION_DOWN;
+    }
+    return MOMENTUM_DIRECTION_UP;
+}
 export const MAX_STATS_DAYS = 365;
 export const DEFAULT_STATS_LIMIT = 35;
 export const MAX_STATS_LIMIT = 200;
@@ -140,13 +156,17 @@ export async function getMostPlayedTracks(opts = {}) {
  * (same-length window immediately before). Positive diff and {@link MOMENTUM_MIN_PLAYS_COMBINED} required.
  * `daily_plays` still follows the rolling `days` window (same as {@link getMostPlayedTracks}).
  *
- * @param {{ days?: unknown, limit?: unknown, station?: string, stationLike?: string }} opts
+ * @param {{ days?: unknown, limit?: unknown, station?: string, stationLike?: string, direction?: unknown }} opts
  * @returns {Promise<Array<Record<string, unknown> & { daily_plays: Array<{ play_date: string, play_count: number }> }>>}
  */
 export async function getTopTracksByMomentum(opts = {}) {
     const days = clampInt(opts.days, DEFAULT_STATS_DAYS, MAX_STATS_DAYS);
     const limit = clampInt(opts.limit, DEFAULT_STATS_LIMIT, MAX_STATS_LIMIT);
     const { sql: extraWhere, params: extraParams } = stationWhereClause(opts);
+    const direction = parseMomentumDirection(opts.direction);
+    const rising = direction === MOMENTUM_DIRECTION_UP;
+    const scoreCmp = rising ? '> 0' : '< 0';
+    const scoreOrder = rising ? 'DESC' : 'ASC';
 
     const n = MOMENTUM_COMPARE_DAYS;
     const recentStartDays = n - 1;
@@ -194,7 +214,7 @@ export async function getTopTracksByMomentum(opts = {}) {
                 per_track
             WHERE
                 (recent_plays + prior_plays) >= ${MOMENTUM_MIN_PLAYS_COMBINED}
-                AND (recent_plays - prior_plays) > 0
+                AND (recent_plays - prior_plays) ${scoreCmp}
         ),
         ranked AS (
             SELECT
@@ -205,7 +225,7 @@ export async function getTopTracksByMomentum(opts = {}) {
             FROM
                 scored
             ORDER BY
-                momentum_score DESC
+                momentum_score ${scoreOrder}
             LIMIT
                 ?
         ),
@@ -248,7 +268,7 @@ export async function getTopTracksByMomentum(opts = {}) {
             ranked.momentum_score,
             pt.play_count
         ORDER BY
-            ranked.momentum_score DESC
+            ranked.momentum_score ${scoreOrder}
     `;
 
     const momentumParams = [...extraParams, limit, days, ...extraParams];
