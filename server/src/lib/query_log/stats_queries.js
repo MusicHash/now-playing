@@ -1,6 +1,7 @@
 import MySQLWrapper from '../../utils/mysql_wrapper.js';
 
-export const DEFAULT_STATS_DAYS = 30;
+/** Default rolling window in days (`days` query param on stats routes). */
+export const DEFAULT_STATS_DAYS = 7;
 export const MAX_STATS_DAYS = 365;
 export const DEFAULT_STATS_LIMIT = 100;
 export const MAX_STATS_LIMIT = 200;
@@ -177,10 +178,12 @@ export async function getTopStations(opts = {}) {
 
 /**
  * Most recent log rows with Spotify metadata, optionally scoped to one station or LIKE pattern.
+ * Rows are limited to a rolling window of `days` (default {@link DEFAULT_STATS_DAYS}), then by `limit`.
  *
- * @param {{ limit?: unknown, station?: string, stationLike?: string }} opts
+ * @param {{ days?: unknown, limit?: unknown, station?: string, stationLike?: string }} opts
  */
 export async function getRecentPlays(opts = {}) {
+    const days = clampInt(opts.days, DEFAULT_STATS_DAYS, MAX_STATS_DAYS);
     const limit = clampInt(opts.limit, DEFAULT_RECENT_LIMIT, MAX_RECENT_LIMIT);
     const { sql: extraWhere, params: extraParams } = stationWhereClause(opts);
 
@@ -201,13 +204,13 @@ export async function getRecentPlays(opts = {}) {
             nowplaying_spotify_tracks spotify_tracks
             ON station_log.spotify_id = spotify_tracks.spotify_id
         WHERE
-            1 = 1
+            station_log.log_datetime_played >= NOW() - INTERVAL ? DAY
             ${extraWhere}
         ORDER BY
             station_log.log_datetime_played DESC
         LIMIT ?
     `;
 
-    const [rows] = await MySQLWrapper.query(sql, [...extraParams, limit]);
+    const [rows] = await MySQLWrapper.query(sql, [days, ...extraParams, limit]);
     return rows;
 }

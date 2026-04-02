@@ -3,6 +3,7 @@ import prettier from 'prettier';
 
 import { getChartInfo } from '../lib/fetch_sources.js';
 import { addSpotifyHyperLinks } from '../utils/spotify_link_generator.js';
+import { DEFAULT_STATS_DAYS } from '../lib/query_log/stats_queries.js';
 import { stations, charts } from '../../config/sources.js';
 
 export default function debugRoutes(logger) {
@@ -27,27 +28,29 @@ export default function debugRoutes(logger) {
         let channelsList = Object.assign({}, stations, charts);
         const exampleStation = Object.keys(channelsList)[0] || '';
 
+        const d = DEFAULT_STATS_DAYS;
+
         html += "<li style='margin-top:30px'><strong>Play stats API (JSON)</strong></li>";
-        html += "<li style='list-style:none;font-size:12px;color:#555;margin:4px 0 8px'>Optional query params: <code>days</code>, <code>limit</code>, <code>station</code> (exact id), <code>stationLike</code> (substring).</li>";
+        html += `<li style='list-style:none;font-size:12px;color:#555;margin:4px 0 8px'>Window: <code>days</code> (default <code>${d}</code>). Also: <code>limit</code>, <code>station</code>, <code>stationLike</code>. Links below include <code>days=${d}</code> where applicable.</li>`;
 
         const dataStatLinks = [
-            ['/api/data/stats/plays-by-day', 'plays-by-day'],
-            ['/api/data/stats/plays-by-day?days=7', 'plays-by-day · 7d'],
-            ['/api/data/stats/top-tracks', 'top-tracks'],
-            ['/api/data/stats/top-tracks?days=7&limit=25', 'top-tracks · 7d, limit 25'],
-            ['/api/data/stats/top-artists', 'top-artists'],
-            ['/api/data/stats/top-stations', 'top-stations'],
-            ['/api/data/stats/recent-plays', 'recent-plays'],
-            ['/api/data/stats/recent-plays?limit=30', 'recent-plays · limit 30'],
-            ['/api/data/stats/top-tracks?stationLike=glz&limit=20', 'top-tracks · stationLike=glz'],
+            [`/api/data/stats/plays-by-day?days=${d}`, `plays-by-day · days=${d}`],
+            ['/api/data/stats/plays-by-day?days=30', 'plays-by-day · days=30'],
+            [`/api/data/stats/top-tracks?days=${d}`, `top-tracks · days=${d}`],
+            ['/api/data/stats/top-tracks?days=30&limit=25', 'top-tracks · days=30, limit 25'],
+            [`/api/data/stats/top-artists?days=${d}`, `top-artists · days=${d}`],
+            [`/api/data/stats/top-stations?days=${d}`, `top-stations · days=${d}`],
+            [`/api/data/stats/recent-plays?days=${d}`, `recent-plays · days=${d}`],
+            ['/api/data/stats/recent-plays?days=30&limit=30', 'recent-plays · days=30, limit 30'],
+            [`/api/data/stats/top-tracks?days=${d}&stationLike=glz&limit=20`, `top-tracks · days=${d}, stationLike=glz`],
         ];
         if (exampleStation) {
             const enc = encodeURIComponent(exampleStation);
             dataStatLinks.push(
-                [`/api/data/stats/plays-by-day?station=${enc}`, `plays-by-day · station=${exampleStation}`],
-                [`/api/data/stats/top-tracks?station=${enc}&limit=20`, `top-tracks · station=${exampleStation}`],
-                [`/api/data/stats/top-artists?station=${enc}&limit=20`, `top-artists · station=${exampleStation}`],
-                [`/api/data/stats/recent-plays?station=${enc}&limit=20`, `recent-plays · station=${exampleStation}`],
+                [`/api/data/stats/plays-by-day?days=${d}&station=${enc}`, `plays-by-day · days=${d}, station=${exampleStation}`],
+                [`/api/data/stats/top-tracks?days=${d}&station=${enc}&limit=20`, `top-tracks · days=${d}, station=${exampleStation}`],
+                [`/api/data/stats/top-artists?days=${d}&station=${enc}&limit=20`, `top-artists · days=${d}, station=${exampleStation}`],
+                [`/api/data/stats/recent-plays?days=${d}&station=${enc}&limit=20`, `recent-plays · days=${d}, station=${exampleStation}`],
             );
         }
         for (const [href, label] of dataStatLinks) {

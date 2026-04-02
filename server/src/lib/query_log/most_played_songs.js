@@ -1,4 +1,4 @@
-import { getMostPlayedTracks } from './stats_queries.js';
+import { DEFAULT_STATS_DAYS, getMostPlayedTracks } from './stats_queries.js';
 
 /*
     -- Description:
@@ -35,7 +35,7 @@ import { getMostPlayedTracks } from './stats_queries.js';
     -- | 1YsU8rW2u8z4F0pwOBQ4Ea     | Coldplay               | feelslikeimfallinginlove | 83                  | 177         |
     -- +----------------------------+------------------------+--------------------------+---------------------+-------------+
 */
-const getMostPlayedSongsByStation = async function (stationKey, daysRange = 30, limit = 100) {
+const getMostPlayedSongsByStation = async function (stationKey, daysRange = DEFAULT_STATS_DAYS, limit = 100) {
     const result = await getMostPlayedTracks({
         days: daysRange,
         limit,
