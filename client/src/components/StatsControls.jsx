@@ -60,7 +60,7 @@ export default function StatsControls({
             </div>
             <div style={fieldStyle}>
                 <label htmlFor="stats-limit" style={labelStyle}>
-                    Limit (ranked chart)
+                    Limit (top tracks & top artists)
                 </label>
                 <input
                     id="stats-limit"
@@ -92,7 +92,7 @@ export default function StatsControls({
             </div>
             <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b', maxWidth: '18rem' }}>
                 Defaults: {DEFAULT_STATS_DAYS} days, {DEFAULT_STATS_LIMIT} rows. Omitting station
-                aggregates all stations.
+                aggregates all stations. Artists use the same window and limit.
             </p>
         </div>
     );

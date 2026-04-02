@@ -9,7 +9,7 @@ import {
     fetchJson,
     getPlaysByDayUrl,
     getStationsUrl,
-    getTopStationsUrl,
+    getTopArtistsUrl,
     getTopTracksUrl,
     MAX_STATS_DAYS,
     MAX_STATS_LIMIT,
@@ -48,6 +48,10 @@ export default function RadioStatsDashboard() {
     const [rankedData, setRankedData] = useState(null);
     const [rankedLoading, setRankedLoading] = useState(true);
     const [rankedError, setRankedError] = useState(null);
+
+    const [artistsData, setArtistsData] = useState(null);
+    const [artistsLoading, setArtistsLoading] = useState(true);
+    const [artistsError, setArtistsError] = useState(null);
 
     const [containerRef, chartWidth] = useChartWidth();
 
@@ -91,14 +95,17 @@ export default function RadioStatsDashboard() {
         let cancelled = false;
         setRankedLoading(true);
         setRankedError(null);
+        setArtistsLoading(true);
+        setArtistsError(null);
+
+        const d = clampInt(days, DEFAULT_STATS_DAYS, MAX_STATS_DAYS);
+        const l = clampInt(limit, DEFAULT_STATS_LIMIT, MAX_STATS_LIMIT);
+        const rankedUrl = getTopTracksUrl({ days: d, limit: l, station });
+        const artistsUrl = getTopArtistsUrl({ days: d, limit: l, station });
+
         (async () => {
             try {
-                const d = clampInt(days, DEFAULT_STATS_DAYS, MAX_STATS_DAYS);
-                const l = clampInt(limit, DEFAULT_STATS_LIMIT, MAX_STATS_LIMIT);
-                const url = station
-                    ? getTopTracksUrl({ days: d, limit: l, station })
-                    : getTopStationsUrl({ days: d, limit: l });
-                const data = await fetchJson(url);
+                const data = await fetchJson(rankedUrl);
                 if (!cancelled) {
                     setRankedData(data);
                 }
@@ -112,6 +119,24 @@ export default function RadioStatsDashboard() {
                 }
             }
         })();
+
+        (async () => {
+            try {
+                const data = await fetchJson(artistsUrl);
+                if (!cancelled) {
+                    setArtistsData(data);
+                }
+            } catch (e) {
+                if (!cancelled) {
+                    setArtistsError(e);
+                }
+            } finally {
+                if (!cancelled) {
+                    setArtistsLoading(false);
+                }
+            }
+        })();
+
         return () => {
             cancelled = true;
         };
@@ -119,8 +144,6 @@ export default function RadioStatsDashboard() {
 
     const onDaysChange = (n) => setDays(clampInt(n, DEFAULT_STATS_DAYS, MAX_STATS_DAYS));
     const onLimitChange = (n) => setLimit(clampInt(n, DEFAULT_STATS_LIMIT, MAX_STATS_LIMIT));
-
-    const rankedMode = station ? 'tracks' : 'stations';
 
     return (
         <section style={{ marginTop: '2rem' }}>
@@ -148,7 +171,16 @@ export default function RadioStatsDashboard() {
                     width={chartWidth}
                     loading={rankedLoading}
                     error={rankedError}
-                    mode={rankedMode}
+                    mode="tracks"
+                    scopeAllStations={!station}
+                />
+                <RankedBarChart
+                    data={artistsData}
+                    width={chartWidth}
+                    loading={artistsLoading}
+                    error={artistsError}
+                    mode="artists"
+                    scopeAllStations={!station}
                 />
             </div>
         </section>

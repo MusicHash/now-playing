@@ -52,16 +52,6 @@ export function buildRankedQuery(opts) {
     return p;
 }
 
-/**
- * @param {{ days?: unknown, limit?: unknown }} opts
- */
-export function buildTopStationsQuery(opts) {
-    const p = new URLSearchParams();
-    p.set('days', String(clampInt(opts.days, DEFAULT_STATS_DAYS, MAX_STATS_DAYS)));
-    p.set('limit', String(clampInt(opts.limit, DEFAULT_STATS_LIMIT, MAX_STATS_LIMIT)));
-    return p;
-}
-
 export function getStationsUrl() {
     return '/api/data/stations';
 }
@@ -81,10 +71,10 @@ export function getTopTracksUrl(params) {
 }
 
 /**
- * @param {{ days?: unknown, limit?: unknown }} params
+ * @param {{ days?: unknown, limit?: unknown, station?: string }} params
  */
-export function getTopStationsUrl(params) {
-    return `/api/data/stats/top-stations?${buildTopStationsQuery(params)}`;
+export function getTopArtistsUrl(params) {
+    return `/api/data/stats/top-artists?${buildRankedQuery(params)}`;
 }
 
 /**

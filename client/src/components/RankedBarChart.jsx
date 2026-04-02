@@ -5,11 +5,11 @@ const RANKED_HEIGHT = 420;
 
 /**
  * @param {unknown} row
- * @param {'stations' | 'tracks'} mode
+ * @param {'tracks' | 'artists'} mode
  */
 function rowLabel(row, mode) {
-    if (mode === 'stations') {
-        return String(row.log_station_id ?? '');
+    if (mode === 'artists') {
+        return String(row.log_artist ?? '').trim() || '(unknown)';
     }
     const title = String(row.spotify_track_title ?? row.log_title ?? '');
     const artist = String(row.spotify_artist_title ?? row.log_artist ?? '');
@@ -34,10 +34,11 @@ function truncate(s, maxLen) {
  *   width: number,
  *   loading: boolean,
  *   error: Error | null,
- *   mode: 'stations' | 'tracks',
+ *   mode: 'tracks' | 'artists',
+ *   scopeAllStations?: boolean,
  * }} props
  */
-export default function RankedBarChart({ data, width, loading, error, mode }) {
+export default function RankedBarChart({ data, width, loading, error, mode, scopeAllStations = true }) {
     const svgRef = useRef(null);
     const height = RANKED_HEIGHT;
 
@@ -66,6 +67,11 @@ export default function RankedBarChart({ data, width, loading, error, mode }) {
             label: rowLabel(row, mode),
             count: Number(row.play_count) || 0,
         }));
+
+        const barFill =
+            mode === 'artists'
+                ? 'rgba(20, 184, 166, 0.9)'
+                : 'rgba(99, 102, 241, 0.85)';
 
         const margin = { top: 28, right: 20, bottom: 32, left: 8 };
         const labelCol = Math.min(220, Math.floor(w * 0.42));
@@ -96,7 +102,7 @@ export default function RankedBarChart({ data, width, loading, error, mode }) {
             .attr('font-size', '13px')
             .attr('font-weight', 600)
             .attr('fill', '#334155')
-            .text(mode === 'stations' ? 'Top stations' : 'Top tracks');
+            .text(mode === 'artists' ? 'Top artists' : 'Top tracks');
 
         const rowG = g
             .selectAll('g.row')
@@ -124,7 +130,7 @@ export default function RankedBarChart({ data, width, loading, error, mode }) {
             .attr('x', barStart)
             .attr('width', (d) => x(d.count))
             .attr('height', y.bandwidth())
-            .attr('fill', 'rgba(99, 102, 241, 0.85)')
+            .attr('fill', barFill)
             .attr('rx', 3);
 
         rowG
@@ -142,9 +148,13 @@ export default function RankedBarChart({ data, width, loading, error, mode }) {
     }, [data, width, height, loading, error, mode]);
 
     const title =
-        mode === 'stations'
-            ? 'Which stations logged the most plays'
-            : 'Most played tracks on this station';
+        mode === 'artists'
+            ? scopeAllStations
+                ? 'Artists with the most plays across all stations'
+                : 'Artists with the most plays on this station'
+            : scopeAllStations
+              ? 'Most played tracks across all stations'
+              : 'Most played tracks on this station';
 
     return (
         <div style={{ width: '100%' }}>
