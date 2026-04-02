@@ -3,8 +3,14 @@ import MySQLWrapper from '../../utils/mysql_wrapper.js';
 /** Default rolling window in days (`days` query param on stats routes). */
 export const DEFAULT_STATS_DAYS = 7;
 
-/** Min combined plays (last 3 days + prior 3 days) to rank a track for momentum (reduces one-off noise). */
-export const MOMENTUM_MIN_PLAYS_IN_6D = 5;
+/**
+ * Calendar days per comparison window: rank by (plays in last N days) minus (plays in the N days before that).
+ * Larger N smooths noise and better reflects a sustained uptick than a 3-day slice.
+ */
+export const MOMENTUM_COMPARE_DAYS = 7;
+
+/** Min combined plays across both windows (2×{@link MOMENTUM_COMPARE_DAYS} days) to qualify for ranking. */
+export const MOMENTUM_MIN_PLAYS_COMBINED = 12;
 export const MAX_STATS_DAYS = 365;
 export const DEFAULT_STATS_LIMIT = 35;
 export const MAX_STATS_LIMIT = 200;
@@ -130,8 +136,8 @@ export async function getMostPlayedTracks(opts = {}) {
 }
 
 /**
- * Tracks ranked by rising plays: (last 3 calendar days) minus (previous 3 calendar days).
- * Only includes tracks with a positive diff and enough combined plays in those 6 days to limit noise.
+ * Tracks ranked by rising plays: (last {@link MOMENTUM_COMPARE_DAYS} calendar days) minus
+ * (same-length window immediately before). Positive diff and {@link MOMENTUM_MIN_PLAYS_COMBINED} required.
  * `daily_plays` still follows the rolling `days` window (same as {@link getMostPlayedTracks}).
  *
  * @param {{ days?: unknown, limit?: unknown, station?: string, stationLike?: string }} opts
@@ -142,32 +148,37 @@ export async function getTopTracksByMomentum(opts = {}) {
     const limit = clampInt(opts.limit, DEFAULT_STATS_LIMIT, MAX_STATS_LIMIT);
     const { sql: extraWhere, params: extraParams } = stationWhereClause(opts);
 
+    const n = MOMENTUM_COMPARE_DAYS;
+    const recentStartDays = n - 1;
+    const priorStartDays = 2 * n - 1;
+
     const momentumSql = `
         WITH per_track AS (
             SELECT
                 spotify_tracks.spotify_track_id,
                 SUM(
                     CASE
-                        WHEN DATE(station_log.log_datetime_played) >= CURDATE() - INTERVAL 2 DAY
+                        WHEN DATE(station_log.log_datetime_played) >= CURDATE() - INTERVAL ${recentStartDays} DAY
+                            AND DATE(station_log.log_datetime_played) <= CURDATE()
                         THEN 1
                         ELSE 0
                     END
-                ) AS recent_3d,
+                ) AS recent_plays,
                 SUM(
                     CASE
-                        WHEN DATE(station_log.log_datetime_played) BETWEEN CURDATE() - INTERVAL 5 DAY
-                            AND CURDATE() - INTERVAL 3 DAY
+                        WHEN DATE(station_log.log_datetime_played) BETWEEN CURDATE() - INTERVAL ${priorStartDays} DAY
+                            AND CURDATE() - INTERVAL ${n} DAY
                         THEN 1
                         ELSE 0
                     END
-                ) AS prior_3d
+                ) AS prior_plays
             FROM
                 nowplaying_station_log station_log
             JOIN
                 nowplaying_spotify_tracks spotify_tracks
                 ON station_log.spotify_id = spotify_tracks.spotify_id
             WHERE
-                DATE(station_log.log_datetime_played) >= CURDATE() - INTERVAL 5 DAY
+                DATE(station_log.log_datetime_played) >= CURDATE() - INTERVAL ${priorStartDays} DAY
                 AND DATE(station_log.log_datetime_played) <= CURDATE()
                 ${extraWhere}
             GROUP BY
@@ -176,20 +187,20 @@ export async function getTopTracksByMomentum(opts = {}) {
         scored AS (
             SELECT
                 spotify_track_id,
-                recent_3d AS recent_plays_3d,
-                prior_3d AS prior_plays_3d,
-                (recent_3d - prior_3d) AS momentum_score
+                recent_plays,
+                prior_plays,
+                (recent_plays - prior_plays) AS momentum_score
             FROM
                 per_track
             WHERE
-                (recent_3d + prior_3d) >= ${MOMENTUM_MIN_PLAYS_IN_6D}
-                AND (recent_3d - prior_3d) > 0
+                (recent_plays + prior_plays) >= ${MOMENTUM_MIN_PLAYS_COMBINED}
+                AND (recent_plays - prior_plays) > 0
         ),
         ranked AS (
             SELECT
                 spotify_track_id,
-                recent_plays_3d,
-                prior_plays_3d,
+                recent_plays,
+                prior_plays,
                 momentum_score
             FROM
                 scored
@@ -215,8 +226,8 @@ export async function getTopTracksByMomentum(opts = {}) {
         )
         SELECT
             ranked.spotify_track_id,
-            ranked.recent_plays_3d,
-            ranked.prior_plays_3d,
+            ranked.recent_plays,
+            ranked.prior_plays,
             ranked.momentum_score,
             ANY_VALUE(tr.spotify_artist_title) AS spotify_artist_title,
             ANY_VALUE(tr.spotify_track_title) AS spotify_track_title,
@@ -232,8 +243,8 @@ export async function getTopTracksByMomentum(opts = {}) {
             ON pt.spotify_track_id = ranked.spotify_track_id
         GROUP BY
             ranked.spotify_track_id,
-            ranked.recent_plays_3d,
-            ranked.prior_plays_3d,
+            ranked.recent_plays,
+            ranked.prior_plays,
             ranked.momentum_score,
             pt.play_count
         ORDER BY

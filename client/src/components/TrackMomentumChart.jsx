@@ -210,12 +210,12 @@ export default function TrackMomentumChart({
     }, [data, width, height, loading, error, onRowClick]);
 
     const scopeHint = scopeAllStations
-        ? 'Across all stations · ranked by (plays in last 3 days) minus (plays in the 3 days before that)'
-        : 'On this station · ranked by (plays in last 3 days) minus (plays in the 3 days before that)';
+        ? 'Across all stations · ranked by (plays in last 7 days) minus (plays in the 7 days before that)'
+        : 'On this station · ranked by (plays in last 7 days) minus (plays in the 7 days before that)';
 
     const title = scopeAllStations
-        ? 'Rising tracks (3-day vs prior 3-day) — all stations'
-        : 'Rising tracks (3-day vs prior 3-day) — this station';
+        ? 'Rising tracks (7-day vs prior 7-day) — all stations'
+        : 'Rising tracks (7-day vs prior 7-day) — this station';
 
     return (
         <div style={{ width: '100%' }}>
@@ -224,7 +224,7 @@ export default function TrackMomentumChart({
             {onRowClick && (
                 <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', color: '#94a3b8' }}>
                     Click a line or legend entry for track detail. Showing up to {CHART_LINE_CAP} tracks by
-                    play increase (last 3 days vs prior 3 days).
+                    play increase (last 7 days vs prior 7 days).
                 </p>
             )}
             {loading && <p style={{ color: '#64748b' }}>Loading…</p>}
