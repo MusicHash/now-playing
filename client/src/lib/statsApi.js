@@ -1,12 +1,12 @@
 /** Defaults aligned with server `stats_queries.js`. */
 export const DEFAULT_STATS_DAYS = 7;
 export const MAX_STATS_DAYS = 365;
-export const DEFAULT_STATS_LIMIT = 100;
+export const DEFAULT_STATS_LIMIT = 30;
 export const MAX_STATS_LIMIT = 200;
 
 /** Must match server `ALLOWED_BUCKET_MINUTES`. */
 export const ALLOWED_BUCKET_MINUTES = [1, 5, 10, 15, 30, 60, 120, 240, 480, 1440];
-export const DEFAULT_BUCKET_MINUTES = 60;
+export const DEFAULT_BUCKET_MINUTES = 1440;
 
 export const BUCKET_RESOLUTION_OPTIONS = [
     { value: 1, label: '1 minute' },
