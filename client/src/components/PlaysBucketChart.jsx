@@ -171,12 +171,6 @@ export default function PlaysBucketChart({
             ? parsed.map((d) => ({ date: d.date, count: d.primary }))
             : parsed;
 
-        const areaPrimary = d3
-            .area()
-            .x((d) => x(d.date))
-            .y0(innerH)
-            .y1((d) => y(d.count));
-
         const linePrimary = d3
             .line()
             .x((d) => x(d.date))
@@ -187,11 +181,6 @@ export default function PlaysBucketChart({
             .attr('height', height)
             .append('g')
             .attr('transform', `translate(${margin.left},${margin.top})`);
-
-        g.append('path')
-            .datum(primaryPoints)
-            .attr('fill', 'rgba(99, 102, 241, 0.12)')
-            .attr('d', areaPrimary);
 
         g.append('path')
             .datum(primaryPoints)
