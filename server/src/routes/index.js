@@ -2,6 +2,7 @@ import { Router } from 'express';
 
 import healthRoutes from './health.js';
 import spotifyRoutes from './spotify.js';
+import playerRoutes from './player.js';
 import stationRoutes from './stations.js';
 import playlistRoutes from './playlists.js';
 import debugRoutes from './debug.js';
@@ -12,6 +13,7 @@ export default function createRoutes(logger) {
 
     router.use(healthRoutes());
     router.use(spotifyRoutes(logger));
+    router.use(playerRoutes(logger));
     router.use(stationRoutes(logger));
     router.use(playlistRoutes(logger));
     router.use(debugRoutes(logger));

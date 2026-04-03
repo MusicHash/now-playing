@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import PlaysBucketChart from './PlaysBucketChart.jsx';
 import SpotifyEmbedPlayer from './SpotifyEmbedPlayer.jsx';
+import SpotifyConnectPlayer from './SpotifyConnectPlayer.jsx';
+import { consumeHashTokens } from '../lib/spotifyPlayerAuth.js';
 import {
     parseChartId,
     parseChartWeek,
@@ -152,6 +154,20 @@ export default function GeneratePlaylistPage() {
     const [trackPlaysLoading, setTrackPlaysLoading] = useState(false);
     const [trackPlaysError, setTrackPlaysError] = useState(null);
     const [chartWrapRef, chartWidth] = useSidebarChartWidth();
+
+    const LS_PLAYER_PREF = 'playerPreference';
+    const [playerType, setPlayerType] = useState(
+        () => localStorage.getItem(LS_PLAYER_PREF) || 'embed',
+    );
+
+    useEffect(() => {
+        consumeHashTokens();
+    }, []);
+
+    const handlePlayerTypeChange = useCallback((type) => {
+        setPlayerType(type);
+        localStorage.setItem(LS_PLAYER_PREF, type);
+    }, []);
 
     const uris = useMemo(
         () =>
@@ -574,12 +590,65 @@ export default function GeneratePlaylistPage() {
                 )}
 
                 <div style={{ marginTop: '0.25rem' }}>
-                    <SpotifyEmbedPlayer
-                        key={playerSession}
-                        uris={uris}
-                        activeIndex={activeIndex}
-                        onActiveIndexChange={onActiveIndexChange}
-                    />
+                    <div style={{
+                        display: 'flex',
+                        borderRadius: '6px',
+                        overflow: 'hidden',
+                        border: '1px solid #cbd5e1',
+                        marginBottom: '0.6rem',
+                    }}>
+                        <button
+                            type="button"
+                            style={{
+                                flex: 1,
+                                padding: '0.35rem 0.5rem',
+                                border: 'none',
+                                background: playerType === 'embed' ? '#0284c7' : '#f1f5f9',
+                                color: playerType === 'embed' ? '#fff' : '#475569',
+                                fontWeight: 600,
+                                fontSize: '0.75rem',
+                                cursor: 'pointer',
+                                fontFamily: 'inherit',
+                                transition: 'background 0.15s, color 0.15s',
+                            }}
+                            onClick={() => handlePlayerTypeChange('embed')}
+                        >
+                            Embed
+                        </button>
+                        <button
+                            type="button"
+                            style={{
+                                flex: 1,
+                                padding: '0.35rem 0.5rem',
+                                border: 'none',
+                                background: playerType === 'connect' ? '#1DB954' : '#f1f5f9',
+                                color: playerType === 'connect' ? '#fff' : '#475569',
+                                fontWeight: 600,
+                                fontSize: '0.75rem',
+                                cursor: 'pointer',
+                                fontFamily: 'inherit',
+                                transition: 'background 0.15s, color 0.15s',
+                            }}
+                            onClick={() => handlePlayerTypeChange('connect')}
+                        >
+                            Connect
+                        </button>
+                    </div>
+                    {playerType === 'connect' ? (
+                        <SpotifyConnectPlayer
+                            key={playerSession}
+                            uris={uris}
+                            activeIndex={activeIndex}
+                            onActiveIndexChange={onActiveIndexChange}
+                        />
+                    ) : (
+                        <SpotifyEmbedPlayer
+                            key={playerSession}
+                            uris={uris}
+                            activeIndex={activeIndex}
+                            onActiveIndexChange={onActiveIndexChange}
+                        />
+                    )}
                 </div>
 
                 <div ref={chartWrapRef} style={{ marginTop: '0.75rem' }}>
