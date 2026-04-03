@@ -250,7 +250,7 @@ export default function GeneratePlaylistPage() {
     }, [runFlag, loadPlaylist, searchParams, setSearchParams]);
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'stretch', minHeight: '60vh' }}>
+        <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'stretch' }}>
             <div style={panelStyle}>
                 <h2 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a' }}>Generate Playlist</h2>
 
@@ -381,7 +381,7 @@ export default function GeneratePlaylistPage() {
                 </div>
             </div>
 
-            <div style={{ flex: 1, minWidth: 0, padding: '0 0 0 1.5rem' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
                 <h2 style={{ margin: '0 0 1rem', fontSize: '1.1rem', color: '#0f172a' }}>Tracks</h2>
                 {error && (
                     <p style={{ color: '#dc2626', fontSize: '0.9rem' }} role="alert">
@@ -393,7 +393,7 @@ export default function GeneratePlaylistPage() {
                         Set options and click Generate to load tracks from your play log.
                     </p>
                 )}
-                <ol style={{ margin: 0, paddingLeft: '1.25rem', maxHeight: '70vh', overflow: 'auto' }}>
+                <ol style={{ margin: 0, paddingLeft: 0, listStylePosition: 'inside' }}>
                     {tracks.map((row, i) => {
                         const title = String(row.spotify_track_title ?? '');
                         const artist = String(row.spotify_artist_title ?? '');
