@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import SpotifyEmbedPlayer from './SpotifyEmbedPlayer.jsx';
+import {
+    parseDays,
+    parseLimit,
+    parsePlaylistRun,
+    parsePlaylistSort,
+    parseStation,
+    patchPlaylistState,
+} from '../lib/appSearchParams.js';
 import {
     clampInt,
     DEFAULT_STATS_DAYS,
@@ -36,11 +45,14 @@ const inputStyle = {
 };
 
 export default function GeneratePlaylistPage() {
-    const [days, setDays] = useState(DEFAULT_STATS_DAYS);
-    const [limit, setLimit] = useState(DEFAULT_STATS_LIMIT);
-    const [station, setStation] = useState('');
-    const [sort, setSort] = useState(PLAYLIST_SORT_PLAY_COUNT);
+    const [searchParams, setSearchParams] = useSearchParams();
     const [stationOptions, setStationOptions] = useState([]);
+
+    const days = useMemo(() => parseDays(searchParams), [searchParams]);
+    const limit = useMemo(() => parseLimit(searchParams), [searchParams]);
+    const station = useMemo(() => parseStation(searchParams), [searchParams]);
+    const sort = useMemo(() => parsePlaylistSort(searchParams), [searchParams]);
+    const runFlag = useMemo(() => parsePlaylistRun(searchParams), [searchParams]);
 
     const [tracks, setTracks] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -60,17 +72,7 @@ export default function GeneratePlaylistPage() {
         setActiveIndex(index);
     }, []);
 
-    useEffect(() => {
-        fetchJson(getStationsUrl())
-            .then((body) => {
-                setStationOptions(mergeStationIds([], body.logged));
-            })
-            .catch(() => {
-                setStationOptions([]);
-            });
-    }, []);
-
-    const handleGenerate = useCallback(() => {
+    const loadPlaylist = useCallback(() => {
         setLoading(true);
         setError(null);
         const d = clampInt(days, DEFAULT_STATS_DAYS, MAX_STATS_DAYS);
@@ -99,6 +101,62 @@ export default function GeneratePlaylistPage() {
                 setLoading(false);
             });
     }, [days, limit, station, sort]);
+
+    useEffect(() => {
+        if (!runFlag) {
+            return;
+        }
+        loadPlaylist();
+    }, [runFlag, days, limit, station, sort, loadPlaylist]);
+
+    useEffect(() => {
+        fetchJson(getStationsUrl())
+            .then((body) => {
+                setStationOptions(mergeStationIds([], body.logged));
+            })
+            .catch(() => {
+                setStationOptions([]);
+            });
+    }, []);
+
+    const setDays = useCallback(
+        (n) => {
+            const v = clampInt(n, DEFAULT_STATS_DAYS, MAX_STATS_DAYS);
+            setSearchParams(patchPlaylistState(searchParams, { days: v }), { replace: true });
+        },
+        [searchParams, setSearchParams],
+    );
+
+    const setLimit = useCallback(
+        (n) => {
+            const v = clampInt(n, DEFAULT_STATS_LIMIT, MAX_STATS_LIMIT);
+            setSearchParams(patchPlaylistState(searchParams, { limit: v }), { replace: true });
+        },
+        [searchParams, setSearchParams],
+    );
+
+    const setStation = useCallback(
+        (s) => {
+            setSearchParams(patchPlaylistState(searchParams, { station: s }), { replace: true });
+        },
+        [searchParams, setSearchParams],
+    );
+
+    const setSort = useCallback(
+        (s) => {
+            const v = s === PLAYLIST_SORT_RECENT ? PLAYLIST_SORT_RECENT : PLAYLIST_SORT_PLAY_COUNT;
+            setSearchParams(patchPlaylistState(searchParams, { sort: v }), { replace: true });
+        },
+        [searchParams, setSearchParams],
+    );
+
+    const handleGenerate = useCallback(() => {
+        if (runFlag) {
+            loadPlaylist();
+        } else {
+            setSearchParams(patchPlaylistState(searchParams, { run: true }), { replace: true });
+        }
+    }, [runFlag, loadPlaylist, searchParams, setSearchParams]);
 
     return (
         <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'stretch', minHeight: '60vh' }}>

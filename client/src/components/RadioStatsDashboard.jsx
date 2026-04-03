@@ -1,11 +1,23 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import DrillDownPlaysPanel from './DrillDownPlaysPanel.jsx';
 import PlaysByDayChart from './PlaysByDayChart.jsx';
 import RankedBarChart from './RankedBarChart.jsx';
 import StatsControls from './StatsControls.jsx';
 import TrackMomentumChart from './TrackMomentumChart.jsx';
 import {
+    patchMetricsDrill,
+    patchMetricsFilters,
+    parseBucket,
+    parseDays,
+    parseLimit,
+    parseMetricsDrill,
+    parseMomentum,
+    parseStation,
+} from '../lib/appSearchParams.js';
+import {
     clampInt,
+    DEFAULT_BUCKET_MINUTES,
     DEFAULT_STATS_DAYS,
     DEFAULT_STATS_LIMIT,
     fetchJson,
@@ -17,7 +29,6 @@ import {
     MAX_STATS_DAYS,
     MAX_STATS_LIMIT,
     mergeStationIds,
-    MOMENTUM_DIRECTION_UP,
 } from '../lib/statsApi.js';
 
 function useChartWidth() {
@@ -40,10 +51,18 @@ function useChartWidth() {
 }
 
 export default function RadioStatsDashboard() {
-    const [days, setDays] = useState(DEFAULT_STATS_DAYS);
-    const [limit, setLimit] = useState(DEFAULT_STATS_LIMIT);
-    const [station, setStation] = useState('');
+    const [searchParams, setSearchParams] = useSearchParams();
     const [stationOptions, setStationOptions] = useState([]);
+
+    const days = useMemo(() => parseDays(searchParams), [searchParams]);
+    const limit = useMemo(() => parseLimit(searchParams), [searchParams]);
+    const station = useMemo(() => parseStation(searchParams), [searchParams]);
+    const momentumDirection = useMemo(() => parseMomentum(searchParams), [searchParams]);
+    const drill = useMemo(() => parseMetricsDrill(searchParams), [searchParams]);
+    const bucketMinutes = useMemo(
+        () => (drill ? parseBucket(searchParams) : DEFAULT_BUCKET_MINUTES),
+        [searchParams, drill],
+    );
 
     const [playsData, setPlaysData] = useState(null);
     const [playsLoading, setPlaysLoading] = useState(true);
@@ -60,31 +79,85 @@ export default function RadioStatsDashboard() {
     const [momentumData, setMomentumData] = useState(null);
     const [momentumLoading, setMomentumLoading] = useState(true);
     const [momentumError, setMomentumError] = useState(null);
-    const [momentumDirection, setMomentumDirection] = useState(MOMENTUM_DIRECTION_UP);
 
     const [containerRef, chartWidth] = useChartWidth();
 
-    const [drill, setDrill] = useState(null);
+    const onDaysChange = useCallback(
+        (n) => {
+            const v = clampInt(n, DEFAULT_STATS_DAYS, MAX_STATS_DAYS);
+            setSearchParams(patchMetricsFilters(searchParams, { days: v }), { replace: true });
+        },
+        [searchParams, setSearchParams],
+    );
 
-    const handleTrackRowClick = useCallback((row) => {
-        const id = row.spotify_track_id;
-        if (typeof id !== 'string' || !id.trim()) {
-            return;
-        }
-        const title = String(row.spotify_track_title ?? '');
-        const artist = String(row.spotify_artist_title ?? row.log_artist ?? '');
-        const label = `${title} — ${artist}`.trim() || id;
-        setDrill({ type: 'track', trackId: id.trim(), label });
-    }, []);
+    const onLimitChange = useCallback(
+        (n) => {
+            const v = clampInt(n, DEFAULT_STATS_LIMIT, MAX_STATS_LIMIT);
+            setSearchParams(patchMetricsFilters(searchParams, { limit: v }), { replace: true });
+        },
+        [searchParams, setSearchParams],
+    );
 
-    const handleArtistRowClick = useCallback((row) => {
-        const name = row.log_artist;
-        if (typeof name !== 'string' || !name.trim()) {
-            return;
-        }
-        const label = name.trim();
-        setDrill({ type: 'artist', artistName: label, label });
-    }, []);
+    const onStationChange = useCallback(
+        (s) => {
+            setSearchParams(patchMetricsFilters(searchParams, { station: s }), { replace: true });
+        },
+        [searchParams, setSearchParams],
+    );
+
+    const onMomentumChange = useCallback(
+        (dir) => {
+            setSearchParams(patchMetricsFilters(searchParams, { momentum: dir }), { replace: true });
+        },
+        [searchParams, setSearchParams],
+    );
+
+    const onBucketChange = useCallback(
+        (n) => {
+            setSearchParams(patchMetricsFilters(searchParams, { bucket: n }), { replace: true });
+        },
+        [searchParams, setSearchParams],
+    );
+
+    const handleTrackRowClick = useCallback(
+        (row) => {
+            const id = row.spotify_track_id;
+            if (typeof id !== 'string' || !id.trim()) {
+                return;
+            }
+            const title = String(row.spotify_track_title ?? '');
+            const artist = String(row.spotify_artist_title ?? row.log_artist ?? '');
+            const label = `${title} — ${artist}`.trim() || id;
+            const next = patchMetricsDrill(
+                new URLSearchParams(searchParams),
+                { type: 'track', trackId: id.trim(), label },
+            );
+            setSearchParams(next, { replace: false });
+        },
+        [searchParams, setSearchParams],
+    );
+
+    const handleArtistRowClick = useCallback(
+        (row) => {
+            const name = row.log_artist;
+            if (typeof name !== 'string' || !name.trim()) {
+                return;
+            }
+            const label = name.trim();
+            const next = patchMetricsDrill(new URLSearchParams(searchParams), {
+                type: 'artist',
+                artistName: label,
+                label,
+            });
+            setSearchParams(next, { replace: false });
+        },
+        [searchParams, setSearchParams],
+    );
+
+    const closeDrill = useCallback(() => {
+        const next = patchMetricsDrill(new URLSearchParams(searchParams), null);
+        setSearchParams(next, { replace: true });
+    }, [searchParams, setSearchParams]);
 
     useEffect(() => {
         fetchJson(getStationsUrl())
@@ -206,9 +279,6 @@ export default function RadioStatsDashboard() {
         };
     }, [days, limit, station, momentumDirection]);
 
-    const onDaysChange = (n) => setDays(clampInt(n, DEFAULT_STATS_DAYS, MAX_STATS_DAYS));
-    const onLimitChange = (n) => setLimit(clampInt(n, DEFAULT_STATS_LIMIT, MAX_STATS_LIMIT));
-
     return (
         <section style={{ marginTop: '2rem' }}>
             <h2 style={{ fontSize: '1.25rem', margin: '0 0 1rem', color: '#0f172a' }}>
@@ -220,7 +290,7 @@ export default function RadioStatsDashboard() {
                 limit={limit}
                 onLimitChange={onLimitChange}
                 station={station}
-                onStationChange={setStation}
+                onStationChange={onStationChange}
                 stationOptions={stationOptions}
             />
             <div ref={containerRef} style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
@@ -237,7 +307,7 @@ export default function RadioStatsDashboard() {
                     error={momentumError}
                     scopeAllStations={!station}
                     direction={momentumDirection}
-                    onDirectionChange={setMomentumDirection}
+                    onDirectionChange={onMomentumChange}
                     onRowClick={handleTrackRowClick}
                 />
                 {drill && (
@@ -251,7 +321,9 @@ export default function RadioStatsDashboard() {
                         days={days}
                         station={station}
                         width={chartWidth}
-                        onClose={() => setDrill(null)}
+                        resolutionMinutes={bucketMinutes}
+                        onResolutionMinutesChange={onBucketChange}
+                        onClose={closeDrill}
                     />
                 )}
                 <RankedBarChart

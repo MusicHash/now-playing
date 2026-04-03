@@ -4,7 +4,6 @@ import {
     BUCKET_RESOLUTION_OPTIONS,
     clampBucketMinutes,
     clampInt,
-    DEFAULT_BUCKET_MINUTES,
     DEFAULT_STATS_DAYS,
     fetchJson,
     getPlaysByBucketArtistUrl,
@@ -43,11 +42,20 @@ const selectStyle = {
  *   days: number,
  *   station: string,
  *   width: number,
+ *   resolutionMinutes: number,
+ *   onResolutionMinutesChange: (n: number) => void,
  *   onClose: () => void,
  * }} props
  */
-export default function DrillDownPlaysPanel({ drill, days, station, width, onClose }) {
-    const [resolutionMinutes, setResolutionMinutes] = useState(DEFAULT_BUCKET_MINUTES);
+export default function DrillDownPlaysPanel({
+    drill,
+    days,
+    station,
+    width,
+    resolutionMinutes,
+    onResolutionMinutesChange,
+    onClose,
+}) {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -124,7 +132,7 @@ export default function DrillDownPlaysPanel({ drill, days, station, width, onClo
                         <select
                             id="drill-resolution"
                             value={resolutionMinutes}
-                            onChange={(e) => setResolutionMinutes(Number(e.target.value))}
+                            onChange={(e) => onResolutionMinutesChange(Number(e.target.value))}
                             style={selectStyle}
                         >
                             {BUCKET_RESOLUTION_OPTIONS.map((opt) => (

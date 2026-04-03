@@ -1,11 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { NavLink, Outlet, Route, Routes } from 'react-router-dom';
 import GeneratePlaylistPage from './components/GeneratePlaylistPage.jsx';
 import RadioStatsDashboard from './components/RadioStatsDashboard.jsx';
 import WelcomePage from './components/WelcomePage.jsx';
-
-const SECTION_HOME = 'home';
-const SECTION_PLAY_METRICS = 'play-metrics';
-const SECTION_GENERATE_PLAYLIST = 'generate-playlist';
 
 const navButtonBase = {
     display: 'block',
@@ -18,11 +15,12 @@ const navButtonBase = {
     fontFamily: 'inherit',
     cursor: 'pointer',
     marginBottom: '0.35rem',
+    textDecoration: 'none',
+    boxSizing: 'border-box',
 };
 
-function App() {
+function AppLayout() {
     const [status, setStatus] = useState('loading');
-    const [activeSection, setActiveSection] = useState(SECTION_HOME);
 
     useEffect(() => {
         fetch('/api/health')
@@ -54,54 +52,43 @@ function App() {
                 }}
             >
                 <nav aria-label="Main">
-                    <button
-                        type="button"
-                        onClick={() => setActiveSection(SECTION_HOME)}
-                        style={{
+                    <NavLink
+                        to="/"
+                        end
+                        style={({ isActive }) => ({
                             ...navButtonBase,
-                            background: activeSection === SECTION_HOME ? '#e0f2fe' : 'transparent',
-                            color: activeSection === SECTION_HOME ? '#0369a1' : '#475569',
-                            borderColor: activeSection === SECTION_HOME ? '#7dd3fc' : 'transparent',
-                            fontWeight: activeSection === SECTION_HOME ? 600 : 400,
-                        }}
+                            background: isActive ? '#e0f2fe' : 'transparent',
+                            color: isActive ? '#0369a1' : '#475569',
+                            borderColor: isActive ? '#7dd3fc' : 'transparent',
+                            fontWeight: isActive ? 600 : 400,
+                        })}
                     >
                         Home
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setActiveSection(SECTION_PLAY_METRICS)}
-                        style={{
+                    </NavLink>
+                    <NavLink
+                        to="/metrics"
+                        style={({ isActive }) => ({
                             ...navButtonBase,
-                            background:
-                                activeSection === SECTION_PLAY_METRICS ? '#e0f2fe' : 'transparent',
-                            color: activeSection === SECTION_PLAY_METRICS ? '#0369a1' : '#475569',
-                            borderColor:
-                                activeSection === SECTION_PLAY_METRICS ? '#7dd3fc' : 'transparent',
-                            fontWeight: activeSection === SECTION_PLAY_METRICS ? 600 : 400,
-                        }}
+                            background: isActive ? '#e0f2fe' : 'transparent',
+                            color: isActive ? '#0369a1' : '#475569',
+                            borderColor: isActive ? '#7dd3fc' : 'transparent',
+                            fontWeight: isActive ? 600 : 400,
+                        })}
                     >
                         Play metrics
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setActiveSection(SECTION_GENERATE_PLAYLIST)}
-                        style={{
+                    </NavLink>
+                    <NavLink
+                        to="/playlist"
+                        style={({ isActive }) => ({
                             ...navButtonBase,
-                            background:
-                                activeSection === SECTION_GENERATE_PLAYLIST
-                                    ? '#e0f2fe'
-                                    : 'transparent',
-                            color:
-                                activeSection === SECTION_GENERATE_PLAYLIST ? '#0369a1' : '#475569',
-                            borderColor:
-                                activeSection === SECTION_GENERATE_PLAYLIST
-                                    ? '#7dd3fc'
-                                    : 'transparent',
-                            fontWeight: activeSection === SECTION_GENERATE_PLAYLIST ? 600 : 400,
-                        }}
+                            background: isActive ? '#e0f2fe' : 'transparent',
+                            color: isActive ? '#0369a1' : '#475569',
+                            borderColor: isActive ? '#7dd3fc' : 'transparent',
+                            fontWeight: isActive ? 600 : 400,
+                        })}
                     >
                         Generate Playlist
-                    </button>
+                    </NavLink>
                 </nav>
             </aside>
             <div style={{ flex: 1, padding: '2rem', minWidth: 0 }}>
@@ -115,16 +102,22 @@ function App() {
                             </span>
                         </p>
                     </header>
-                    {activeSection === SECTION_HOME ? (
-                        <WelcomePage />
-                    ) : activeSection === SECTION_PLAY_METRICS ? (
-                        <RadioStatsDashboard />
-                    ) : (
-                        <GeneratePlaylistPage />
-                    )}
+                    <Outlet />
                 </div>
             </div>
         </div>
+    );
+}
+
+function App() {
+    return (
+        <Routes>
+            <Route element={<AppLayout />}>
+                <Route index element={<WelcomePage />} />
+                <Route path="metrics" element={<RadioStatsDashboard />} />
+                <Route path="playlist" element={<GeneratePlaylistPage />} />
+            </Route>
+        </Routes>
     );
 }
 
