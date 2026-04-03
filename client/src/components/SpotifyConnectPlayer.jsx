@@ -83,6 +83,7 @@ export default function SpotifyConnectPlayer({ uris, activeIndex, onActiveIndexC
     const [devicesLoading, setDevicesLoading] = useState(false);
     const [volume, setVolume] = useState(50);
     const volumeTimerRef = useRef(null);
+    const pendingPollRef = useRef(null);
 
     const activeIndexRef = useRef(activeIndex);
     const urisRef = useRef(uris);
@@ -135,11 +136,83 @@ export default function SpotifyConnectPlayer({ uris, activeIndex, onActiveIndexC
         loadDevices();
     }, [authenticated, loadDevices]);
 
-    const handleDeviceChange = useCallback((e) => {
-        const id = e.target.value;
-        setSelectedDeviceId(id);
-        localStorage.setItem(LS_DEVICE_ID, id);
-    }, []);
+    // --- Fetch playback state (shared by poll loop and on-demand refresh) ---
+    const fetchPlaybackState = useCallback(async () => {
+        try {
+            const res = await spotifyFetch(SPOTIFY_API);
+            if (res.status === 204 || !res.ok) return;
+            const data = await res.json();
+
+            setIsPaused(!data.is_playing);
+            setProgressMs(data.progress_ms ?? 0);
+            setDurationMs(data.item?.duration_ms ?? 0);
+            setTrackName(data.item?.name ?? '');
+            setArtistName(
+                (data.item?.artists ?? []).map((a) => a.name).join(', '),
+            );
+            const images = data.item?.album?.images ?? [];
+            setAlbumArt(images.length > 0 ? images[images.length - 1].url : '');
+            if (data.device?.volume_percent != null) {
+                setVolume(data.device.volume_percent);
+            }
+
+            const pos = data.progress_ms ?? 0;
+            const dur = data.item?.duration_ms ?? 0;
+            if (dur > 0 && !data.is_playing && pos >= dur - 1500 && !trackEndFiredRef.current) {
+                trackEndFiredRef.current = true;
+                const idx = activeIndexRef.current;
+                const list = urisRef.current.map(toTrackUri).filter(Boolean);
+                if (idx + 1 < list.length) {
+                    onActiveIndexChange(idx + 1);
+                }
+            }
+        } catch {
+            /* ignore */
+        }
+    }, [onActiveIndexChange]);
+
+    const scheduleFetchPlaybackState = useCallback(
+        (delayMs = 300) => {
+            if (pendingPollRef.current) clearTimeout(pendingPollRef.current);
+            pendingPollRef.current = setTimeout(() => {
+                pendingPollRef.current = null;
+                fetchPlaybackState();
+            }, delayMs);
+        },
+        [fetchPlaybackState],
+    );
+
+    const handleDeviceChange = useCallback(
+        async (e) => {
+            const id = e.target.value;
+            setSelectedDeviceId(id);
+            localStorage.setItem(LS_DEVICE_ID, id);
+            if (!id) return;
+            try {
+                const res = await spotifyFetch(SPOTIFY_API, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ device_ids: [id], play: true }),
+                });
+                if (res.status === 404) {
+                    setError('device_not_found');
+                    return;
+                }
+                if (!res.ok && res.status !== 204) {
+                    throw new Error(`HTTP ${res.status}`);
+                }
+                setError(null);
+                scheduleFetchPlaybackState(400);
+            } catch (err) {
+                if (err.message === 'not_authenticated' || err.message === 'token_refresh_failed') {
+                    setError('auth_expired');
+                } else {
+                    setError('play_failed');
+                }
+            }
+        },
+        [scheduleFetchPlaybackState],
+    );
 
     // --- Play a specific URI on the selected device ---
     const playUri = useCallback(
@@ -162,6 +235,7 @@ export default function SpotifyConnectPlayer({ uris, activeIndex, onActiveIndexC
                 trackEndFiredRef.current = false;
                 setIsPaused(false);
                 setError(null);
+                scheduleFetchPlaybackState(300);
             } catch (err) {
                 if (err.message === 'not_authenticated' || err.message === 'token_refresh_failed') {
                     setError('auth_expired');
@@ -170,7 +244,7 @@ export default function SpotifyConnectPlayer({ uris, activeIndex, onActiveIndexC
                 }
             }
         },
-        [selectedDeviceId],
+        [selectedDeviceId, scheduleFetchPlaybackState],
     );
 
     // --- Trigger play when activeIndex or uris change ---
@@ -187,17 +261,23 @@ export default function SpotifyConnectPlayer({ uris, activeIndex, onActiveIndexC
                 const res = await spotifyFetch(`${SPOTIFY_API}/play?device_id=${selectedDeviceId}`, {
                     method: 'PUT',
                 });
-                if (res.ok || res.status === 204) setIsPaused(false);
+                if (res.ok || res.status === 204) {
+                    setIsPaused(false);
+                    scheduleFetchPlaybackState(300);
+                }
             } else {
                 const res = await spotifyFetch(`${SPOTIFY_API}/pause?device_id=${selectedDeviceId}`, {
                     method: 'PUT',
                 });
-                if (res.ok || res.status === 204) setIsPaused(true);
+                if (res.ok || res.status === 204) {
+                    setIsPaused(true);
+                    scheduleFetchPlaybackState(300);
+                }
             }
         } catch {
             /* ignore transient errors */
         }
-    }, [isPaused, selectedDeviceId]);
+    }, [isPaused, selectedDeviceId, scheduleFetchPlaybackState]);
 
     // --- Seek ---
     const handleSeek = useCallback(
@@ -254,52 +334,16 @@ export default function SpotifyConnectPlayer({ uris, activeIndex, onActiveIndexC
     useEffect(() => {
         if (!authenticated || normalized.length === 0) return undefined;
 
-        let cancelled = false;
-
-        const poll = async () => {
-            try {
-                const res = await spotifyFetch(SPOTIFY_API);
-                if (res.status === 204 || !res.ok) return;
-                const data = await res.json();
-
-                if (cancelled) return;
-
-                setIsPaused(!data.is_playing);
-                setProgressMs(data.progress_ms ?? 0);
-                setDurationMs(data.item?.duration_ms ?? 0);
-                setTrackName(data.item?.name ?? '');
-                setArtistName(
-                    (data.item?.artists ?? []).map((a) => a.name).join(', '),
-                );
-                const images = data.item?.album?.images ?? [];
-                setAlbumArt(images.length > 0 ? images[images.length - 1].url : '');
-                if (data.device?.volume_percent != null) {
-                    setVolume(data.device.volume_percent);
-                }
-
-                // Auto-advance near track end
-                const pos = data.progress_ms ?? 0;
-                const dur = data.item?.duration_ms ?? 0;
-                if (dur > 0 && !data.is_playing && pos >= dur - 1500 && !trackEndFiredRef.current) {
-                    trackEndFiredRef.current = true;
-                    const idx = activeIndexRef.current;
-                    const list = urisRef.current.map(toTrackUri).filter(Boolean);
-                    if (idx + 1 < list.length) {
-                        onActiveIndexChange(idx + 1);
-                    }
-                }
-            } catch {
-                /* ignore polling errors */
+        fetchPlaybackState();
+        const id = setInterval(fetchPlaybackState, POLL_INTERVAL_MS);
+        return () => {
+            clearInterval(id);
+            if (pendingPollRef.current) {
+                clearTimeout(pendingPollRef.current);
+                pendingPollRef.current = null;
             }
         };
-
-        poll();
-        const id = setInterval(poll, POLL_INTERVAL_MS);
-        return () => {
-            cancelled = true;
-            clearInterval(id);
-        };
-    }, [authenticated, normalized.length, onActiveIndexChange]);
+    }, [authenticated, normalized.length, fetchPlaybackState]);
 
     // --- Not authenticated ---
     if (!authenticated) {
@@ -478,75 +522,71 @@ export default function SpotifyConnectPlayer({ uris, activeIndex, onActiveIndexC
                 <span>{formatMs(durationMs)}</span>
             </div>
 
-            {/* Controls */}
-            <div style={controlBarStyle}>
-                <button
-                    type="button"
-                    style={{
-                        ...controlButtonStyle,
-                        opacity: canGoPrev ? 1 : 0.45,
-                        cursor: canGoPrev ? 'pointer' : 'not-allowed',
-                    }}
-                    disabled={!canGoPrev}
-                    onClick={handlePrevious}
-                    aria-label="Previous track"
-                >
-                    <span aria-hidden="true">⏮</span>
-                </button>
-                <button
-                    type="button"
-                    style={controlButtonStyle}
-                    onClick={handleTogglePlay}
-                    aria-label={isPaused ? 'Play' : 'Pause'}
-                >
-                    <span aria-hidden="true">{isPaused ? '▶' : '⏸'}</span>
-                </button>
-                <button
-                    type="button"
-                    style={{
-                        ...controlButtonStyle,
-                        opacity: canGoNext ? 1 : 0.45,
-                        cursor: canGoNext ? 'pointer' : 'not-allowed',
-                    }}
-                    disabled={!canGoNext}
-                    onClick={handleNext}
-                    aria-label="Next track"
-                >
-                    <span aria-hidden="true">⏭</span>
-                </button>
-            </div>
-
-            {/* Volume */}
+            {/* Controls + Volume */}
             <div
                 style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.4rem',
-                    marginTop: '0.6rem',
-                    fontSize: '0.78rem',
-                    color: '#64748b',
+                    marginTop: '0.75rem',
                 }}
             >
-                <span aria-hidden="true" style={{ flexShrink: 0 }}>🔈</span>
-                <input
-                    type="range"
-                    min={0}
-                    max={100}
-                    value={volume}
-                    onChange={handleVolumeChange}
-                    aria-label="Volume"
-                    style={{ flex: 1, cursor: 'pointer', accentColor: '#1DB954' }}
-                />
-                <span
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, justifyContent: 'center' }}>
+                    <button
+                        type="button"
+                        style={{
+                            ...controlButtonStyle,
+                            opacity: canGoPrev ? 1 : 0.45,
+                            cursor: canGoPrev ? 'pointer' : 'not-allowed',
+                        }}
+                        disabled={!canGoPrev}
+                        onClick={handlePrevious}
+                        aria-label="Previous track"
+                    >
+                        <span aria-hidden="true">⏮</span>
+                    </button>
+                    <button
+                        type="button"
+                        style={controlButtonStyle}
+                        onClick={handleTogglePlay}
+                        aria-label={isPaused ? 'Play' : 'Pause'}
+                    >
+                        <span aria-hidden="true">{isPaused ? '▶' : '⏸'}</span>
+                    </button>
+                    <button
+                        type="button"
+                        style={{
+                            ...controlButtonStyle,
+                            opacity: canGoNext ? 1 : 0.45,
+                            cursor: canGoNext ? 'pointer' : 'not-allowed',
+                        }}
+                        disabled={!canGoNext}
+                        onClick={handleNext}
+                        aria-label="Next track"
+                    >
+                        <span aria-hidden="true">⏭</span>
+                    </button>
+                </div>
+                <div
                     style={{
-                        minWidth: '2rem',
-                        textAlign: 'right',
-                        fontVariantNumeric: 'tabular-nums',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        flexShrink: 0,
                         fontSize: '0.72rem',
+                        color: '#94a3b8',
                     }}
                 >
-                    {volume}%
-                </span>
+                    <span aria-hidden="true" style={{ fontSize: '0.75rem' }}>🔈</span>
+                    <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={volume}
+                        onChange={handleVolumeChange}
+                        aria-label="Volume"
+                        style={{ width: '4.5rem', cursor: 'pointer', accentColor: '#1DB954' }}
+                    />
+                </div>
             </div>
 
             {/* Error / status messages */}
