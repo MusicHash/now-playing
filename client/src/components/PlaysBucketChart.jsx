@@ -5,6 +5,9 @@ import { useEffect, useRef } from 'react';
 const PLAYS_BUCKET_CHART_HEIGHT = 300;
 const PLAYS_BUCKET_CHART_HEIGHT_COMPACT = 132;
 
+const PRIMARY_STROKE = '#6366f1';
+const COMPARE_STROKE = '#0d9488';
+
 /**
  * @param {unknown} raw
  */
@@ -126,19 +129,7 @@ export default function PlaysBucketChart({
 
         const parsed = merged.sort((a, b) => a.date - b.date);
 
-        const marginTop = compact
-            ? hasCompare
-                ? chartTitle
-                    ? 40
-                    : 32
-                : chartTitle
-                  ? 20
-                  : 6
-            : hasCompare
-              ? chartTitle
-                  ? 48
-                  : 40
-              : 28;
+        const marginTop = compact ? (chartTitle ? 20 : 6) : chartTitle ? 36 : 28;
         const margin = compact
             ? {
                   top: marginTop,
@@ -160,8 +151,8 @@ export default function PlaysBucketChart({
             .domain(d3.extent(parsed, (d) => d.date))
             .range([0, innerW]);
 
-        const primaryStroke = '#6366f1';
-        const compareStroke = '#0d9488';
+        const primaryStroke = PRIMARY_STROKE;
+        const compareStroke = COMPARE_STROKE;
 
         const maxPrimaryRaw = hasCompare
             ? d3.max(parsed, (d) => d.primary) ?? 0
@@ -263,94 +254,28 @@ export default function PlaysBucketChart({
             yAxisRight.selectAll('path, line').attr('stroke', compareStroke);
         }
 
-        if (hasCompare) {
-            const legendFs = compact ? '9px' : '11px';
-            const legY = chartTitle ? (compact ? -24 : -28) : compact ? -2 : -8;
-            const legendBlock = g.append('g').attr('transform', `translate(0, ${legY})`);
-            const drawLegendRow = (rowY, stroke, label) => {
-                const row = legendBlock.append('g').attr('transform', `translate(0, ${rowY})`);
-                row.append('line')
-                    .attr('x1', 0)
-                    .attr('y1', 0)
-                    .attr('x2', 14)
-                    .attr('y2', 0)
-                    .attr('stroke', stroke)
-                    .attr('stroke-width', 2);
-                row.append('text')
-                    .attr('x', 18)
-                    .attr('y', 4)
-                    .attr('font-size', legendFs)
-                    .attr('fill', '#64748b')
-                    .text(label);
-            };
-            if (compact) {
-                drawLegendRow(0, primaryStroke, primarySeriesLabel);
-                drawLegendRow(12, compareStroke, compareSeriesLabel);
-            } else {
-                const approx =
-                    14 +
-                    6 +
-                    primarySeriesLabel.length * 6.5 +
-                    20 +
-                    14 +
-                    6 +
-                    compareSeriesLabel.length * 6.5;
-                const startX = Math.max(0, (innerW - approx) / 2);
-                const wide = legendBlock.append('g').attr('transform', `translate(${startX}, 0)`);
-                wide.append('line')
-                    .attr('x1', 0)
-                    .attr('y1', 0)
-                    .attr('x2', 14)
-                    .attr('y2', 0)
-                    .attr('stroke', primaryStroke)
-                    .attr('stroke-width', 2);
-                wide.append('text')
-                    .attr('x', 20)
-                    .attr('y', 4)
-                    .attr('font-size', legendFs)
-                    .attr('fill', '#64748b')
-                    .text(primarySeriesLabel);
-                const w1 = primarySeriesLabel.length * 6.5 + 20;
-                wide.append('line')
-                    .attr('x1', w1)
-                    .attr('y1', 0)
-                    .attr('x2', w1 + 14)
-                    .attr('y2', 0)
-                    .attr('stroke', compareStroke)
-                    .attr('stroke-width', 2);
-                wide.append('text')
-                    .attr('x', w1 + 34)
-                    .attr('y', 4)
-                    .attr('font-size', legendFs)
-                    .attr('fill', '#64748b')
-                    .text(compareSeriesLabel);
-            }
-        }
-
         if (chartTitle) {
             g.append('text')
                 .attr('x', innerW / 2)
-                .attr('y', hasCompare ? (compact ? -6 : -10) : compact ? -4 : -10)
+                .attr('y', compact ? -4 : -10)
                 .attr('text-anchor', 'middle')
                 .attr('font-size', compact ? '11px' : '13px')
                 .attr('font-weight', 600)
                 .attr('fill', '#334155')
                 .text(chartTitle);
         }
-    }, [
-        data,
-        compareData,
-        primarySeriesLabel,
-        compareSeriesLabel,
-        width,
-        height,
-        loading,
-        error,
-        resolutionMinutes,
-        chartTitle,
-        compact,
-        emptyText,
-    ]);
+    }, [data, compareData, width, height, loading, error, resolutionMinutes, chartTitle, compact, emptyText]);
+
+    const showCompareLegend = compareData != null && !loading && !error;
+
+    const legendItemStyle = {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '0.4rem',
+        fontSize: compact ? '0.72rem' : '0.8rem',
+        color: '#475569',
+        lineHeight: 1.2,
+    };
 
     return (
         <div style={{ width: '100%' }}>
@@ -362,7 +287,56 @@ export default function PlaysBucketChart({
                         : error.message}
                 </p>
             )}
-            {!loading && !error && <svg ref={svgRef} style={{ display: 'block', maxWidth: '100%' }} />}
+            {!loading && !error && (
+                <>
+                    <svg ref={svgRef} style={{ display: 'block', maxWidth: '100%' }} />
+                    {showCompareLegend && (
+                        <div
+                            role="group"
+                            aria-label="Chart legend"
+                            style={{
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                alignItems: 'center',
+                                columnGap: '1.1rem',
+                                rowGap: '0.35rem',
+                                marginTop: compact ? '0.45rem' : '0.6rem',
+                                paddingTop: compact ? '0.35rem' : '0.45rem',
+                                borderTop: '1px solid #e2e8f0',
+                            }}
+                        >
+                            <span style={legendItemStyle}>
+                                <span
+                                    style={{
+                                        display: 'inline-block',
+                                        width: '1.1rem',
+                                        height: '3px',
+                                        borderRadius: '1px',
+                                        background: PRIMARY_STROKE,
+                                        flexShrink: 0,
+                                    }}
+                                    aria-hidden
+                                />
+                                {primarySeriesLabel}
+                            </span>
+                            <span style={legendItemStyle}>
+                                <span
+                                    style={{
+                                        display: 'inline-block',
+                                        width: '1.1rem',
+                                        height: '3px',
+                                        borderRadius: '1px',
+                                        background: COMPARE_STROKE,
+                                        flexShrink: 0,
+                                    }}
+                                    aria-hidden
+                                />
+                                {compareSeriesLabel}
+                            </span>
+                        </div>
+                    )}
+                </>
+            )}
         </div>
     );
 }
