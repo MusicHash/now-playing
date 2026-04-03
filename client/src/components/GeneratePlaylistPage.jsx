@@ -84,6 +84,8 @@ export default function GeneratePlaylistPage() {
     const [playerSession, setPlayerSession] = useState(0);
 
     const [trackPlaysData, setTrackPlaysData] = useState(null);
+    /** Plays across all stations (same buckets); only set when a station filter is active. */
+    const [trackPlaysAllStationsData, setTrackPlaysAllStationsData] = useState(null);
     const [trackPlaysLoading, setTrackPlaysLoading] = useState(false);
     const [trackPlaysError, setTrackPlaysError] = useState(null);
     const [chartWrapRef, chartWidth] = useSidebarChartWidth();
@@ -109,6 +111,7 @@ export default function GeneratePlaylistPage() {
     useEffect(() => {
         if (!activeSpotifyTrackId) {
             setTrackPlaysData(null);
+            setTrackPlaysAllStationsData(null);
             setTrackPlaysLoading(false);
             setTrackPlaysError(null);
             return;
@@ -118,29 +121,43 @@ export default function GeneratePlaylistPage() {
         setTrackPlaysError(null);
         const d = clampInt(days, DEFAULT_STATS_DAYS, MAX_STATS_DAYS);
         const res = clampBucketMinutes(DEFAULT_BUCKET_MINUTES);
-        const url = getPlaysByBucketTrackUrl({
+        const base = {
             days: d,
-            station,
             resolutionMinutes: res,
             spotify_track_id: activeSpotifyTrackId,
+        };
+        const stationUrl = getPlaysByBucketTrackUrl({
+            ...base,
+            station,
         });
-        fetchJson(url)
-            .then((rows) => {
-                if (!cancelled) {
-                    setTrackPlaysData(Array.isArray(rows) ? rows : []);
-                }
-            })
-            .catch((e) => {
-                if (!cancelled) {
-                    setTrackPlaysError(e);
-                    setTrackPlaysData(null);
-                }
-            })
-            .finally(() => {
-                if (!cancelled) {
-                    setTrackPlaysLoading(false);
-                }
-            });
+        const allStationsUrl = getPlaysByBucketTrackUrl(base);
+
+        const run = station
+            ? Promise.all([fetchJson(stationUrl), fetchJson(allStationsUrl)]).then(([stationRows, allRows]) => {
+                  if (!cancelled) {
+                      setTrackPlaysData(Array.isArray(stationRows) ? stationRows : []);
+                      setTrackPlaysAllStationsData(Array.isArray(allRows) ? allRows : []);
+                  }
+              })
+            : fetchJson(allStationsUrl).then((rows) => {
+                  if (!cancelled) {
+                      setTrackPlaysData(Array.isArray(rows) ? rows : []);
+                      setTrackPlaysAllStationsData(null);
+                  }
+              });
+
+        run.catch((e) => {
+            if (!cancelled) {
+                setTrackPlaysError(e);
+                setTrackPlaysData(null);
+                setTrackPlaysAllStationsData(null);
+            }
+        }).finally(() => {
+            if (!cancelled) {
+                setTrackPlaysLoading(false);
+            }
+        });
+
         return () => {
             cancelled = true;
         };
@@ -350,6 +367,9 @@ export default function GeneratePlaylistPage() {
                     {activeSpotifyTrackId && (
                         <PlaysBucketChart
                             data={trackPlaysData}
+                            compareData={station ? trackPlaysAllStationsData : undefined}
+                            primarySeriesLabel={station ? station : 'This station'}
+                            compareSeriesLabel="All stations"
                             width={chartWidth}
                             loading={trackPlaysLoading}
                             error={trackPlaysError}

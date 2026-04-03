@@ -30,8 +30,38 @@ function pickTickFormat(resolutionMinutes) {
 }
 
 /**
+ * @param {unknown[] | null | undefined} primaryRows
+ * @param {unknown[] | null | undefined} compareRows
+ */
+function mergeTwoSeries(primaryRows, compareRows) {
+    const map = new Map();
+    for (const row of primaryRows ?? []) {
+        const r = /** @type {{ bucket_start?: unknown, play_count?: unknown }} */ (row);
+        const date = parseBucketTime(r.bucket_start);
+        const t = date.getTime();
+        if (!map.has(t)) {
+            map.set(t, { date, primary: 0, compare: 0 });
+        }
+        map.get(t).primary = Number(r.play_count) || 0;
+    }
+    for (const row of compareRows ?? []) {
+        const r = /** @type {{ bucket_start?: unknown, play_count?: unknown }} */ (row);
+        const date = parseBucketTime(r.bucket_start);
+        const t = date.getTime();
+        if (!map.has(t)) {
+            map.set(t, { date, primary: 0, compare: 0 });
+        }
+        map.get(t).compare = Number(r.play_count) || 0;
+    }
+    return Array.from(map.values()).sort((a, b) => a.date - b.date);
+}
+
+/**
  * @param {{
  *   data: unknown[] | null,
+ *   compareData?: unknown[] | null,
+ *   primarySeriesLabel?: string,
+ *   compareSeriesLabel?: string,
  *   width: number,
  *   loading: boolean,
  *   error: Error | null,
@@ -44,6 +74,9 @@ function pickTickFormat(resolutionMinutes) {
  */
 export default function PlaysBucketChart({
     data,
+    compareData,
+    primarySeriesLabel = 'This station',
+    compareSeriesLabel = 'All stations',
     width,
     loading,
     error,
@@ -69,7 +102,15 @@ export default function PlaysBucketChart({
         svg.selectAll('*').remove();
 
         const w = Math.max(width, compact ? 200 : 280);
-        if (!data?.length) {
+        const hasCompare = compareData != null;
+        const merged = hasCompare
+            ? mergeTwoSeries(data, compareData)
+            : (data ?? []).map((d) => ({
+                  date: parseBucketTime(/** @type {{ bucket_start?: unknown }} */ (d).bucket_start),
+                  count: Number(/** @type {{ play_count?: unknown }} */ (d).play_count) || 0,
+              }));
+
+        if (!merged.length) {
             svg
                 .attr('width', w)
                 .attr('height', height)
@@ -83,34 +124,69 @@ export default function PlaysBucketChart({
             return;
         }
 
+        const parsed = merged.sort((a, b) => a.date - b.date);
+
+        const marginTop = compact
+            ? hasCompare
+                ? chartTitle
+                    ? 40
+                    : 32
+                : chartTitle
+                  ? 20
+                  : 6
+            : hasCompare
+              ? chartTitle
+                  ? 48
+                  : 40
+              : 28;
         const margin = compact
-            ? { top: chartTitle ? 20 : 6, right: 6, bottom: 26, left: 30 }
-            : { top: 28, right: 20, bottom: 48, left: 56 };
+            ? {
+                  top: marginTop,
+                  right: hasCompare ? 34 : 6,
+                  bottom: 26,
+                  left: hasCompare ? 36 : 30,
+              }
+            : {
+                  top: marginTop,
+                  right: hasCompare ? 52 : 20,
+                  bottom: 48,
+                  left: 56,
+              };
         const innerW = w - margin.left - margin.right;
         const innerH = height - margin.top - margin.bottom;
-
-        const parsed = data
-            .map((d) => ({
-                date: parseBucketTime(d.bucket_start),
-                count: Number(d.play_count) || 0,
-            }))
-            .sort((a, b) => a.date - b.date);
 
         const x = d3
             .scaleTime()
             .domain(d3.extent(parsed, (d) => d.date))
             .range([0, innerW]);
 
-        const maxY = d3.max(parsed, (d) => d.count) || 1;
-        const y = d3.scaleLinear().domain([0, maxY]).nice().range([innerH, 0]);
+        const primaryStroke = '#6366f1';
+        const compareStroke = '#0d9488';
 
-        const area = d3
+        const maxPrimaryRaw = hasCompare
+            ? d3.max(parsed, (d) => d.primary) ?? 0
+            : d3.max(parsed, (d) => d.count) ?? 0;
+        const maxPrimary = Math.max(maxPrimaryRaw, 1);
+
+        const y = d3.scaleLinear().domain([0, maxPrimary]).nice().range([innerH, 0]);
+
+        const maxCompareRaw = hasCompare ? (d3.max(parsed, (d) => d.compare) ?? 0) : 0;
+        const maxCompare = Math.max(maxCompareRaw, 1);
+        const yRight = hasCompare
+            ? d3.scaleLinear().domain([0, maxCompare]).nice().range([innerH, 0])
+            : null;
+
+        const primaryPoints = hasCompare
+            ? parsed.map((d) => ({ date: d.date, count: d.primary }))
+            : parsed;
+
+        const areaPrimary = d3
             .area()
             .x((d) => x(d.date))
             .y0(innerH)
             .y1((d) => y(d.count));
 
-        const line = d3
+        const linePrimary = d3
             .line()
             .x((d) => x(d.date))
             .y((d) => y(d.count));
@@ -122,16 +198,32 @@ export default function PlaysBucketChart({
             .attr('transform', `translate(${margin.left},${margin.top})`);
 
         g.append('path')
-            .datum(parsed)
+            .datum(primaryPoints)
             .attr('fill', 'rgba(99, 102, 241, 0.12)')
-            .attr('d', area);
+            .attr('d', areaPrimary);
 
         g.append('path')
-            .datum(parsed)
+            .datum(primaryPoints)
             .attr('fill', 'none')
-            .attr('stroke', '#6366f1')
+            .attr('stroke', primaryStroke)
             .attr('stroke-width', compact ? 1.5 : 2)
-            .attr('d', line);
+            .attr('d', linePrimary);
+
+        if (hasCompare) {
+            const comparePoints = parsed.map((d) => ({ date: d.date, count: d.compare }));
+
+            const lineCompare = d3
+                .line()
+                .x((d) => x(d.date))
+                .y((d) => yRight(d.count));
+
+            g.append('path')
+                .datum(comparePoints)
+                .attr('fill', 'none')
+                .attr('stroke', compareStroke)
+                .attr('stroke-width', compact ? 1.5 : 2)
+                .attr('d', lineCompare);
+        }
 
         const tickFormat = pickTickFormat(resolutionMinutes);
         const maxTicks = compact
@@ -151,15 +243,94 @@ export default function PlaysBucketChart({
                 .style('text-anchor', 'end');
         }
 
-        const yAxis = g.append('g').call(d3.axisLeft(y).ticks(compact ? 4 : 6));
+        const yTicks = compact ? 4 : 6;
+        const yAxisLeft = g.append('g').call(d3.axisLeft(y).ticks(yTicks));
         if (compact) {
-            yAxis.selectAll('text').attr('font-size', '9px');
+            yAxisLeft.selectAll('text').attr('font-size', '9px');
+        }
+        if (hasCompare) {
+            yAxisLeft.selectAll('text').attr('fill', primaryStroke);
+            yAxisLeft.selectAll('path, line').attr('stroke', primaryStroke);
+
+            const yAxisRight = g
+                .append('g')
+                .attr('transform', `translate(${innerW},0)`)
+                .call(d3.axisRight(yRight).ticks(yTicks));
+            if (compact) {
+                yAxisRight.selectAll('text').attr('font-size', '9px');
+            }
+            yAxisRight.selectAll('text').attr('fill', compareStroke);
+            yAxisRight.selectAll('path, line').attr('stroke', compareStroke);
+        }
+
+        if (hasCompare) {
+            const legendFs = compact ? '9px' : '11px';
+            const legY = chartTitle ? (compact ? -24 : -28) : compact ? -2 : -8;
+            const legendBlock = g.append('g').attr('transform', `translate(0, ${legY})`);
+            const drawLegendRow = (rowY, stroke, label) => {
+                const row = legendBlock.append('g').attr('transform', `translate(0, ${rowY})`);
+                row.append('line')
+                    .attr('x1', 0)
+                    .attr('y1', 0)
+                    .attr('x2', 14)
+                    .attr('y2', 0)
+                    .attr('stroke', stroke)
+                    .attr('stroke-width', 2);
+                row.append('text')
+                    .attr('x', 18)
+                    .attr('y', 4)
+                    .attr('font-size', legendFs)
+                    .attr('fill', '#64748b')
+                    .text(label);
+            };
+            if (compact) {
+                drawLegendRow(0, primaryStroke, primarySeriesLabel);
+                drawLegendRow(12, compareStroke, compareSeriesLabel);
+            } else {
+                const approx =
+                    14 +
+                    6 +
+                    primarySeriesLabel.length * 6.5 +
+                    20 +
+                    14 +
+                    6 +
+                    compareSeriesLabel.length * 6.5;
+                const startX = Math.max(0, (innerW - approx) / 2);
+                const wide = legendBlock.append('g').attr('transform', `translate(${startX}, 0)`);
+                wide.append('line')
+                    .attr('x1', 0)
+                    .attr('y1', 0)
+                    .attr('x2', 14)
+                    .attr('y2', 0)
+                    .attr('stroke', primaryStroke)
+                    .attr('stroke-width', 2);
+                wide.append('text')
+                    .attr('x', 20)
+                    .attr('y', 4)
+                    .attr('font-size', legendFs)
+                    .attr('fill', '#64748b')
+                    .text(primarySeriesLabel);
+                const w1 = primarySeriesLabel.length * 6.5 + 20;
+                wide.append('line')
+                    .attr('x1', w1)
+                    .attr('y1', 0)
+                    .attr('x2', w1 + 14)
+                    .attr('y2', 0)
+                    .attr('stroke', compareStroke)
+                    .attr('stroke-width', 2);
+                wide.append('text')
+                    .attr('x', w1 + 34)
+                    .attr('y', 4)
+                    .attr('font-size', legendFs)
+                    .attr('fill', '#64748b')
+                    .text(compareSeriesLabel);
+            }
         }
 
         if (chartTitle) {
             g.append('text')
                 .attr('x', innerW / 2)
-                .attr('y', compact ? -4 : -10)
+                .attr('y', hasCompare ? (compact ? -6 : -10) : compact ? -4 : -10)
                 .attr('text-anchor', 'middle')
                 .attr('font-size', compact ? '11px' : '13px')
                 .attr('font-weight', 600)
@@ -168,6 +339,9 @@ export default function PlaysBucketChart({
         }
     }, [
         data,
+        compareData,
+        primarySeriesLabel,
+        compareSeriesLabel,
         width,
         height,
         loading,

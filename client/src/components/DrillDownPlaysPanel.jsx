@@ -57,6 +57,7 @@ export default function DrillDownPlaysPanel({
     onClose,
 }) {
     const [data, setData] = useState(null);
+    const [compareData, setCompareData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -66,36 +67,66 @@ export default function DrillDownPlaysPanel({
         setError(null);
         const d = clampInt(days, DEFAULT_STATS_DAYS, MAX_STATS_DAYS);
         const res = clampBucketMinutes(resolutionMinutes);
-        const url =
+        const run =
             drill.type === 'track'
-                ? getPlaysByBucketTrackUrl({
-                    days: d,
-                    station,
-                    resolutionMinutes: res,
-                    spotify_track_id: drill.trackId,
-                })
-                : getPlaysByBucketArtistUrl({
-                    days: d,
-                    station,
-                    resolutionMinutes: res,
-                    artist: drill.artistName,
-                });
-        fetchJson(url)
-            .then((rows) => {
-                if (!cancelled) {
-                    setData(rows);
-                }
-            })
-            .catch((e) => {
-                if (!cancelled) {
-                    setError(e);
-                }
-            })
-            .finally(() => {
-                if (!cancelled) {
-                    setLoading(false);
-                }
-            });
+                ? (() => {
+                      const base = {
+                          days: d,
+                          resolutionMinutes: res,
+                          spotify_track_id: drill.trackId,
+                      };
+                      const scopedUrl = getPlaysByBucketTrackUrl({ ...base, station });
+                      const allUrl = getPlaysByBucketTrackUrl(base);
+                      return station
+                          ? Promise.all([fetchJson(scopedUrl), fetchJson(allUrl)]).then(
+                                ([scopedRows, allRows]) => {
+                                    if (!cancelled) {
+                                        setData(scopedRows);
+                                        setCompareData(allRows);
+                                    }
+                                },
+                            )
+                          : fetchJson(allUrl).then((rows) => {
+                                if (!cancelled) {
+                                    setData(rows);
+                                    setCompareData(null);
+                                }
+                            });
+                  })()
+                : (() => {
+                      const base = {
+                          days: d,
+                          resolutionMinutes: res,
+                          artist: drill.artistName,
+                      };
+                      const scopedUrl = getPlaysByBucketArtistUrl({ ...base, station });
+                      const allUrl = getPlaysByBucketArtistUrl(base);
+                      return station
+                          ? Promise.all([fetchJson(scopedUrl), fetchJson(allUrl)]).then(
+                                ([scopedRows, allRows]) => {
+                                    if (!cancelled) {
+                                        setData(scopedRows);
+                                        setCompareData(allRows);
+                                    }
+                                },
+                            )
+                          : fetchJson(allUrl).then((rows) => {
+                                if (!cancelled) {
+                                    setData(rows);
+                                    setCompareData(null);
+                                }
+                            });
+                  })();
+
+        run.catch((e) => {
+            if (!cancelled) {
+                setError(e);
+            }
+        }).finally(() => {
+            if (!cancelled) {
+                setLoading(false);
+            }
+        });
         return () => {
             cancelled = true;
         };
@@ -160,6 +191,9 @@ export default function DrillDownPlaysPanel({
             </div>
             <PlaysBucketChart
                 data={data}
+                compareData={station ? compareData : undefined}
+                primarySeriesLabel={station ? station : 'This station'}
+                compareSeriesLabel="All stations"
                 width={width}
                 loading={loading}
                 error={error}
