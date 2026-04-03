@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import PlaysBucketChart from './PlaysBucketChart.jsx';
 import SpotifyEmbedPlayer from './SpotifyEmbedPlayer.jsx';
 import {
     parseDays,
@@ -10,10 +11,13 @@ import {
     patchPlaylistState,
 } from '../lib/appSearchParams.js';
 import {
+    clampBucketMinutes,
     clampInt,
+    DEFAULT_BUCKET_MINUTES,
     DEFAULT_STATS_DAYS,
     DEFAULT_STATS_LIMIT,
     fetchJson,
+    getPlaysByBucketTrackUrl,
     getPlaylistTracksUrl,
     getStationsUrl,
     MAX_STATS_DAYS,
@@ -44,6 +48,25 @@ const inputStyle = {
     minWidth: '5rem',
 };
 
+function useSidebarChartWidth() {
+    const ref = useRef(null);
+    const [width, setWidth] = useState(280);
+    useEffect(() => {
+        const el = ref.current;
+        if (!el) {
+            return;
+        }
+        const measure = () => {
+            setWidth(Math.max(200, Math.floor(el.getBoundingClientRect().width)));
+        };
+        measure();
+        const ro = new ResizeObserver(measure);
+        ro.observe(el);
+        return () => ro.disconnect();
+    }, []);
+    return [ref, width];
+}
+
 export default function GeneratePlaylistPage() {
     const [searchParams, setSearchParams] = useSearchParams();
     const [stationOptions, setStationOptions] = useState([]);
@@ -60,6 +83,11 @@ export default function GeneratePlaylistPage() {
     const [activeIndex, setActiveIndex] = useState(0);
     const [playerSession, setPlayerSession] = useState(0);
 
+    const [trackPlaysData, setTrackPlaysData] = useState(null);
+    const [trackPlaysLoading, setTrackPlaysLoading] = useState(false);
+    const [trackPlaysError, setTrackPlaysError] = useState(null);
+    const [chartWrapRef, chartWidth] = useSidebarChartWidth();
+
     const uris = useMemo(
         () =>
             tracks
@@ -71,6 +99,52 @@ export default function GeneratePlaylistPage() {
     const onActiveIndexChange = useCallback((index) => {
         setActiveIndex(index);
     }, []);
+
+    const activeSpotifyTrackId = useMemo(() => {
+        const row = tracks[activeIndex];
+        const id = row?.spotify_track_id;
+        return typeof id === 'string' && id.trim() ? id.trim() : '';
+    }, [tracks, activeIndex]);
+
+    useEffect(() => {
+        if (!activeSpotifyTrackId) {
+            setTrackPlaysData(null);
+            setTrackPlaysLoading(false);
+            setTrackPlaysError(null);
+            return;
+        }
+        let cancelled = false;
+        setTrackPlaysLoading(true);
+        setTrackPlaysError(null);
+        const d = clampInt(days, DEFAULT_STATS_DAYS, MAX_STATS_DAYS);
+        const res = clampBucketMinutes(DEFAULT_BUCKET_MINUTES);
+        const url = getPlaysByBucketTrackUrl({
+            days: d,
+            station,
+            resolutionMinutes: res,
+            spotify_track_id: activeSpotifyTrackId,
+        });
+        fetchJson(url)
+            .then((rows) => {
+                if (!cancelled) {
+                    setTrackPlaysData(Array.isArray(rows) ? rows : []);
+                }
+            })
+            .catch((e) => {
+                if (!cancelled) {
+                    setTrackPlaysError(e);
+                    setTrackPlaysData(null);
+                }
+            })
+            .finally(() => {
+                if (!cancelled) {
+                    setTrackPlaysLoading(false);
+                }
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [activeSpotifyTrackId, days, station]);
 
     const loadPlaylist = useCallback(() => {
         setLoading(true);
@@ -250,6 +324,40 @@ export default function GeneratePlaylistPage() {
                         activeIndex={activeIndex}
                         onActiveIndexChange={onActiveIndexChange}
                     />
+                </div>
+
+                <div ref={chartWrapRef} style={{ marginTop: '0.75rem' }}>
+                    <p
+                        style={{
+                            margin: '0 0 0.35rem',
+                            fontSize: '0.72rem',
+                            fontWeight: 600,
+                            color: '#475569',
+                            letterSpacing: '0.02em',
+                        }}
+                    >
+                        Plays over time
+                    </p>
+                    <p style={{ margin: '0 0 0.4rem', fontSize: '0.7rem', color: '#94a3b8' }}>
+                        {station ? `Station: ${station}` : 'All stations'} · {days} day
+                        {days === 1 ? '' : 's'} · daily buckets
+                    </p>
+                    {!activeSpotifyTrackId && tracks.length === 0 && (
+                        <p style={{ margin: 0, fontSize: '0.8rem', color: '#94a3b8' }}>
+                            Generate a playlist to chart the current track.
+                        </p>
+                    )}
+                    {activeSpotifyTrackId && (
+                        <PlaysBucketChart
+                            data={trackPlaysData}
+                            width={chartWidth}
+                            loading={trackPlaysLoading}
+                            error={trackPlaysError}
+                            resolutionMinutes={DEFAULT_BUCKET_MINUTES}
+                            chartTitle=""
+                            compact
+                        />
+                    )}
                 </div>
             </div>
 

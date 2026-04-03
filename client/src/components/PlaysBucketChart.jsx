@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 
 /** Match {@link PlaysByDayChart} height for visual consistency. */
 const PLAYS_BUCKET_CHART_HEIGHT = 300;
+const PLAYS_BUCKET_CHART_HEIGHT_COMPACT = 132;
 
 /**
  * @param {unknown} raw
@@ -36,6 +37,9 @@ function pickTickFormat(resolutionMinutes) {
  *   error: Error | null,
  *   resolutionMinutes: number,
  *   chartTitle: string,
+ *   compact?: boolean,
+ *   height?: number,
+ *   emptyMessage?: string,
  * }} props
  */
 export default function PlaysBucketChart({
@@ -45,9 +49,17 @@ export default function PlaysBucketChart({
     error,
     resolutionMinutes,
     chartTitle,
+    compact = false,
+    height: heightProp,
+    emptyMessage,
 }) {
     const svgRef = useRef(null);
-    const height = PLAYS_BUCKET_CHART_HEIGHT;
+    const height =
+        heightProp ??
+        (compact ? PLAYS_BUCKET_CHART_HEIGHT_COMPACT : PLAYS_BUCKET_CHART_HEIGHT);
+    const emptyText =
+        emptyMessage ??
+        (compact ? 'No plays in window' : 'No plays in this window for this selection');
 
     useEffect(() => {
         if (!svgRef.current || loading || error) {
@@ -56,7 +68,7 @@ export default function PlaysBucketChart({
         const svg = d3.select(svgRef.current);
         svg.selectAll('*').remove();
 
-        const w = Math.max(width, 280);
+        const w = Math.max(width, compact ? 200 : 280);
         if (!data?.length) {
             svg
                 .attr('width', w)
@@ -66,11 +78,14 @@ export default function PlaysBucketChart({
                 .attr('y', height / 2)
                 .attr('text-anchor', 'middle')
                 .attr('fill', '#64748b')
-                .text('No plays in this window for this selection');
+                .attr('font-size', compact ? '11px' : '12px')
+                .text(emptyText);
             return;
         }
 
-        const margin = { top: 28, right: 20, bottom: 48, left: 56 };
+        const margin = compact
+            ? { top: chartTitle ? 20 : 6, right: 6, bottom: 26, left: 30 }
+            : { top: 28, right: 20, bottom: 48, left: 56 };
         const innerW = w - margin.left - margin.right;
         const innerH = height - margin.top - margin.bottom;
 
@@ -115,28 +130,53 @@ export default function PlaysBucketChart({
             .datum(parsed)
             .attr('fill', 'none')
             .attr('stroke', '#6366f1')
-            .attr('stroke-width', 2)
+            .attr('stroke-width', compact ? 1.5 : 2)
             .attr('d', line);
 
         const tickFormat = pickTickFormat(resolutionMinutes);
-        const maxTicks = Math.min(12, Math.max(4, parsed.length));
+        const maxTicks = compact
+            ? Math.min(5, Math.max(3, parsed.length))
+            : Math.min(12, Math.max(4, parsed.length));
 
-        g.append('g')
+        const xAxis = g
+            .append('g')
             .attr('transform', `translate(0,${innerH})`)
-            .call(d3.axisBottom(x).ticks(maxTicks).tickFormat(tickFormat))
-            .call((sel) => sel.selectAll('text').attr('transform', 'rotate(-35)').style('text-anchor', 'end'));
+            .call(d3.axisBottom(x).ticks(maxTicks).tickFormat(tickFormat));
+        if (compact) {
+            xAxis.selectAll('text').attr('font-size', '9px');
+        } else {
+            xAxis
+                .selectAll('text')
+                .attr('transform', 'rotate(-35)')
+                .style('text-anchor', 'end');
+        }
 
-        g.append('g').call(d3.axisLeft(y).ticks(6));
+        const yAxis = g.append('g').call(d3.axisLeft(y).ticks(compact ? 4 : 6));
+        if (compact) {
+            yAxis.selectAll('text').attr('font-size', '9px');
+        }
 
-        g.append('text')
-            .attr('x', innerW / 2)
-            .attr('y', -10)
-            .attr('text-anchor', 'middle')
-            .attr('font-size', '13px')
-            .attr('font-weight', 600)
-            .attr('fill', '#334155')
-            .text(chartTitle);
-    }, [data, width, height, loading, error, resolutionMinutes, chartTitle]);
+        if (chartTitle) {
+            g.append('text')
+                .attr('x', innerW / 2)
+                .attr('y', compact ? -4 : -10)
+                .attr('text-anchor', 'middle')
+                .attr('font-size', compact ? '11px' : '13px')
+                .attr('font-weight', 600)
+                .attr('fill', '#334155')
+                .text(chartTitle);
+        }
+    }, [
+        data,
+        width,
+        height,
+        loading,
+        error,
+        resolutionMinutes,
+        chartTitle,
+        compact,
+        emptyText,
+    ]);
 
     return (
         <div style={{ width: '100%' }}>
