@@ -5,6 +5,7 @@ import { stations, charts } from '../../config/sources.js';
 import {
     getDistinctStationsLogged,
     getMostPlayedTracks,
+    getPlaylistTracks,
     getPlaysByBucketForArtist,
     getPlaysByBucketForTrack,
     getPlaysByDay,
@@ -68,6 +69,18 @@ export default function dataRoutes(_logger) {
     router.get('/data/stats/top-tracks', async (req, res) => {
         try {
             const rows = await getMostPlayedTracks(parseQuery(req));
+            res.json(rows);
+        } catch (error) {
+            res.status(500).json({ error: 'Query failed', message: String(error?.message || error) });
+        }
+    });
+
+    router.get('/data/stats/playlist-tracks', async (req, res) => {
+        try {
+            const q = parseQuery(req);
+            const sort =
+                typeof req.query.sort === 'string' ? req.query.sort : undefined;
+            const rows = await getPlaylistTracks({ ...q, sort });
             res.json(rows);
         } catch (error) {
             res.status(500).json({ error: 'Query failed', message: String(error?.message || error) });

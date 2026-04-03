@@ -45,6 +45,8 @@ export default function debugRoutes(logger) {
             [`/api/data/stats/top-stations?days=${d}`, `top-stations · days=${d}`],
             [`/api/data/stats/recent-plays?days=${d}`, `recent-plays · days=${d}`],
             ['/api/data/stats/recent-plays?days=30&limit=30', 'recent-plays · days=30, limit 30'],
+            [`/api/data/stats/playlist-tracks?days=${d}&limit=25&sort=play_count`, `playlist-tracks · days=${d}, sort=play_count`],
+            [`/api/data/stats/playlist-tracks?days=${d}&limit=25&sort=recent`, `playlist-tracks · days=${d}, sort=recent`],
             [`/api/data/stats/top-tracks?days=${d}&stationLike=glz&limit=20`, `top-tracks · days=${d}, stationLike=glz`],
         ];
         if (exampleStation) {
@@ -55,6 +57,7 @@ export default function debugRoutes(logger) {
                 [`/api/data/stats/top-tracks-momentum?days=${d}&station=${enc}&limit=20`, `top-tracks-momentum · days=${d}, station=${exampleStation}`],
                 [`/api/data/stats/top-artists?days=${d}&station=${enc}&limit=20`, `top-artists · days=${d}, station=${exampleStation}`],
                 [`/api/data/stats/recent-plays?days=${d}&station=${enc}&limit=20`, `recent-plays · days=${d}, station=${exampleStation}`],
+                [`/api/data/stats/playlist-tracks?days=${d}&station=${enc}&limit=20&sort=recent`, `playlist-tracks · days=${d}, station=${exampleStation}, sort=recent`],
             );
         }
         for (const [href, label] of dataStatLinks) {

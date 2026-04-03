@@ -175,6 +175,74 @@ export async function getMostPlayedTracks(opts = {}) {
     return rows;
 }
 
+/** `sort` query param for {@link getPlaylistTracks} / playlist-tracks API. */
+export const PLAYLIST_SORT_PLAY_COUNT = 'play_count';
+export const PLAYLIST_SORT_RECENT = 'recent';
+
+/**
+ * @param {unknown} value
+ * @returns {typeof PLAYLIST_SORT_PLAY_COUNT | typeof PLAYLIST_SORT_RECENT}
+ */
+export function parsePlaylistSort(value) {
+    const s = String(value ?? '').trim().toLowerCase();
+    if (s === PLAYLIST_SORT_RECENT || s === 'recently_played') {
+        return PLAYLIST_SORT_RECENT;
+    }
+    return PLAYLIST_SORT_PLAY_COUNT;
+}
+
+/**
+ * One row per Spotify track in the rolling window, ordered by most recent play time (distinct tracks).
+ *
+ * @param {{ days?: unknown, limit?: unknown, station?: string, stationLike?: string }} opts
+ */
+export async function getDistinctTracksByRecentPlay(opts = {}) {
+    const days = clampInt(opts.days, DEFAULT_STATS_DAYS, MAX_STATS_DAYS);
+    const limit = clampInt(opts.limit, DEFAULT_STATS_LIMIT, MAX_STATS_LIMIT);
+    const { sql: extraWhere, params: extraParams } = stationWhereClause(opts);
+
+    const sql = `
+        SELECT
+            spotify_tracks.spotify_track_id,
+            spotify_tracks.spotify_artist_title,
+            spotify_tracks.spotify_track_title,
+            spotify_tracks.spotify_popularity,
+            MAX(station_log.log_datetime_played) AS last_played_at,
+            COUNT(*) AS play_count
+        FROM
+            nowplaying_station_log station_log
+        JOIN
+            nowplaying_spotify_tracks spotify_tracks
+            ON station_log.spotify_id = spotify_tracks.spotify_id
+        WHERE
+            station_log.log_datetime_played >= NOW() - INTERVAL ? DAY
+            ${extraWhere}
+        GROUP BY
+            spotify_tracks.spotify_track_id,
+            spotify_tracks.spotify_artist_title,
+            spotify_tracks.spotify_track_title,
+            spotify_tracks.spotify_popularity
+        ORDER BY last_played_at DESC
+        LIMIT ?
+    `;
+
+    const [rows] = await MySQLWrapper.query(sql, [days, ...extraParams, limit]);
+    return rows;
+}
+
+/**
+ * Playlist candidate rows: either by play count or by distinct tracks ordered by last play time.
+ *
+ * @param {{ days?: unknown, limit?: unknown, station?: string, stationLike?: string, sort?: unknown }} opts
+ */
+export async function getPlaylistTracks(opts = {}) {
+    const sort = parsePlaylistSort(opts.sort);
+    if (sort === PLAYLIST_SORT_RECENT) {
+        return getDistinctTracksByRecentPlay(opts);
+    }
+    return getMostPlayedTracks(opts);
+}
+
 /**
  * Tracks ranked by OLS linear trend of daily plays over the rolling `days` window (same spine as the chart).
  * `momentum_score` is estimated change in plays per calendar day (positive = rising, negative = falling).

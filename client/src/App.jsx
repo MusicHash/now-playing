@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import GeneratePlaylistPage from './components/GeneratePlaylistPage.jsx';
 import RadioStatsDashboard from './components/RadioStatsDashboard.jsx';
 import WelcomePage from './components/WelcomePage.jsx';
 
 const SECTION_HOME = 'home';
 const SECTION_PLAY_METRICS = 'play-metrics';
+const SECTION_GENERATE_PLAYLIST = 'generate-playlist';
 
 const navButtonBase = {
     display: 'block',
@@ -80,6 +82,26 @@ function App() {
                     >
                         Play metrics
                     </button>
+                    <button
+                        type="button"
+                        onClick={() => setActiveSection(SECTION_GENERATE_PLAYLIST)}
+                        style={{
+                            ...navButtonBase,
+                            background:
+                                activeSection === SECTION_GENERATE_PLAYLIST
+                                    ? '#e0f2fe'
+                                    : 'transparent',
+                            color:
+                                activeSection === SECTION_GENERATE_PLAYLIST ? '#0369a1' : '#475569',
+                            borderColor:
+                                activeSection === SECTION_GENERATE_PLAYLIST
+                                    ? '#7dd3fc'
+                                    : 'transparent',
+                            fontWeight: activeSection === SECTION_GENERATE_PLAYLIST ? 600 : 400,
+                        }}
+                    >
+                        Generate Playlist
+                    </button>
                 </nav>
             </aside>
             <div style={{ flex: 1, padding: '2rem', minWidth: 0 }}>
@@ -95,8 +117,10 @@ function App() {
                     </header>
                     {activeSection === SECTION_HOME ? (
                         <WelcomePage />
-                    ) : (
+                    ) : activeSection === SECTION_PLAY_METRICS ? (
                         <RadioStatsDashboard />
+                    ) : (
+                        <GeneratePlaylistPage />
                     )}
                 </div>
             </div>

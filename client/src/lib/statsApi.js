@@ -8,6 +8,10 @@ export const MAX_STATS_LIMIT = 200;
 export const MOMENTUM_DIRECTION_UP = 'up';
 export const MOMENTUM_DIRECTION_DOWN = 'down';
 
+/** Must match server `PLAYLIST_SORT_*` — `playlist-tracks` only. */
+export const PLAYLIST_SORT_PLAY_COUNT = 'play_count';
+export const PLAYLIST_SORT_RECENT = 'recent';
+
 /** Must match server `ALLOWED_BUCKET_MINUTES`. */
 export const ALLOWED_BUCKET_MINUTES = [1, 5, 10, 15, 30, 60, 120, 240, 480, 1440];
 export const DEFAULT_BUCKET_MINUTES = 1440;
@@ -135,6 +139,22 @@ export function getTopTracksMomentumUrl(params) {
  */
 export function getTopArtistsUrl(params) {
     return `/api/data/stats/top-artists?${buildRankedQuery(params)}`;
+}
+
+/**
+ * @param {{
+ *   days?: unknown,
+ *   limit?: unknown,
+ *   station?: string,
+ *   sort?: typeof PLAYLIST_SORT_PLAY_COUNT | typeof PLAYLIST_SORT_RECENT,
+ * }} params
+ */
+export function getPlaylistTracksUrl(params) {
+    const p = buildRankedQuery(params);
+    const sort =
+        params.sort === PLAYLIST_SORT_RECENT ? PLAYLIST_SORT_RECENT : PLAYLIST_SORT_PLAY_COUNT;
+    p.set('sort', sort);
+    return `/api/data/stats/playlist-tracks?${p}`;
 }
 
 /**
