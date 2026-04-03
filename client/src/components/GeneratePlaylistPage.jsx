@@ -393,7 +393,7 @@ export default function GeneratePlaylistPage() {
                         Set options and click Generate to load tracks from your play log.
                     </p>
                 )}
-                <ol style={{ margin: 0, paddingLeft: 0, listStylePosition: 'inside' }}>
+                <ol style={{ margin: 0, padding: 0, listStyle: 'none' }}>
                     {tracks.map((row, i) => {
                         const title = String(row.spotify_track_title ?? '');
                         const artist = String(row.spotify_artist_title ?? '');
@@ -407,20 +407,48 @@ export default function GeneratePlaylistPage() {
                             <li
                                 key={`${row.spotify_track_id}-${i}`}
                                 style={{
+                                    display: 'flex',
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
                                     padding: '0.35rem 0',
+                                    minWidth: 0,
                                     cursor: 'pointer',
                                     fontWeight: i === activeIndex ? 700 : 400,
                                     color: i === activeIndex ? '#0369a1' : '#0f172a',
                                 }}
                             >
+                                <span
+                                    aria-hidden
+                                    style={{
+                                        flexShrink: 0,
+                                        minWidth: '1.75rem',
+                                        textAlign: 'right',
+                                        fontVariantNumeric: 'tabular-nums',
+                                        color: '#94a3b8',
+                                        fontSize: '0.85rem',
+                                    }}
+                                >
+                                    {i + 1}.
+                                </span>
                                 <button
                                     type="button"
                                     onClick={() => setActiveIndex(i)}
                                     style={{
-                                        all: 'unset',
-                                        cursor: 'pointer',
+                                        flex: 1,
+                                        minWidth: 0,
+                                        boxSizing: 'border-box',
+                                        margin: 0,
+                                        padding: 0,
+                                        border: 'none',
+                                        background: 'transparent',
+                                        font: 'inherit',
+                                        color: 'inherit',
                                         textAlign: 'left',
-                                        width: '100%',
+                                        cursor: 'pointer',
+                                        whiteSpace: 'nowrap',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
                                     }}
                                 >
                                     {title} — {artist}
