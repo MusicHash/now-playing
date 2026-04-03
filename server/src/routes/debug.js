@@ -15,6 +15,8 @@ export default function debugRoutes(logger) {
             '/api/crawl_playlists_manually': 'Crawl Stations (all)',
             '/api/update_playlists_manually': 'Update Stations Manually (all)',
             '/api/playlist/refresh_charts/all': 'Refresh Charts - in batches (all)',
+            '/api/playlist/collect_charts/all': 'Collect Charts to DB (all, skips if week exists)',
+            '/api/playlist/sync_charts/all': 'Sync Charts to Spotify from DB (all)',
             '/api/playlist/slice/all': 'Shorten the playlist to limit (all)',
             '/api/debug_channels': 'Debug Channels',
         };

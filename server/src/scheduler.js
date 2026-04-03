@@ -1,4 +1,4 @@
-import { crawlAllStationsToNotifyTrackChanges, updatePlaylistContentForAllStations, refreshChartAll } from './lib/fetch_sources.js';
+import { crawlAllStationsToNotifyTrackChanges, updatePlaylistContentForAllStations, collectChartDataAll, syncAllChartsToSpotify } from './lib/fetch_sources.js';
 import { sliceAllPlaylists } from './lib/playlist.js';
 
 class Scheduler {
@@ -55,23 +55,23 @@ class Scheduler {
             24 * 60 * 60 * 1000,
         );
 
-        const chartsInterval = setInterval(
+        const chartCollectInterval = setInterval(
             async () => {
                 try {
-                    let res = await refreshChartAll();
+                    let res = await collectChartDataAll();
 
                     this.logger.info({
-                        method: 'Scheduler.refreshCharts',
+                        method: 'Scheduler.collectChartData',
                         message: res,
                     });
 
                     this.logger.info({
-                        message: '[AUTO REFRESH] CHARTS - once every 24 hours',
+                        message: '[AUTO REFRESH] CHART COLLECTION - once every 24 hours (skips if week exists)',
                     });
                 } catch (error) {
                     this.logger.error({
-                        method: 'Scheduler.refreshCharts',
-                        message: 'Error in charts refresh timer',
+                        method: 'Scheduler.collectChartData',
+                        message: 'Error in chart collection timer',
                         error,
                     });
                 }
@@ -79,7 +79,31 @@ class Scheduler {
             24 * 60 * 60 * 1000,
         );
 
-        this.intervals = [stationInterval, playlistInterval, chartsInterval];
+        const chartSyncInterval = setInterval(
+            async () => {
+                try {
+                    let res = await syncAllChartsToSpotify();
+
+                    this.logger.info({
+                        method: 'Scheduler.syncChartsToSpotify',
+                        message: res,
+                    });
+
+                    this.logger.info({
+                        message: '[AUTO REFRESH] CHART SPOTIFY SYNC - once every 24 hours',
+                    });
+                } catch (error) {
+                    this.logger.error({
+                        method: 'Scheduler.syncChartsToSpotify',
+                        message: 'Error in chart Spotify sync timer',
+                        error,
+                    });
+                }
+            },
+            24 * 60 * 60 * 1000,
+        );
+
+        this.intervals = [stationInterval, playlistInterval, chartCollectInterval, chartSyncInterval];
 
         // Shorten all playlists to 220 rows
         /* currently disabled, no need at this point.
