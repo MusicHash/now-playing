@@ -212,7 +212,7 @@ export default function RadioStatsDashboard() {
     return (
         <section style={{ marginTop: '2rem' }}>
             <h2 style={{ fontSize: '1.25rem', margin: '0 0 1rem', color: '#0f172a' }}>
-                Radio stats
+                Play metrics
             </h2>
             <StatsControls
                 days={days}
