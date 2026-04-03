@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Starts the now-playing app under screen on port HTTP_PORT (default 9393).
-# Safe to run repeatedly — if it's already up and healthy, does nothing.
+# Safe to run repeatedly — stops any existing session and starts fresh.
 
 set -euo pipefail
 
@@ -33,17 +33,10 @@ is_healthy() {
     curl -sf "http://${HOST}:${PORT}/api/health" -o /dev/null --max-time 3
 }
 
-# ── already up? ───────────────────────────────────────────────────────────────
-
-if is_screen_running && is_healthy; then
-    green "✓ now-playing is already running and healthy on ${HOST}:${PORT}"
-    exit 0
-fi
-
-# ── stale screen / zombie? ────────────────────────────────────────────────────
+# ── stop existing session (restart on re-run) ─────────────────────────────────
 
 if is_screen_running; then
-    yellow "⚠ Screen session exists but health check failed — restarting…"
+    yellow "⚠ Restarting now-playing (stopping existing screen session)…"
     screen -S "$SCREEN_NAME" -X quit 2>/dev/null || true
     sleep 1
 fi
@@ -57,6 +50,11 @@ fi
 # ── ensure log dir exists ─────────────────────────────────────────────────────
 
 mkdir -p "$SCRIPT_DIR/log"
+
+# ── build client (production bundle for server static hosting) ───────────────
+
+echo "Building client…"
+(cd "$SCRIPT_DIR" && npm run build:client)
 
 # ── launch ────────────────────────────────────────────────────────────────────
 
