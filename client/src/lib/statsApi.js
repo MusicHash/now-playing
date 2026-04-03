@@ -12,6 +12,10 @@ export const MOMENTUM_DIRECTION_DOWN = 'down';
 export const PLAYLIST_SORT_PLAY_COUNT = 'play_count';
 export const PLAYLIST_SORT_RECENT = 'recent';
 
+/** Playlist page source mode. */
+export const PLAYLIST_MODE_PLAYLOG = 'playlog';
+export const PLAYLIST_MODE_CHART = 'chart';
+
 /** Must match server `ALLOWED_BUCKET_MINUTES`. */
 export const ALLOWED_BUCKET_MINUTES = [1, 5, 10, 15, 30, 60, 120, 240, 480, 1440];
 export const DEFAULT_BUCKET_MINUTES = 1440;
@@ -193,6 +197,18 @@ export function getPlaysByBucketArtistUrl(params) {
         p.set('station', params.station);
     }
     return `/api/data/stats/plays-by-bucket/artist?${p}`;
+}
+
+/**
+ * @param {{ chart: string, week?: number | null }} params
+ */
+export function getChartTracksUrl(params) {
+    const p = new URLSearchParams();
+    p.set('chart', params.chart);
+    if (params.week) {
+        p.set('week', String(params.week));
+    }
+    return `/api/data/chart-tracks?${p}`;
 }
 
 /**

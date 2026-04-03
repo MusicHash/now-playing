@@ -96,4 +96,47 @@ async function getLatestChartEntries(chartId) {
     return rows;
 }
 
-export { getYearWeek, doesChartWeekExist, insertChartEntries, getLatestChartEntries };
+/**
+ * Returns chart entries for a given chart and optional week.
+ * If yearWeek is falsy, returns the latest available week.
+ * Joined with spotify tracks for spotify_track_id.
+ */
+async function getChartEntries(chartId, yearWeek) {
+    const weekClause = yearWeek
+        ? `c.chart_year_week = ?`
+        : `c.chart_year_week = (SELECT MAX(chart_year_week) FROM \`${TABLE}\` WHERE chart_id = ?)`;
+    const params = [chartId, yearWeek || chartId];
+
+    const [rows] = await MySQLWrapper.query(
+        `SELECT c.chart_position, c.chart_year_week, c.entry_artist, c.entry_title, c.entry_extra, ` +
+        `t.spotify_track_id ` +
+        `FROM \`${TABLE}\` c ` +
+        `LEFT JOIN \`nowplaying_spotify_tracks\` t ON c.spotify_id = t.spotify_id ` +
+        `WHERE c.chart_id = ? AND ${weekClause} ` +
+        `ORDER BY c.chart_position ASC`,
+        params,
+    );
+
+    return rows;
+}
+
+/**
+ * Returns all distinct year-week values stored for a given chart, newest first.
+ */
+async function getAvailableWeeks(chartId) {
+    const [rows] = await MySQLWrapper.query(
+        `SELECT DISTINCT chart_year_week FROM \`${TABLE}\` WHERE chart_id = ? ORDER BY chart_year_week DESC`,
+        [chartId],
+    );
+
+    return rows.map((r) => r.chart_year_week);
+}
+
+export {
+    getYearWeek,
+    doesChartWeekExist,
+    insertChartEntries,
+    getLatestChartEntries,
+    getChartEntries,
+    getAvailableWeeks,
+};

@@ -14,6 +14,7 @@ import {
     getTopStations,
     getTopTracksByMomentum,
 } from '../lib/query_log/stats_queries.js';
+import { getChartEntries, getAvailableWeeks } from '../lib/query_log/chart_log.js';
 
 function requireMysql(_req, res, next) {
     if (!MySQLWrapper.isEnabled()) {
@@ -51,7 +52,11 @@ export default function dataRoutes(_logger) {
                 ...new Set([...Object.keys(stations), ...Object.keys(charts)]),
             ].sort();
             const logged = await getDistinctStationsLogged();
-            res.json({ configured, logged });
+            const chartList = Object.entries(charts).map(([id, cfg]) => ({
+                id,
+                label: cfg.now_playing?.title || id,
+            }));
+            res.json({ configured, logged, charts: chartList });
         } catch (error) {
             res.status(500).json({ error: 'Query failed', message: String(error?.message || error) });
         }
@@ -162,6 +167,35 @@ export default function dataRoutes(_logger) {
                 artist,
             });
             res.json(rows);
+        } catch (error) {
+            res.status(500).json({ error: 'Query failed', message: String(error?.message || error) });
+        }
+    });
+
+    router.get('/data/chart-tracks', async (req, res) => {
+        const chart = typeof req.query.chart === 'string' ? req.query.chart.trim() : '';
+        if (!chart) {
+            res.status(400).json({ error: 'chart is required' });
+            return;
+        }
+        const weekRaw = typeof req.query.week === 'string' ? req.query.week.trim() : '';
+        const week = weekRaw ? Number(weekRaw) : null;
+        if (weekRaw && (!Number.isFinite(week) || week <= 0)) {
+            res.status(400).json({ error: 'week must be a positive integer (e.g. 202614)' });
+            return;
+        }
+        try {
+            const [tracks, availableWeeks] = await Promise.all([
+                getChartEntries(chart, week),
+                getAvailableWeeks(chart),
+            ]);
+            const resolvedWeek = tracks.length > 0 ? tracks[0].chart_year_week : (week || null);
+            res.json({
+                chart_id: chart,
+                chart_year_week: resolvedWeek,
+                available_weeks: availableWeeks,
+                tracks,
+            });
         } catch (error) {
             res.status(500).json({ error: 'Query failed', message: String(error?.message || error) });
         }

@@ -8,6 +8,8 @@ import {
     MAX_STATS_LIMIT,
     MOMENTUM_DIRECTION_DOWN,
     MOMENTUM_DIRECTION_UP,
+    PLAYLIST_MODE_CHART,
+    PLAYLIST_MODE_PLAYLOG,
     PLAYLIST_SORT_PLAY_COUNT,
     PLAYLIST_SORT_RECENT,
 } from './statsApi.js';
@@ -188,6 +190,34 @@ export function parsePlaylistRun(sp) {
 }
 
 /**
+ * @param {URLSearchParams} sp
+ * @returns {typeof PLAYLIST_MODE_PLAYLOG | typeof PLAYLIST_MODE_CHART}
+ */
+export function parsePlaylistMode(sp) {
+    return sp.get('mode') === PLAYLIST_MODE_CHART ? PLAYLIST_MODE_CHART : PLAYLIST_MODE_PLAYLOG;
+}
+
+/**
+ * @param {URLSearchParams} sp
+ * @returns {string}
+ */
+export function parseChartId(sp) {
+    const c = sp.get('chart');
+    return typeof c === 'string' ? c : '';
+}
+
+/**
+ * @param {URLSearchParams} sp
+ * @returns {number | null}
+ */
+export function parseChartWeek(sp) {
+    const w = sp.get('week');
+    if (typeof w !== 'string') return null;
+    const n = Number.parseInt(w, 10);
+    return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/**
  * @param {URLSearchParams} base
  * @param {{
  *   days?: number,
@@ -195,6 +225,9 @@ export function parsePlaylistRun(sp) {
  *   station?: string,
  *   sort?: typeof PLAYLIST_SORT_PLAY_COUNT | typeof PLAYLIST_SORT_RECENT,
  *   run?: boolean | null,
+ *   mode?: typeof PLAYLIST_MODE_PLAYLOG | typeof PLAYLIST_MODE_CHART,
+ *   chart?: string,
+ *   week?: number | null,
  * }} patch
  */
 export function patchPlaylistState(base, patch) {
@@ -220,6 +253,27 @@ export function patchPlaylistState(base, patch) {
             next.set('run', '1');
         } else {
             next.delete('run');
+        }
+    }
+    if (patch.mode !== undefined) {
+        if (patch.mode === PLAYLIST_MODE_CHART) {
+            next.set('mode', PLAYLIST_MODE_CHART);
+        } else {
+            next.delete('mode');
+        }
+    }
+    if (patch.chart !== undefined) {
+        if (patch.chart) {
+            next.set('chart', patch.chart);
+        } else {
+            next.delete('chart');
+        }
+    }
+    if (patch.week !== undefined) {
+        if (patch.week) {
+            next.set('week', String(patch.week));
+        } else {
+            next.delete('week');
         }
     }
     return next;
