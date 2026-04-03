@@ -49,6 +49,8 @@ export default function SpotifyEmbedPlayer({ uris, activeIndex, onActiveIndexCha
     const controllerRef = useRef(null);
     const activeIndexRef = useRef(activeIndex);
     const urisRef = useRef(uris);
+    /** URI passed to createController — only skip loadUri when still on that track */
+    const embeddedUriRef = useRef('');
     const skipLoadUriAfterCreateRef = useRef(true);
     const [isPaused, setIsPaused] = useState(true);
 
@@ -87,6 +89,7 @@ export default function SpotifyEmbedPlayer({ uris, activeIndex, onActiveIndexCha
                         return;
                     }
                     controllerRef.current = EmbedController;
+                    embeddedUriRef.current = normalized[startIdx];
                     skipLoadUriAfterCreateRef.current = true;
 
                     let trackEndFired = false;
@@ -124,14 +127,17 @@ export default function SpotifyEmbedPlayer({ uris, activeIndex, onActiveIndexCha
         if (!c || uris.length === 0) {
             return;
         }
-        if (skipLoadUriAfterCreateRef.current) {
-            skipLoadUriAfterCreateRef.current = false;
-            return;
-        }
         const normalized = uris.map(toTrackUri).filter(Boolean);
         const uri = normalized[activeIndex];
         if (!uri) {
             return;
+        }
+        if (skipLoadUriAfterCreateRef.current) {
+            skipLoadUriAfterCreateRef.current = false;
+            /** Effect often runs before the async embed exists; skip only avoids reloading the same URI */
+            if (uri === embeddedUriRef.current) {
+                return;
+            }
         }
         c.loadUri(uri);
         c.play();
