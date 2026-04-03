@@ -1,7 +1,7 @@
 import MySQLWrapper from '../../utils/mysql_wrapper.js';
 
 /** Default rolling window in days (`days` query param on stats routes). */
-export const DEFAULT_STATS_DAYS = 7;
+export const DEFAULT_STATS_DAYS = 60;
 
 /** Min total plays in the rolling `days` window to include a track in momentum ranking (noise floor). */
 export const MOMENTUM_MIN_PLAYS_IN_WINDOW = 10;
