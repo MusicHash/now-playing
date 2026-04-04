@@ -81,6 +81,14 @@ export default function SpotifyEmbedPlayer({
     const embeddedStartIndexRef = useRef(0);
     const skipLoadUriAfterCreateRef = useRef(true);
     const [isPaused, setIsPaused] = useState(true);
+    /**
+     * Incremented when auto-advance fires to force controller recreation with the new
+     * track URI. Recreating the controller is necessary because calling c.loadUri() +
+     * c.play() on an already-ended embed is blocked by browser autoplay policy, whereas
+     * createController() with the new URI starts playback reliably (the user has already
+     * interacted with the embed during this session).
+     */
+    const [autoAdvanceCount, setAutoAdvanceCount] = useState(0);
 
     activeIndexRef.current = activeIndex;
     urisRef.current = uris;
@@ -140,7 +148,14 @@ export default function SpotifyEmbedPlayer({
                             }
                             trackEndFired = true;
                             onNavigateNextRef.current();
-                            /** Keep trackEndFired=true until position resets (new track). */
+                            /**
+                             * Recreate the controller with the new URI so the next track
+                             * starts playing reliably. c.loadUri()+c.play() is blocked by
+                             * the browser's autoplay policy once a track has fully ended,
+                             * but createController() works because the user already
+                             * interacted with this embed session.
+                             */
+                            setAutoAdvanceCount((n) => n + 1);
                         }
                     });
                 },
@@ -152,7 +167,7 @@ export default function SpotifyEmbedPlayer({
             controllerRef.current = null;
             el.innerHTML = '';
         };
-    }, [uriKey]);
+    }, [uriKey, autoAdvanceCount]);
 
     useEffect(() => {
         const c = controllerRef.current;

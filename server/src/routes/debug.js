@@ -71,7 +71,17 @@ export default function debugRoutes(logger) {
             html += `<li>${channelID} (<a href="/api/debug/fetch/${channelID}">Debug Fetch</a>)</li>`;
         }
 
-        res.send(`<ul>${html}</ul>`);
+        res.type('html').send(`<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Now Playing · Debug · API actions</title>
+</head>
+<body>
+<ul>${html}</ul>
+</body>
+</html>`);
     });
 
     router.get('/debug/fetch/:chartID', async (req, res) => {
@@ -114,10 +124,10 @@ export default function debugRoutes(logger) {
             output.push(error);
         }
 
-        res.send(`
+        res.type('html').send(`
             <html>
               <head>
-                <title>Debug Fetch</title>
+                <title>Now Playing · Debug fetch · ${chartID}</title>
                 <style>
                   #playlist li { padding: 2px 6px; }
                   #playlist li.now-playing {

@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
-import { NavLink, Outlet, Route, Routes } from 'react-router-dom';
+import { useEffect, useLayoutEffect, useState } from 'react';
+import { NavLink, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import GeneratePlaylistPage from './components/GeneratePlaylistPage.jsx';
 import RadioStatsDashboard from './components/RadioStatsDashboard.jsx';
 import WelcomePage from './components/WelcomePage.jsx';
+import { buildDocumentTitle } from './lib/documentTitle.js';
 
 const navButtonBase = {
     display: 'block',
@@ -21,6 +22,11 @@ const navButtonBase = {
 
 function AppLayout() {
     const [status, setStatus] = useState('loading');
+    const location = useLocation();
+
+    useLayoutEffect(() => {
+        document.title = buildDocumentTitle(location.pathname, location.search);
+    }, [location.pathname, location.search]);
 
     useEffect(() => {
         fetch('/api/health')
