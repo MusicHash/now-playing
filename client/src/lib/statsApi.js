@@ -1,7 +1,7 @@
 /** Defaults aligned with server `stats_queries.js`. */
-export const DEFAULT_STATS_DAYS = 60;
+export const DEFAULT_STATS_DAYS = 90;
 export const MAX_STATS_DAYS = 365;
-export const DEFAULT_STATS_LIMIT = 30;
+export const DEFAULT_STATS_LIMIT = 60;
 export const MAX_STATS_LIMIT = 200;
 
 /** Must match server `MOMENTUM_DIRECTION_*` — `top-tracks-momentum` only. */

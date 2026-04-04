@@ -1,7 +1,7 @@
 import MySQLWrapper from '../../utils/mysql_wrapper.js';
 
 /** Default rolling window in days (`days` query param on stats routes). */
-export const DEFAULT_STATS_DAYS = 60;
+export const DEFAULT_STATS_DAYS = 90;
 
 /** Min total plays in the rolling `days` window to include a track in momentum ranking (noise floor). */
 export const MOMENTUM_MIN_PLAYS_IN_WINDOW = 10;
@@ -29,7 +29,7 @@ export const MAX_RECENT_LIMIT = 500;
 
 /** Allowed `resolutionMinutes` for plays-by-bucket drill-down APIs. */
 export const ALLOWED_BUCKET_MINUTES = [1, 5, 10, 15, 30, 60, 120, 240, 480, 1440];
-export const DEFAULT_BUCKET_MINUTES = 60;
+export const DEFAULT_BUCKET_MINUTES = 90;
 
 
 const CACHE_TTL_1_HOUR = 3600;
