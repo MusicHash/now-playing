@@ -83,6 +83,11 @@ export default function SpotifyConnectPlayer({ uris, activeIndex, onActiveIndexC
     const [volume, setVolume] = useState(50);
     const volumeTimerRef = useRef(null);
     const pendingPollRef = useRef(null);
+    /** While set, ignore API volume so poll does not overwrite local slider (stale reads). */
+    const volumeIgnoreApiUntilRef = useRef(0);
+    /** After a local seek, ignore API progress until Spotify reports near this position or timeout. */
+    const seekPendingRef = useRef(null);
+    const lastFetchedTrackUriRef = useRef('');
 
     const activeIndexRef = useRef(activeIndex);
     const urisRef = useRef(uris);
@@ -203,8 +208,28 @@ export default function SpotifyConnectPlayer({ uris, activeIndex, onActiveIndexC
             if (res.status === 204 || !res.ok) return;
             const data = await res.json();
 
+            const trackUri = data.item?.uri ?? '';
+            if (lastFetchedTrackUriRef.current !== trackUri) {
+                seekPendingRef.current = null;
+                lastFetchedTrackUriRef.current = trackUri;
+            }
+
             setIsPaused(!data.is_playing);
-            setProgressMs(data.progress_ms ?? 0);
+            const apiProgress = data.progress_ms ?? 0;
+            const pendingSeek = seekPendingRef.current;
+            if (pendingSeek) {
+                const elapsed = Date.now() - pendingSeek.startedAt;
+                const drift = Math.abs(apiProgress - pendingSeek.targetMs);
+                const caughtUp = drift <= 2000;
+                const giveUp = elapsed > 4000;
+                if (caughtUp || giveUp) {
+                    seekPendingRef.current = null;
+                    setProgressMs(apiProgress);
+                }
+                /* else: keep optimistic progressMs; API still reporting pre-seek position */
+            } else {
+                setProgressMs(apiProgress);
+            }
             setDurationMs(data.item?.duration_ms ?? 0);
             setTrackName(data.item?.name ?? '');
             setArtistName(
@@ -213,7 +238,12 @@ export default function SpotifyConnectPlayer({ uris, activeIndex, onActiveIndexC
             const images = data.item?.album?.images ?? [];
             setAlbumArt(images.length > 0 ? images[images.length - 1].url : '');
             if (data.device?.volume_percent != null) {
-                setVolume(data.device.volume_percent);
+                const apiVol = data.device.volume_percent;
+                if (Date.now() < volumeIgnoreApiUntilRef.current) {
+                    /* keep slider at last local value until window ends */
+                } else {
+                    setVolume(apiVol);
+                }
             }
 
             const pos = data.progress_ms ?? 0;
@@ -363,6 +393,7 @@ export default function SpotifyConnectPlayer({ uris, activeIndex, onActiveIndexC
             const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
             const positionMs = Math.round(pct * durationMs);
             setProgressMs(positionMs);
+            seekPendingRef.current = { targetMs: positionMs, startedAt: Date.now() };
             try {
                 await spotifyFetch(
                     `${SPOTIFY_API}/seek?position_ms=${positionMs}&device_id=${selectedDeviceId}`,
@@ -380,6 +411,7 @@ export default function SpotifyConnectPlayer({ uris, activeIndex, onActiveIndexC
         (e) => {
             const val = Number(e.target.value);
             setVolume(val);
+            volumeIgnoreApiUntilRef.current = Date.now() + 2000;
             if (volumeTimerRef.current) clearTimeout(volumeTimerRef.current);
             volumeTimerRef.current = setTimeout(async () => {
                 try {
