@@ -270,7 +270,7 @@ export default function SpotifyConnectPlayer({
 
             const pos = data.progress_ms ?? 0;
             const dur = data.item?.duration_ms ?? 0;
-            if (dur > 0 && !data.is_playing && pos >= dur - 1500 && !trackEndFiredRef.current) {
+            if (dur > 0 && pos >= dur - 1500 && !trackEndFiredRef.current) {
                 if (!canNavigateNextRef.current) {
                     trackEndFiredRef.current = true;
                     return;

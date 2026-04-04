@@ -137,11 +137,9 @@ export default function SpotifyEmbedPlayer({
                     EmbedController.addListener('playback_update', (e) => {
                         const { position, duration, isPaused: paused } = e.data;
                         setIsPaused(!!paused);
-                        /** Spotify reports position/duration in milliseconds */
                         if (duration <= 0) {
                             return;
                         }
-                        /** New track started — clear the guard so the next end-of-track fires. */
                         if (position < duration - 500) {
                             trackEndFired = false;
                         }
@@ -152,13 +150,6 @@ export default function SpotifyEmbedPlayer({
                             }
                             trackEndFired = true;
                             onNavigateNextRef.current();
-                            /**
-                             * Recreate the controller with the new URI so the next track
-                             * starts playing reliably. c.loadUri()+c.play() is blocked by
-                             * the browser's autoplay policy once a track has fully ended,
-                             * but createController() works because the user already
-                             * interacted with this embed session.
-                             */
                             setAutoAdvanceCount((n) => n + 1);
                         }
                     });
