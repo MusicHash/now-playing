@@ -5,10 +5,11 @@ import {
     clearPlayerAuth,
     spotifyFetch,
 } from '../lib/spotifyPlayerAuth.js';
+import useSpotifyWebPlayback, { WEB_PLAYBACK_DEVICE_NAME } from '../hooks/useSpotifyWebPlayback.js';
 
 const SPOTIFY_API = 'https://api.spotify.com/v1/me/player';
 const POLL_INTERVAL_MS = 1500;
-const LS_DEVICE_ID = 'sp_player_device_id';
+const LS_DEVICE_NAME = 'sp_player_device_name';
 
 function toTrackUri(idOrUri) {
     const s = String(idOrUri ?? '').trim();
@@ -68,11 +69,9 @@ const progressBarBg = {
     boxSizing: 'content-box',
 };
 
-export default function SpotifyConnectPlayer({ uris, activeIndex, onActiveIndexChange }) {
+export default function SpotifyConnectPlayer({ uris, activeIndex, onActiveIndexChange, urlDeviceName, onDeviceNameChange }) {
     const [devices, setDevices] = useState([]);
-    const [selectedDeviceId, setSelectedDeviceId] = useState(
-        () => localStorage.getItem(LS_DEVICE_ID) || '',
-    );
+    const [selectedDeviceId, setSelectedDeviceId] = useState('');
     const [isPaused, setIsPaused] = useState(true);
     const [progressMs, setProgressMs] = useState(0);
     const [durationMs, setDurationMs] = useState(0);
@@ -89,8 +88,12 @@ export default function SpotifyConnectPlayer({ uris, activeIndex, onActiveIndexC
     const urisRef = useRef(uris);
     const trackEndFiredRef = useRef(false);
     const lastPlayedUriRef = useRef('');
+    /** Once true, track changes auto-play; first play requires an explicit Play click. */
+    const userPlaybackStartedRef = useRef(false);
     activeIndexRef.current = activeIndex;
     urisRef.current = uris;
+
+    const preferredName = urlDeviceName || localStorage.getItem(LS_DEVICE_NAME) || '';
 
     const normalized = useMemo(
         () => uris.map(toTrackUri).filter(Boolean),
@@ -99,7 +102,26 @@ export default function SpotifyConnectPlayer({ uris, activeIndex, onActiveIndexC
 
     const currentUri = normalized[activeIndex] || '';
 
+    const devicesRef = useRef(devices);
+    devicesRef.current = devices;
+
+    const selectDeviceById = useCallback((id) => {
+        setSelectedDeviceId(id);
+        const match = devicesRef.current.find((d) => d.id === id);
+        const name = match?.name || '';
+        if (name) {
+            localStorage.setItem(LS_DEVICE_NAME, name);
+            if (onDeviceNameChange) onDeviceNameChange(name);
+        }
+    }, [onDeviceNameChange]);
+
     const authenticated = isPlayerAuthenticated();
+
+    const {
+        deviceId: sdkDeviceId,
+        isReady: sdkReady,
+        error: sdkError,
+    } = useSpotifyWebPlayback(authenticated);
 
     // --- Fetch devices ---
     const loadDevices = useCallback(async () => {
@@ -110,15 +132,16 @@ export default function SpotifyConnectPlayer({ uris, activeIndex, onActiveIndexC
             const data = await res.json();
             const list = data.devices || [];
             setDevices(list);
+            devicesRef.current = list;
             setError(null);
 
-            const savedId = localStorage.getItem(LS_DEVICE_ID);
-            if (savedId && list.some((d) => d.id === savedId)) {
-                setSelectedDeviceId(savedId);
-            } else if (list.length > 0) {
+            const wantedName = urlDeviceName || localStorage.getItem(LS_DEVICE_NAME) || '';
+            const byName = wantedName ? list.find((d) => d.name === wantedName) : null;
+            if (byName) {
+                selectDeviceById(byName.id);
+            } else if (!wantedName && list.length > 0) {
                 const active = list.find((d) => d.is_active) || list[0];
-                setSelectedDeviceId(active.id);
-                localStorage.setItem(LS_DEVICE_ID, active.id);
+                selectDeviceById(active.id);
             }
         } catch (err) {
             if (err.message === 'not_authenticated' || err.message === 'token_refresh_failed') {
@@ -129,12 +152,47 @@ export default function SpotifyConnectPlayer({ uris, activeIndex, onActiveIndexC
         } finally {
             setDevicesLoading(false);
         }
-    }, []);
+    }, [selectDeviceById, urlDeviceName]);
 
     useEffect(() => {
         if (!authenticated) return;
         loadDevices();
     }, [authenticated, loadDevices]);
+
+    useEffect(() => {
+        if (!sdkReady || !sdkDeviceId) return undefined;
+        const urlWantsOther = preferredName && preferredName !== WEB_PLAYBACK_DEVICE_NAME;
+        if (urlWantsOther) return undefined;
+
+        let cancelled = false;
+        const DELAYS = [500, 1500, 3000];
+
+        async function tryActivate(attempt) {
+            if (cancelled) return;
+            await loadDevices();
+            const found = devicesRef.current.find((d) => d.id === sdkDeviceId);
+            if (!found && attempt < DELAYS.length) {
+                setTimeout(() => tryActivate(attempt + 1), DELAYS[attempt]);
+                return;
+            }
+            if (!found || cancelled) return;
+            try {
+                await spotifyFetch(SPOTIFY_API, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ device_ids: [found.id] }),
+                });
+            } catch {
+                /* transfer may fail transiently; playUri will retry */
+            }
+            if (!cancelled) {
+                selectDeviceById(found.id);
+            }
+        }
+
+        tryActivate(0);
+        return () => { cancelled = true; };
+    }, [sdkReady, sdkDeviceId, loadDevices, selectDeviceById, preferredName]);
 
     // --- Fetch playback state (shared by poll loop and on-demand refresh) ---
     const fetchPlaybackState = useCallback(async () => {
@@ -185,8 +243,7 @@ export default function SpotifyConnectPlayer({ uris, activeIndex, onActiveIndexC
     const handleDeviceChange = useCallback(
         async (e) => {
             const id = e.target.value;
-            setSelectedDeviceId(id);
-            localStorage.setItem(LS_DEVICE_ID, id);
+            selectDeviceById(id);
             if (!id) return;
             try {
                 const res = await spotifyFetch(SPOTIFY_API, {
@@ -211,7 +268,7 @@ export default function SpotifyConnectPlayer({ uris, activeIndex, onActiveIndexC
                 }
             }
         },
-        [scheduleFetchPlaybackState],
+        [selectDeviceById, scheduleFetchPlaybackState],
     );
 
     // --- Play a specific URI on the selected device ---
@@ -247,23 +304,34 @@ export default function SpotifyConnectPlayer({ uris, activeIndex, onActiveIndexC
         [selectedDeviceId, scheduleFetchPlaybackState],
     );
 
-    // --- Trigger play when activeIndex or uris change ---
+    // --- Trigger play when activeIndex or uris change (only after user has pressed Play once) ---
     useEffect(() => {
         if (!authenticated || !currentUri || !selectedDeviceId) return;
+        if (!userPlaybackStartedRef.current) return;
         if (currentUri === lastPlayedUriRef.current) return;
         playUri(currentUri);
     }, [authenticated, currentUri, selectedDeviceId, playUri]);
 
     // --- Pause / Resume ---
     const handleTogglePlay = useCallback(async () => {
+        if (!selectedDeviceId) return;
         try {
             if (isPaused) {
-                const res = await spotifyFetch(`${SPOTIFY_API}/play?device_id=${selectedDeviceId}`, {
-                    method: 'PUT',
-                });
-                if (res.ok || res.status === 204) {
-                    setIsPaused(false);
-                    scheduleFetchPlaybackState(300);
+                if (!userPlaybackStartedRef.current) {
+                    userPlaybackStartedRef.current = true;
+                    await playUri(currentUri);
+                    return;
+                }
+                if (lastPlayedUriRef.current === currentUri) {
+                    const res = await spotifyFetch(`${SPOTIFY_API}/play?device_id=${selectedDeviceId}`, {
+                        method: 'PUT',
+                    });
+                    if (res.ok || res.status === 204) {
+                        setIsPaused(false);
+                        scheduleFetchPlaybackState(300);
+                    }
+                } else {
+                    await playUri(currentUri);
                 }
             } else {
                 const res = await spotifyFetch(`${SPOTIFY_API}/pause?device_id=${selectedDeviceId}`, {
@@ -277,7 +345,7 @@ export default function SpotifyConnectPlayer({ uris, activeIndex, onActiveIndexC
         } catch {
             /* ignore transient errors */
         }
-    }, [isPaused, selectedDeviceId, scheduleFetchPlaybackState]);
+    }, [isPaused, selectedDeviceId, scheduleFetchPlaybackState, playUri, currentUri]);
 
     // --- Seek ---
     const handleSeek = useCallback(
@@ -615,6 +683,11 @@ export default function SpotifyConnectPlayer({ uris, activeIndex, onActiveIndexC
             {error === 'play_failed' && (
                 <p style={{ margin: '0.5rem 0 0', fontSize: '0.78rem', color: '#ea580c', textAlign: 'center' }}>
                     Playback failed. Make sure Spotify is active on the selected device.
+                </p>
+            )}
+            {sdkError && (
+                <p style={{ margin: '0.5rem 0 0', fontSize: '0.78rem', color: '#ea580c', textAlign: 'center' }}>
+                    Browser playback: {sdkError}
                 </p>
             )}
 

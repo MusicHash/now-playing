@@ -8,6 +8,7 @@ import {
     parseChartId,
     parseChartWeek,
     parseDays,
+    parseDevice,
     parseLimit,
     parsePlaylistMode,
     parsePlaylistRun,
@@ -139,6 +140,7 @@ export default function GeneratePlaylistPage() {
 
     const chartId = useMemo(() => parseChartId(searchParams), [searchParams]);
     const chartWeek = useMemo(() => parseChartWeek(searchParams), [searchParams]);
+    const deviceParam = useMemo(() => parseDevice(searchParams), [searchParams]);
 
     const [tracks, setTracks] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -362,6 +364,7 @@ export default function GeneratePlaylistPage() {
     );
     const setChartIdParam = useCallback((c) => patch({ chart: c, week: null }), [patch]);
     const setChartWeekParam = useCallback((w) => patch({ week: w }), [patch]);
+    const setDeviceParam = useCallback((d) => patch({ device: d || null }), [patch]);
 
     const handleGenerate = useCallback(() => {
         if (runFlag) {
@@ -640,6 +643,8 @@ export default function GeneratePlaylistPage() {
                             uris={uris}
                             activeIndex={activeIndex}
                             onActiveIndexChange={onActiveIndexChange}
+                            urlDeviceName={deviceParam}
+                            onDeviceNameChange={setDeviceParam}
                         />
                     ) : (
                         <SpotifyEmbedPlayer

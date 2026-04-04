@@ -2,7 +2,7 @@ import { Router } from 'express';
 import express from 'express';
 import SpotifyWebApi from 'spotify-web-api-node';
 
-const SCOPES = ['user-read-playback-state', 'user-modify-playback-state'];
+const SCOPES = ['user-read-playback-state', 'user-modify-playback-state', 'streaming'];
 const STATE_KEY = 'player-auth';
 
 export default function playerRoutes(logger) {

@@ -175,6 +175,15 @@ export function patchMetricsDrill(base, drill) {
 
 /**
  * @param {URLSearchParams} sp
+ * @returns {string}
+ */
+export function parseDevice(sp) {
+    const d = sp.get('device');
+    return typeof d === 'string' ? d : '';
+}
+
+/**
+ * @param {URLSearchParams} sp
  * @returns {typeof PLAYLIST_SORT_PLAY_COUNT | typeof PLAYLIST_SORT_RECENT}
  */
 export function parsePlaylistSort(sp) {
@@ -228,6 +237,7 @@ export function parseChartWeek(sp) {
  *   mode?: typeof PLAYLIST_MODE_PLAYLOG | typeof PLAYLIST_MODE_CHART,
  *   chart?: string,
  *   week?: number | null,
+ *   device?: string | null,
  * }} patch
  */
 export function patchPlaylistState(base, patch) {
@@ -274,6 +284,13 @@ export function patchPlaylistState(base, patch) {
             next.set('week', String(patch.week));
         } else {
             next.delete('week');
+        }
+    }
+    if (patch.device !== undefined) {
+        if (patch.device) {
+            next.set('device', patch.device);
+        } else {
+            next.delete('device');
         }
     }
     return next;
