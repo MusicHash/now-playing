@@ -129,6 +129,10 @@ export default function SpotifyEmbedPlayer({
                         if (duration <= 0) {
                             return;
                         }
+                        /** New track started — clear the guard so the next end-of-track fires. */
+                        if (position < duration - 500) {
+                            trackEndFired = false;
+                        }
                         if (!trackEndFired && position >= duration - 500) {
                             if (!canNavigateNextRef.current) {
                                 trackEndFired = true;
@@ -136,7 +140,7 @@ export default function SpotifyEmbedPlayer({
                             }
                             trackEndFired = true;
                             onNavigateNextRef.current();
-                            trackEndFired = false;
+                            /** Keep trackEndFired=true until position resets (new track). */
                         }
                     });
                 },
