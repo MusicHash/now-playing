@@ -14,8 +14,10 @@ import {
     parsePlaylistMode,
     parsePlaylistRun,
     parsePlaylistSort,
+    parsePlayType,
     parseStation,
     patchPlaylistState,
+    PLAY_TYPE_SHUFFLE,
 } from '../lib/appSearchParams.js';
 import {
     clampBucketMinutes,
@@ -106,6 +108,20 @@ function formatYearWeek(yw) {
     return `Week ${week}, ${year}`;
 }
 
+/**
+ * @param {number} n list length
+ * @param {number} exclude index to avoid (if n > 1)
+ */
+function randomIndexExcept(n, exclude) {
+    if (n <= 0) return 0;
+    if (n === 1) return 0;
+    let j = exclude;
+    while (j === exclude) {
+        j = Math.floor(Math.random() * n);
+    }
+    return j;
+}
+
 function useSidebarChartWidth() {
     const ref = useRef(null);
     const [width, setWidth] = useState(280);
@@ -142,11 +158,14 @@ export default function GeneratePlaylistPage() {
     const chartId = useMemo(() => parseChartId(searchParams), [searchParams]);
     const chartWeek = useMemo(() => parseChartWeek(searchParams), [searchParams]);
     const deviceParam = useMemo(() => parseDevice(searchParams), [searchParams]);
+    const playType = useMemo(() => parsePlayType(searchParams), [searchParams]);
 
     const [tracks, setTracks] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [playerSession, setPlayerSession] = useState(0);
+    /** Stack of playlist indices visited before the current track (shuffle prev). */
+    const [shuffleHistory, setShuffleHistory] = useState([]);
 
     const urlPlaylistIndex = useMemo(() => parsePlaylistIndex(searchParams), [searchParams]);
 
@@ -354,6 +373,61 @@ export default function GeneratePlaylistPage() {
         },
         [patch],
     );
+
+    const seekToPlaylistIndex = useCallback(
+        (index) => {
+            setShuffleHistory([]);
+            patch({ idx: index });
+        },
+        [patch],
+    );
+
+    const handleNavigateNext = useCallback(() => {
+        const n = uris.length;
+        if (n <= 1) return;
+        if (playType === PLAY_TYPE_SHUFFLE) {
+            setShuffleHistory((h) => [...h, activeIndex]);
+            patch({ idx: randomIndexExcept(n, activeIndex) });
+        } else {
+            if (activeIndex >= n - 1) return;
+            patch({ idx: activeIndex + 1 });
+        }
+    }, [playType, activeIndex, uris.length, patch]);
+
+    const handleNavigatePrevious = useCallback(() => {
+        const n = uris.length;
+        if (n === 0) return;
+        if (playType === PLAY_TYPE_SHUFFLE) {
+            setShuffleHistory((h) => {
+                if (h.length === 0) return h;
+                const next = [...h];
+                const prevIdx = next.pop();
+                patch({ idx: prevIdx });
+                return next;
+            });
+        } else {
+            if (activeIndex <= 0) return;
+            patch({ idx: activeIndex - 1 });
+        }
+    }, [playType, activeIndex, patch]);
+
+    const canNavigateNext =
+        uris.length > 0 && (playType === PLAY_TYPE_SHUFFLE ? uris.length > 1 : activeIndex < uris.length - 1);
+
+    const canNavigatePrevious =
+        playType === PLAY_TYPE_SHUFFLE ? shuffleHistory.length > 0 : activeIndex > 0;
+
+    const setPlayTypeParam = useCallback(
+        (next) => {
+            setShuffleHistory([]);
+            patch({ playType: next });
+        },
+        [patch],
+    );
+
+    useEffect(() => {
+        setShuffleHistory([]);
+    }, [playerSession]);
 
     /** Fix shared links where idx is past the end of the loaded list. */
     useEffect(() => {
@@ -665,6 +739,12 @@ export default function GeneratePlaylistPage() {
                             uris={uris}
                             activeIndex={activeIndex}
                             onActiveIndexChange={onActiveIndexChange}
+                            playType={playType}
+                            onPlayTypeChange={setPlayTypeParam}
+                            onNavigateNext={handleNavigateNext}
+                            onNavigatePrevious={handleNavigatePrevious}
+                            canNavigateNext={canNavigateNext}
+                            canNavigatePrevious={canNavigatePrevious}
                             urlDeviceName={deviceParam}
                             onDeviceNameChange={setDeviceParam}
                         />
@@ -674,6 +754,12 @@ export default function GeneratePlaylistPage() {
                             uris={uris}
                             activeIndex={activeIndex}
                             onActiveIndexChange={onActiveIndexChange}
+                            playType={playType}
+                            onPlayTypeChange={setPlayTypeParam}
+                            onNavigateNext={handleNavigateNext}
+                            onNavigatePrevious={handleNavigatePrevious}
+                            canNavigateNext={canNavigateNext}
+                            canNavigatePrevious={canNavigatePrevious}
                         />
                     )}
                 </div>
@@ -775,7 +861,7 @@ export default function GeneratePlaylistPage() {
                                 </span>
                                 <button
                                     type="button"
-                                    onClick={() => onActiveIndexChange(i)}
+                                    onClick={() => seekToPlaylistIndex(i)}
                                     style={{
                                         flex: 1,
                                         minWidth: 0,

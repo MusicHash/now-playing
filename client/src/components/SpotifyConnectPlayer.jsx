@@ -6,6 +6,12 @@ import {
     spotifyFetch,
 } from '../lib/spotifyPlayerAuth.js';
 import useSpotifyWebPlayback, { WEB_PLAYBACK_DEVICE_NAME } from '../hooks/useSpotifyWebPlayback.js';
+import {
+    PLAY_TYPE_REGULAR,
+    PLAY_TYPE_SHUFFLE,
+    REGULAR_PLAY_SYMBOL,
+    SHUFFLE_SYMBOL,
+} from '../lib/appSearchParams.js';
 
 const SPOTIFY_API = 'https://api.spotify.com/v1/me/player';
 const POLL_INTERVAL_MS = 1500;
@@ -69,7 +75,19 @@ const progressBarBg = {
     boxSizing: 'content-box',
 };
 
-export default function SpotifyConnectPlayer({ uris, activeIndex, onActiveIndexChange, urlDeviceName, onDeviceNameChange }) {
+export default function SpotifyConnectPlayer({
+    uris,
+    activeIndex,
+    onActiveIndexChange,
+    playType,
+    onPlayTypeChange,
+    onNavigateNext,
+    onNavigatePrevious,
+    canNavigateNext,
+    canNavigatePrevious,
+    urlDeviceName,
+    onDeviceNameChange,
+}) {
     const [devices, setDevices] = useState([]);
     const [selectedDeviceId, setSelectedDeviceId] = useState('');
     const [isPaused, setIsPaused] = useState(true);
@@ -88,6 +106,10 @@ export default function SpotifyConnectPlayer({ uris, activeIndex, onActiveIndexC
     /** After a local seek, ignore API progress until Spotify reports near this position or timeout. */
     const seekPendingRef = useRef(null);
     const lastFetchedTrackUriRef = useRef('');
+    const onNavigateNextRef = useRef(onNavigateNext);
+    onNavigateNextRef.current = onNavigateNext;
+    const canNavigateNextRef = useRef(canNavigateNext);
+    canNavigateNextRef.current = canNavigateNext;
 
     const activeIndexRef = useRef(activeIndex);
     const urisRef = useRef(uris);
@@ -249,17 +271,17 @@ export default function SpotifyConnectPlayer({ uris, activeIndex, onActiveIndexC
             const pos = data.progress_ms ?? 0;
             const dur = data.item?.duration_ms ?? 0;
             if (dur > 0 && !data.is_playing && pos >= dur - 1500 && !trackEndFiredRef.current) {
-                trackEndFiredRef.current = true;
-                const idx = activeIndexRef.current;
-                const list = urisRef.current.map(toTrackUri).filter(Boolean);
-                if (idx + 1 < list.length) {
-                    onActiveIndexChange(idx + 1);
+                if (!canNavigateNextRef.current) {
+                    trackEndFiredRef.current = true;
+                    return;
                 }
+                trackEndFiredRef.current = true;
+                onNavigateNextRef.current();
             }
         } catch {
             /* ignore */
         }
-    }, [onActiveIndexChange]);
+    }, []);
 
     const scheduleFetchPlaybackState = useCallback(
         (delayMs = 300) => {
@@ -429,14 +451,16 @@ export default function SpotifyConnectPlayer({ uris, activeIndex, onActiveIndexC
 
     // --- Prev / Next ---
     const handlePrevious = useCallback(() => {
-        if (activeIndex <= 0) return;
-        onActiveIndexChange(activeIndex - 1);
-    }, [activeIndex, onActiveIndexChange]);
+        onNavigatePrevious();
+    }, [onNavigatePrevious]);
 
     const handleNext = useCallback(() => {
-        if (activeIndex >= uris.length - 1) return;
-        onActiveIndexChange(activeIndex + 1);
-    }, [activeIndex, onActiveIndexChange, uris.length]);
+        onNavigateNext();
+    }, [onNavigateNext]);
+
+    const handlePlayTypeClick = useCallback(() => {
+        onPlayTypeChange(playType === PLAY_TYPE_SHUFFLE ? PLAY_TYPE_REGULAR : PLAY_TYPE_SHUFFLE);
+    }, [playType, onPlayTypeChange]);
 
     // --- Poll playback state ---
     useEffect(() => {
@@ -505,8 +529,8 @@ export default function SpotifyConnectPlayer({ uris, activeIndex, onActiveIndexC
         );
     }
 
-    const canGoPrev = activeIndex > 0;
-    const canGoNext = activeIndex < uris.length - 1;
+    const canGoPrev = canNavigatePrevious;
+    const canGoNext = canNavigateNext;
     const progressPct = durationMs > 0 ? (progressMs / durationMs) * 100 : 0;
 
     return (
@@ -638,7 +662,7 @@ export default function SpotifyConnectPlayer({ uris, activeIndex, onActiveIndexC
                     marginTop: '0.75rem',
                 }}
             >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, justifyContent: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
                     <button
                         type="button"
                         style={{
@@ -672,6 +696,29 @@ export default function SpotifyConnectPlayer({ uris, activeIndex, onActiveIndexC
                         aria-label="Next track"
                     >
                         <span aria-hidden="true">⏭</span>
+                    </button>
+                    <button
+                        type="button"
+                        style={{
+                            ...controlButtonStyle,
+                            minWidth: '2.5rem',
+                            padding: '0.5rem 0.65rem',
+                            background: playType === PLAY_TYPE_SHUFFLE ? '#e0f2fe' : '#fff',
+                            borderColor: playType === PLAY_TYPE_SHUFFLE ? '#0284c7' : '#cbd5e1',
+                            color: playType === PLAY_TYPE_SHUFFLE ? '#0369a1' : '#475569',
+                        }}
+                        onClick={handlePlayTypeClick}
+                        aria-pressed={playType === PLAY_TYPE_SHUFFLE}
+                        title={playType === PLAY_TYPE_SHUFFLE ? 'Shuffle on' : 'Play in order'}
+                        aria-label={
+                            playType === PLAY_TYPE_SHUFFLE
+                                ? 'Play in order: click for regular order'
+                                : 'Shuffle: click to shuffle on next and previous'
+                        }
+                    >
+                        <span aria-hidden="true" style={{ fontSize: '1.1rem', lineHeight: 1 }}>
+                            {playType === PLAY_TYPE_SHUFFLE ? SHUFFLE_SYMBOL : REGULAR_PLAY_SYMBOL}
+                        </span>
                     </button>
                 </div>
                 <div
