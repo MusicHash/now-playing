@@ -1,7 +1,7 @@
 import * as d3 from 'd3';
 import { useEffect, useRef } from 'react';
 
-const RANKED_HEIGHT = 420;
+const RANKED_HEIGHT = 840;
 
 /**
  * @param {unknown} row
