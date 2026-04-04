@@ -1,3 +1,33 @@
+//historyCharts
+const spotifyHistoryCharts = {
+    'galgalatz': {
+        spotify: {
+            playlist: 'https://spoti.fi/',
+        },
+
+        now_playing: {
+            title: 'Galgalatz - Latest History Tracks (#Music)',
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 60 * 60 * 1 * 1000,
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cHM6Ly9vcGVuLnNwb3RpZnkuY29tL2VtYmVkL3BsYXlsaXN0LzJTWFJ2ZnFpTUJYRmthTWkwM25wTFo=',
+            regExp: [new RegExp('<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>', 's')],
+        },
+
+        parser: {
+            type: 'json',
+
+            fields: {
+                artist: 'props.pageProps.state.data.entity.trackList.{Iterator}.subtitle',
+                title: 'props.pageProps.state.data.entity.trackList.{Iterator}.title',
+            },
+        },
+    },
+};
+
 // Charts
 const shzmCharts = {
     'shzm-top200-uk': {
@@ -1116,7 +1146,10 @@ const charts = {
     ...billboardCharts,
     ...bpCharts,
     ...z100Charts,
-    ...europaPlusCharts,
+};
+
+const historyCharts = {
+    ...spotifyHistoryCharts,
 };
 
 const stations = {
@@ -1139,4 +1172,4 @@ const stations = {
     ...dorognoeStations,
 };
 
-export { charts, stations };
+export { charts, historyCharts, stations };
