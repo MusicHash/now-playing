@@ -2,7 +2,47 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { getPlayerToken, refreshPlayerToken } from '../lib/spotifyPlayerAuth.js';
 
 const SDK_SRC = 'https://sdk.scdn.co/spotify-player.js';
-export const WEB_PLAYBACK_DEVICE_NAME = 'Now Playing (Browser)';
+
+/** Short label like "Chrome-120" for Spotify Connect device names. */
+function getBrowserBrandMajorLabel() {
+    if (typeof navigator === 'undefined') return 'Browser';
+
+    const ua = navigator.userAgent;
+    const brands = navigator.userAgentData?.brands;
+    if (brands?.length) {
+        const meaningful = brands.filter((b) => !/Not/i.test(b.brand));
+        const pick =
+            meaningful.find((b) => /Chrome/i.test(b.brand) && !/^Chromium$/i.test(b.brand)) ||
+            meaningful.find((b) => !/^Chromium$/i.test(b.brand)) ||
+            meaningful[0];
+        if (pick?.version) {
+            const major = String(pick.version).split('.')[0];
+            let brand = pick.brand.replace(/^Google\s+/i, '').replace(/\s+Browser$/i, '');
+            if (/^Microsoft\s+Edge$/i.test(brand)) brand = 'Edge';
+            else if (/^Chrome$/i.test(brand)) brand = 'Chrome';
+            return `${brand}-${major}`;
+        }
+    }
+
+    let m;
+    if ((m = ua.match(/Edg\/(\d+)/))) return `Edge-${m[1]}`;
+    if ((m = ua.match(/OPR\/(\d+)/))) return `Opera-${m[1]}`;
+    if ((m = ua.match(/SamsungBrowser\/(\d+)/))) return `Samsung-${m[1]}`;
+    if ((m = ua.match(/Firefox\/(\d+)/))) return `Firefox-${m[1]}`;
+    if ((m = ua.match(/CriOS\/(\d+)/))) return `Chrome-${m[1]}`;
+    if ((m = ua.match(/FxiOS\/(\d+)/))) return `Firefox-${m[1]}`;
+    if ((m = ua.match(/Chrome\/(\d+)/)) && !/Edg\/|OPR\//.test(ua)) return `Chrome-${m[1]}`;
+    if (
+        (m = ua.match(/Version\/(\d+)/)) &&
+        /Safari\//.test(ua) &&
+        !/Chrome\/|Chromium\/|Edg\/|OPR\/|CriOS\//.test(ua)
+    ) {
+        return `Safari-${m[1]}`;
+    }
+    return 'Browser';
+}
+
+export const WEB_PLAYBACK_DEVICE_NAME = `Now Playing (${getBrowserBrandMajorLabel()})`;
 
 let sdkPromise = null;
 
