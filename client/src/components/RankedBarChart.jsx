@@ -5,9 +5,12 @@ const RANKED_HEIGHT = 840;
 
 /**
  * @param {unknown} row
- * @param {'tracks' | 'artists'} mode
+ * @param {'tracks' | 'artists' | 'stations'} mode
  */
 function rowLabel(row, mode) {
+    if (mode === 'stations') {
+        return String(row.log_station_id ?? '').trim() || '(unknown)';
+    }
     if (mode === 'artists') {
         return String(row.log_artist ?? '').trim() || '(unknown)';
     }
@@ -34,7 +37,7 @@ function truncate(s, maxLen) {
  *   width: number,
  *   loading: boolean,
  *   error: Error | null,
- *   mode: 'tracks' | 'artists',
+ *   mode: 'tracks' | 'artists' | 'stations',
  *   scopeAllStations?: boolean,
  *   onRowClick?: (row: Record<string, unknown>) => void,
  * }} props
@@ -79,9 +82,11 @@ export default function RankedBarChart({
         }));
 
         const barFill =
-            mode === 'artists'
-                ? 'rgba(20, 184, 166, 0.9)'
-                : 'rgba(99, 102, 241, 0.85)';
+            mode === 'stations'
+                ? 'rgba(245, 158, 11, 0.9)'
+                : mode === 'artists'
+                  ? 'rgba(20, 184, 166, 0.9)'
+                  : 'rgba(99, 102, 241, 0.85)';
 
         const margin = { top: 28, right: 20, bottom: 32, left: 8 };
         const labelCol = Math.min(220, Math.floor(w * 0.42));
@@ -112,7 +117,9 @@ export default function RankedBarChart({
             .attr('font-size', '13px')
             .attr('font-weight', 600)
             .attr('fill', '#334155')
-            .text(mode === 'artists' ? 'Top artists' : 'Top tracks');
+            .text(
+                mode === 'stations' ? 'Plays by station' : mode === 'artists' ? 'Top artists' : 'Top tracks',
+            );
 
         const rowG = g
             .selectAll('g.row')
@@ -168,18 +175,20 @@ export default function RankedBarChart({
     }, [data, width, height, loading, error, mode, onRowClick]);
 
     const title =
-        mode === 'artists'
-            ? scopeAllStations
-                ? 'Artists with the most plays across all stations'
-                : 'Artists with the most plays on this station'
-            : scopeAllStations
-              ? 'Most played tracks across all stations'
-              : 'Most played tracks on this station';
+        mode === 'stations'
+            ? 'Play volume by station'
+            : mode === 'artists'
+              ? scopeAllStations
+                  ? 'Artists with the most plays across all stations'
+                  : 'Artists with the most plays on this station'
+              : scopeAllStations
+                ? 'Most played tracks across all stations'
+                : 'Most played tracks on this station';
 
     return (
         <div style={{ width: '100%' }}>
             <h2 style={{ fontSize: '1rem', margin: '0 0 0.5rem', color: '#64748b' }}>{title}</h2>
-            {onRowClick && (
+            {onRowClick && mode !== 'stations' && (
                 <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', color: '#94a3b8' }}>
                     Click a row for a time-series view.
                 </p>

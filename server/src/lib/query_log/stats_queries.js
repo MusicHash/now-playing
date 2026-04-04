@@ -146,6 +146,38 @@ export async function getPlaysByDay(opts = {}) {
 }
 
 /**
+ * Aggregated plays by local hour (0–23) and MySQL `DAYOFWEEK` (1=Sunday … 7=Saturday) for the rolling window.
+ *
+ * @param {{ days?: unknown, station?: string, stationLike?: string }} opts
+ * @returns {Promise<Array<{ play_hour: number, dow: number, play_count: number }>>}
+ */
+export async function getPlaysByHourWeekday(opts = {}) {
+    const days = clampInt(opts.days, DEFAULT_STATS_DAYS, MAX_STATS_DAYS);
+    const { sql: extraWhere, params: extraParams } = stationWhereClause(opts);
+
+    const sql = `
+        SELECT
+            HOUR(station_log.log_datetime_played) AS play_hour,
+            DAYOFWEEK(station_log.log_datetime_played) AS dow,
+            COUNT(*) AS play_count
+        FROM
+            nowplaying_station_log station_log
+        WHERE
+            station_log.log_datetime_played >= NOW() - INTERVAL ? DAY
+            ${extraWhere}
+        GROUP BY
+            play_hour,
+            dow
+        ORDER BY
+            dow ASC,
+            play_hour ASC
+    `;
+
+    const [rows] = await MySQLWrapper.queryWithCache(sql, [days, ...extraParams], CACHE_TTL_6_HOURS);
+    return rows;
+}
+
+/**
  * @param {{ days?: unknown, limit?: unknown, station?: string, stationLike?: string }} opts
  */
 export async function getMostPlayedTracks(opts = {}) {
@@ -394,6 +426,152 @@ export async function getTopTracksByMomentum(opts = {}) {
         return {
             ...(meta || {}),
             spotify_track_id: tid,
+            momentum_score: row.momentum_score,
+            daily_plays,
+        };
+    });
+}
+
+/**
+ * Artists (`log_artist`) ranked by OLS linear trend of daily plays over the rolling `days` window.
+ * Same spine and slope logic as {@link getTopTracksByMomentum}; ignores rows with empty `log_artist`.
+ *
+ * @param {{ days?: unknown, limit?: unknown, station?: string, stationLike?: string, direction?: unknown }} opts
+ * @returns {Promise<Array<Record<string, unknown> & { daily_plays: Array<{ play_date: string, play_count: number }> }>>}
+ */
+export async function getTopArtistsByMomentum(opts = {}) {
+    const days = clampInt(opts.days, DEFAULT_STATS_DAYS, MAX_STATS_DAYS);
+    const limit = clampInt(opts.limit, DEFAULT_STATS_LIMIT, MAX_STATS_LIMIT);
+    const { sql: extraWhere, params: extraParams } = stationWhereClause(opts);
+    const direction = parseMomentumDirection(opts.direction);
+    const rising = direction === MOMENTUM_DIRECTION_UP;
+
+    const spineSql = `
+        WITH RECURSIVE dates AS (
+            SELECT DATE(NOW() - INTERVAL ? DAY) AS d
+            UNION ALL
+            SELECT d + INTERVAL 1 DAY FROM dates WHERE d < DATE(NOW())
+        )
+        SELECT d AS play_date FROM dates ORDER BY d ASC
+    `;
+    const [spineRows] = await MySQLWrapper.queryWithCache(spineSql, [days], CACHE_TTL_1_HOUR);
+    const spineDates = spineRows.map((r) => {
+        const raw = r.play_date;
+        if (raw instanceof Date) {
+            return raw.toISOString().slice(0, 10);
+        }
+        return String(raw).slice(0, 10);
+    });
+
+    if (spineDates.length < 2) {
+        return [];
+    }
+
+    const dailyAggSql = `
+        SELECT
+            station_log.log_artist,
+            DATE(station_log.log_datetime_played) AS play_date,
+            COUNT(*) AS play_count
+        FROM
+            nowplaying_station_log station_log
+        WHERE
+            station_log.log_datetime_played >= NOW() - INTERVAL ? DAY
+            AND station_log.log_artist IS NOT NULL
+            AND TRIM(station_log.log_artist) <> ''
+            ${extraWhere}
+        GROUP BY
+            station_log.log_artist,
+            DATE(station_log.log_datetime_played)
+    `;
+    const [dailyAggRows] = await MySQLWrapper.queryWithCache(dailyAggSql, [days, ...extraParams], CACHE_TTL_6_HOURS);
+
+    /** @type {Map<string, Map<string, number>>} */
+    const byArtistDate = new Map();
+    for (const row of dailyAggRows) {
+        const name = String(row.log_artist ?? '').trim();
+        if (!name) {
+            continue;
+        }
+        let dateKey = row.play_date;
+        if (dateKey instanceof Date) {
+            dateKey = dateKey.toISOString().slice(0, 10);
+        } else {
+            dateKey = String(dateKey).slice(0, 10);
+        }
+        if (!byArtistDate.has(name)) {
+            byArtistDate.set(name, new Map());
+        }
+        byArtistDate.get(name).set(dateKey, Number(row.play_count) || 0);
+    }
+
+    /** @type {Array<{ log_artist: string, momentum_score: number }>} */
+    const scored = [];
+    for (const [artistName, dayMap] of byArtistDate) {
+        const y = spineDates.map((d) => dayMap.get(d) ?? 0);
+        const total = y.reduce((a, b) => a + b, 0);
+        if (total < MOMENTUM_MIN_PLAYS_IN_WINDOW) {
+            continue;
+        }
+        const slope = olsSlopePlaysPerDay(y);
+        if (slope === null) {
+            continue;
+        }
+        if (rising && slope <= 0) {
+            continue;
+        }
+        if (!rising && slope >= 0) {
+            continue;
+        }
+        scored.push({
+            log_artist: artistName,
+            momentum_score: Number(slope.toFixed(6)),
+        });
+    }
+
+    scored.sort((a, b) => {
+        const diff = rising ? b.momentum_score - a.momentum_score : a.momentum_score - b.momentum_score;
+        if (diff !== 0) {
+            return diff;
+        }
+        return a.log_artist.localeCompare(b.log_artist);
+    });
+
+    const top = scored.slice(0, limit);
+    if (!top.length) {
+        return [];
+    }
+
+    const names = top.map((r) => r.log_artist);
+    const inList = names.map(() => '?').join(', ');
+    const metaSql = `
+        SELECT
+            station_log.log_artist,
+            COUNT(*) AS play_count
+        FROM
+            nowplaying_station_log station_log
+        WHERE
+            station_log.log_datetime_played >= NOW() - INTERVAL ? DAY
+            ${extraWhere}
+            AND station_log.log_artist IN (${inList})
+        GROUP BY
+            station_log.log_artist
+    `;
+    const [metaRows] = await MySQLWrapper.queryWithCache(metaSql, [days, ...extraParams, ...names], CACHE_TTL_1_DAY);
+
+    /** @type {Map<string, Record<string, unknown>>} */
+    const metaByName = new Map(metaRows.map((r) => [String(r.log_artist ?? '').trim(), r]));
+
+    return top.map((row) => {
+        const name = row.log_artist;
+        const meta = metaByName.get(name);
+        const dayMap = byArtistDate.get(name) ?? new Map();
+        const daily_plays = spineDates.map((play_date) => ({
+            play_date,
+            play_count: dayMap.get(play_date) ?? 0,
+        }));
+        return {
+            ...(meta || {}),
+            log_artist: name,
             momentum_score: row.momentum_score,
             daily_plays,
         };

@@ -23,8 +23,12 @@ function parsePlayDate(raw) {
 
 /**
  * @param {unknown} row
+ * @param {'track' | 'artist'} entityType
  */
-function trackLabel(row) {
+function seriesLabel(row, entityType) {
+    if (entityType === 'artist') {
+        return String(row.log_artist ?? '').trim() || '(unknown)';
+    }
     const title = String(row.spotify_track_title ?? '');
     const artist = String(row.spotify_artist_title ?? '');
     const s = `${title} — ${artist}`.trim();
@@ -38,6 +42,8 @@ function trackLabel(row) {
  *   loading: boolean,
  *   error: Error | null,
  *   scopeAllStations?: boolean,
+ *   entityType?: 'track' | 'artist',
+ *   showDirectionControl?: boolean,
  *   direction?: typeof MOMENTUM_DIRECTION_UP | typeof MOMENTUM_DIRECTION_DOWN,
  *   onDirectionChange?: (direction: typeof MOMENTUM_DIRECTION_UP | typeof MOMENTUM_DIRECTION_DOWN) => void,
  *   onRowClick?: (row: Record<string, unknown>) => void,
@@ -49,6 +55,8 @@ export default function TrackMomentumChart({
     loading,
     error,
     scopeAllStations = true,
+    entityType = 'track',
+    showDirectionControl = true,
     direction = MOMENTUM_DIRECTION_UP,
     onDirectionChange,
     onRowClick,
@@ -65,6 +73,15 @@ export default function TrackMomentumChart({
 
         const w = Math.max(width, 280);
         if (!data?.length) {
+            const emptyArtist = entityType === 'artist';
+            const emptyDown = direction === MOMENTUM_DIRECTION_DOWN;
+            const emptyMsg = emptyArtist
+                ? emptyDown
+                    ? 'No falling artists in this window'
+                    : 'No rising artists in this window'
+                : emptyDown
+                  ? 'No falling tracks in this window'
+                  : 'No rising tracks in this window';
             svg
                 .attr('width', w)
                 .attr('height', height)
@@ -73,11 +90,7 @@ export default function TrackMomentumChart({
                 .attr('y', height / 2)
                 .attr('text-anchor', 'middle')
                 .attr('fill', '#64748b')
-                .text(
-                    direction === MOMENTUM_DIRECTION_DOWN
-                        ? 'No falling tracks in this window'
-                        : 'No rising tracks in this window',
-                );
+                .text(emptyMsg);
             return;
         }
 
@@ -87,7 +100,7 @@ export default function TrackMomentumChart({
         const series = sliced.map((row, i) => {
             const daily = Array.isArray(row.daily_plays) ? row.daily_plays : [];
             return {
-                label: trackLabel(row),
+                label: seriesLabel(row, entityType),
                 color: colors[i % colors.length],
                 points: daily
                     .map((d) => ({
@@ -135,9 +148,13 @@ export default function TrackMomentumChart({
             .attr('font-weight', 600)
             .attr('fill', '#334155')
             .text(
-                direction === MOMENTUM_DIRECTION_DOWN
-                    ? 'Daily plays (falling tracks)'
-                    : 'Daily plays (rising tracks)',
+                entityType === 'artist'
+                    ? direction === MOMENTUM_DIRECTION_DOWN
+                        ? 'Daily plays (falling artists)'
+                        : 'Daily plays (rising artists)'
+                    : direction === MOMENTUM_DIRECTION_DOWN
+                      ? 'Daily plays (falling tracks)'
+                      : 'Daily plays (rising tracks)',
             );
 
         const plot = g.append('g');
@@ -193,7 +210,7 @@ export default function TrackMomentumChart({
             .attr('font-size', '11px')
             .attr('font-weight', 600)
             .attr('fill', '#64748b')
-            .text('Tracks (click)');
+            .text(entityType === 'artist' ? 'Artists (click)' : 'Tracks (click)');
 
         series.forEach((s, i) => {
             const rowG = leg
@@ -221,9 +238,10 @@ export default function TrackMomentumChart({
 
             rowG.append('title').text(s.label);
         });
-    }, [data, width, height, loading, error, onRowClick, direction]);
+    }, [data, width, height, loading, error, onRowClick, direction, entityType]);
 
     const rising = direction === MOMENTUM_DIRECTION_UP;
+    const isArtist = entityType === 'artist';
 
     const scopeHint = scopeAllStations
         ? rising
@@ -235,15 +253,23 @@ export default function TrackMomentumChart({
 
     const title = scopeAllStations
         ? rising
-            ? 'Rising tracks (daily trend) — all stations'
-            : 'Falling tracks (daily trend) — all stations'
+            ? isArtist
+                ? 'Rising artists (daily trend) — all stations'
+                : 'Rising tracks (daily trend) — all stations'
+            : isArtist
+              ? 'Falling artists (daily trend) — all stations'
+              : 'Falling tracks (daily trend) — all stations'
         : rising
-          ? 'Rising tracks (daily trend) — this station'
-          : 'Falling tracks (daily trend) — this station';
+          ? isArtist
+            ? 'Rising artists (daily trend) — this station'
+            : 'Rising tracks (daily trend) — this station'
+          : isArtist
+            ? 'Falling artists (daily trend) — this station'
+            : 'Falling tracks (daily trend) — this station';
 
     return (
         <div style={{ width: '100%' }}>
-            {onDirectionChange && (
+            {onDirectionChange && showDirectionControl && (
                 <div style={{ margin: '0 0 0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                     <label style={{ fontSize: '0.8rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                         <span style={{ fontWeight: 600 }}>Momentum</span>
@@ -274,7 +300,10 @@ export default function TrackMomentumChart({
             <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', color: '#94a3b8' }}>{scopeHint}</p>
             {onRowClick && (
                 <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', color: '#94a3b8' }}>
-                    Click a line or legend entry for track detail. Showing up to {CHART_LINE_CAP} tracks with
+                    {isArtist
+                        ? `Click a line or legend entry for artist detail. Showing up to ${CHART_LINE_CAP} artists with`
+                        : `Click a line or legend entry for track detail. Showing up to ${CHART_LINE_CAP} tracks with`}
+                    {' '}
                     the strongest {rising ? 'positive' : 'negative'} daily trend (linear fit over the chart
                     window).
                 </p>

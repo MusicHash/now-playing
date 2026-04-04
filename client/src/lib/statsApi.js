@@ -4,7 +4,7 @@ export const MAX_STATS_DAYS = 365;
 export const DEFAULT_STATS_LIMIT = 60;
 export const MAX_STATS_LIMIT = 200;
 
-/** Must match server `MOMENTUM_DIRECTION_*` — `top-tracks-momentum` only. */
+/** Must match server `MOMENTUM_DIRECTION_*` — momentum endpoints. */
 export const MOMENTUM_DIRECTION_UP = 'up';
 export const MOMENTUM_DIRECTION_DOWN = 'down';
 
@@ -143,6 +143,36 @@ export function getTopTracksMomentumUrl(params) {
  */
 export function getTopArtistsUrl(params) {
     return `/api/data/stats/top-artists?${buildRankedQuery(params)}`;
+}
+
+/**
+ * Top stations by play volume (`days` + `limit`; ignores station filter — global mix).
+ * @param {{ days?: unknown, limit?: unknown }} params
+ */
+export function getTopStationsUrl(params) {
+    const p = new URLSearchParams();
+    p.set('days', String(clampInt(params.days, DEFAULT_STATS_DAYS, MAX_STATS_DAYS)));
+    p.set('limit', String(clampInt(params.limit, DEFAULT_STATS_LIMIT, MAX_STATS_LIMIT)));
+    return `/api/data/stats/top-stations?${p}`;
+}
+
+/**
+ * @param {{ days?: unknown, station?: string }} params
+ */
+export function getPlaysByHourWeekdayUrl(params) {
+    return `/api/data/stats/plays-by-hour-weekday?${buildPlaysByDayQuery(params)}`;
+}
+
+/**
+ * @param {{
+ *   days?: unknown,
+ *   limit?: unknown,
+ *   station?: string,
+ *   direction?: typeof MOMENTUM_DIRECTION_UP | typeof MOMENTUM_DIRECTION_DOWN,
+ * }} params
+ */
+export function getTopArtistsMomentumUrl(params) {
+    return `/api/data/stats/top-artists-momentum?${buildMomentumQuery(params)}`;
 }
 
 /**

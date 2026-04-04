@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import DrillDownPlaysPanel from './DrillDownPlaysPanel.jsx';
+import HourWeekdayHeatmap from './HourWeekdayHeatmap.jsx';
 import PlaysByDayChart from './PlaysByDayChart.jsx';
 import RankedBarChart from './RankedBarChart.jsx';
 import StatsControls from './StatsControls.jsx';
@@ -22,8 +23,11 @@ import {
     DEFAULT_STATS_LIMIT,
     fetchJson,
     getPlaysByDayUrl,
+    getPlaysByHourWeekdayUrl,
     getStationsUrl,
+    getTopArtistsMomentumUrl,
     getTopArtistsUrl,
+    getTopStationsUrl,
     getTopTracksMomentumUrl,
     getTopTracksUrl,
     MAX_STATS_DAYS,
@@ -79,6 +83,18 @@ export default function RadioStatsDashboard() {
     const [momentumData, setMomentumData] = useState(null);
     const [momentumLoading, setMomentumLoading] = useState(true);
     const [momentumError, setMomentumError] = useState(null);
+
+    const [heatmapData, setHeatmapData] = useState(null);
+    const [heatmapLoading, setHeatmapLoading] = useState(true);
+    const [heatmapError, setHeatmapError] = useState(null);
+
+    const [stationsData, setStationsData] = useState(null);
+    const [stationsLoading, setStationsLoading] = useState(true);
+    const [stationsError, setStationsError] = useState(null);
+
+    const [artistMomentumData, setArtistMomentumData] = useState(null);
+    const [artistMomentumLoading, setArtistMomentumLoading] = useState(true);
+    const [artistMomentumError, setArtistMomentumError] = useState(null);
 
     const [containerRef, chartWidth] = useChartWidth();
 
@@ -197,6 +213,65 @@ export default function RadioStatsDashboard() {
 
     useEffect(() => {
         let cancelled = false;
+        setHeatmapLoading(true);
+        setHeatmapError(null);
+        (async () => {
+            try {
+                const d = clampInt(days, DEFAULT_STATS_DAYS, MAX_STATS_DAYS);
+                const data = await fetchJson(getPlaysByHourWeekdayUrl({ days: d, station }));
+                if (!cancelled) {
+                    setHeatmapData(data);
+                }
+            } catch (e) {
+                if (!cancelled) {
+                    setHeatmapError(e);
+                }
+            } finally {
+                if (!cancelled) {
+                    setHeatmapLoading(false);
+                }
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [days, station]);
+
+    useEffect(() => {
+        if (station) {
+            setStationsData(null);
+            setStationsLoading(false);
+            setStationsError(null);
+            return;
+        }
+        let cancelled = false;
+        setStationsLoading(true);
+        setStationsError(null);
+        (async () => {
+            try {
+                const d = clampInt(days, DEFAULT_STATS_DAYS, MAX_STATS_DAYS);
+                const l = clampInt(limit, DEFAULT_STATS_LIMIT, MAX_STATS_LIMIT);
+                const data = await fetchJson(getTopStationsUrl({ days: d, limit: l }));
+                if (!cancelled) {
+                    setStationsData(data);
+                }
+            } catch (e) {
+                if (!cancelled) {
+                    setStationsError(e);
+                }
+            } finally {
+                if (!cancelled) {
+                    setStationsLoading(false);
+                }
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [days, limit, station]);
+
+    useEffect(() => {
+        let cancelled = false;
         setRankedLoading(true);
         setRankedError(null);
         setArtistsLoading(true);
@@ -279,6 +354,39 @@ export default function RadioStatsDashboard() {
         };
     }, [days, limit, station, momentumDirection]);
 
+    useEffect(() => {
+        let cancelled = false;
+        setArtistMomentumLoading(true);
+        setArtistMomentumError(null);
+        const d = clampInt(days, DEFAULT_STATS_DAYS, MAX_STATS_DAYS);
+        const l = clampInt(limit, DEFAULT_STATS_LIMIT, MAX_STATS_LIMIT);
+        const url = getTopArtistsMomentumUrl({
+            days: d,
+            limit: l,
+            station,
+            direction: momentumDirection,
+        });
+        (async () => {
+            try {
+                const data = await fetchJson(url);
+                if (!cancelled) {
+                    setArtistMomentumData(data);
+                }
+            } catch (e) {
+                if (!cancelled) {
+                    setArtistMomentumError(e);
+                }
+            } finally {
+                if (!cancelled) {
+                    setArtistMomentumLoading(false);
+                }
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [days, limit, station, momentumDirection]);
+
     return (
         <section style={{ marginTop: '2rem' }}>
             <h2 style={{ fontSize: '1.25rem', margin: '0 0 1rem', color: '#0f172a' }}>
@@ -300,6 +408,23 @@ export default function RadioStatsDashboard() {
                     loading={playsLoading}
                     error={playsError}
                 />
+                <HourWeekdayHeatmap
+                    data={heatmapData}
+                    width={chartWidth}
+                    loading={heatmapLoading}
+                    error={heatmapError}
+                    scopeAllStations={!station}
+                />
+                {!station && (
+                    <RankedBarChart
+                        data={stationsData}
+                        width={chartWidth}
+                        loading={stationsLoading}
+                        error={stationsError}
+                        mode="stations"
+                        scopeAllStations
+                    />
+                )}
                 <TrackMomentumChart
                     data={momentumData}
                     width={chartWidth}
@@ -309,6 +434,17 @@ export default function RadioStatsDashboard() {
                     direction={momentumDirection}
                     onDirectionChange={onMomentumChange}
                     onRowClick={handleTrackRowClick}
+                />
+                <TrackMomentumChart
+                    data={artistMomentumData}
+                    width={chartWidth}
+                    loading={artistMomentumLoading}
+                    error={artistMomentumError}
+                    scopeAllStations={!station}
+                    entityType="artist"
+                    showDirectionControl={false}
+                    direction={momentumDirection}
+                    onRowClick={handleArtistRowClick}
                 />
                 {drill && (
                     <DrillDownPlaysPanel
