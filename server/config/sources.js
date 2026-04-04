@@ -968,8 +968,9 @@ const dorognoeStations = {
         },
 
         scraper: {
-            type: 'headless',
-            url: 'aHR0cHM6Ly9kb3JvZ25vZS5ydS8=',
+            type: 'get',
+            url: 'aHR0cHM6Ly9tZXRhLmhvc3RpbmdyYWRpby5ydS9lbWcvZG9yb2dub2UvaGlzdG9yeT9kYXRlPXtZRUFSfS17TU9OVEh9LXtEQVl9JmZyb209e0hPVVItUFJFVklPVVN9OntNSU5VVEV9JnRvPXtIT1VSfTp7TUlOVVRFfSZmb3JtYXQ9bmF0aXZlJnR5cGVzPTMmb3JkZXI9ZGVzYw==',
+            timezone: 'Europe/Moscow',
         },
 
         now_playing: {
@@ -978,11 +979,18 @@ const dorognoeStations = {
         },
 
         parser: {
-            type: 'html',
+            type: 'json',
 
+            options: {
+                limit: 1,
+            },
+            
             fields: {
-                artist: '.mp-reading .mp-reading__artist',
-                title: '.mp-reading .mp-reading__song',
+                artist: '{Iterator}.artist',
+                title: '{Iterator}.title',
+                album: '{Iterator}.album',
+                genres: '{Iterator}.genres',
+                release_date: '{Iterator}.releaseDate',
             },
         },
     },
@@ -1018,7 +1026,7 @@ const stations = {
     ...us997Stations,
     ...z100Stations,
     ...europaPlusStations,
-    //...dorognoeStations,
+    ...dorognoeStations,
 };
 
 export { charts, stations };
