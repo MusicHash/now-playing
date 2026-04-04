@@ -10,6 +10,7 @@ import {
     parseDays,
     parseDevice,
     parseLimit,
+    parsePlaylistIndex,
     parsePlaylistMode,
     parsePlaylistRun,
     parsePlaylistSort,
@@ -145,8 +146,17 @@ export default function GeneratePlaylistPage() {
     const [tracks, setTracks] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [activeIndex, setActiveIndex] = useState(0);
     const [playerSession, setPlayerSession] = useState(0);
+
+    const urlPlaylistIndex = useMemo(() => parsePlaylistIndex(searchParams), [searchParams]);
+
+    const activeIndex = useMemo(() => {
+        if (tracks.length === 0) {
+            return 0;
+        }
+        const fromUrl = urlPlaylistIndex ?? 0;
+        return Math.min(Math.max(0, fromUrl), tracks.length - 1);
+    }, [tracks.length, urlPlaylistIndex]);
 
     const [availableWeeks, setAvailableWeeks] = useState([]);
     const [currentWeek, setCurrentWeek] = useState(null);
@@ -178,10 +188,6 @@ export default function GeneratePlaylistPage() {
                 .filter((id) => typeof id === 'string' && id.trim()),
         [tracks],
     );
-
-    const onActiveIndexChange = useCallback((index) => {
-        setActiveIndex(index);
-    }, []);
 
     const activeSpotifyTrackId = useMemo(() => {
         const row = tracks[activeIndex];
@@ -264,7 +270,6 @@ export default function GeneratePlaylistPage() {
                     return;
                 }
                 setTracks(rows);
-                setActiveIndex(0);
                 setPlayerSession((s) => s + 1);
             })
             .catch((e) => {
@@ -302,7 +307,6 @@ export default function GeneratePlaylistPage() {
                     );
                     setAvailableWeeks(Array.isArray(body.available_weeks) ? body.available_weeks : []);
                     setCurrentWeek(body.chart_year_week ?? null);
-                    setActiveIndex(0);
                     setPlayerSession((s) => s + 1);
                 })
                 .catch((e) => {
@@ -343,6 +347,24 @@ export default function GeneratePlaylistPage() {
         (p) => setSearchParams(patchPlaylistState(searchParams, p), { replace: true }),
         [searchParams, setSearchParams],
     );
+
+    const onActiveIndexChange = useCallback(
+        (index) => {
+            patch({ idx: index });
+        },
+        [patch],
+    );
+
+    /** Fix shared links where idx is past the end of the loaded list. */
+    useEffect(() => {
+        if (tracks.length === 0 || urlPlaylistIndex == null) {
+            return;
+        }
+        const max = tracks.length - 1;
+        if (urlPlaylistIndex > max) {
+            patch({ idx: max });
+        }
+    }, [tracks.length, urlPlaylistIndex, patch]);
 
     const setMode = useCallback(
         (m) => {
@@ -753,7 +775,7 @@ export default function GeneratePlaylistPage() {
                                 </span>
                                 <button
                                     type="button"
-                                    onClick={() => setActiveIndex(i)}
+                                    onClick={() => onActiveIndexChange(i)}
                                     style={{
                                         flex: 1,
                                         minWidth: 0,

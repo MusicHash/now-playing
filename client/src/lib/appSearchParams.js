@@ -226,6 +226,34 @@ export function parseChartWeek(sp) {
     return Number.isFinite(n) && n > 0 ? n : null;
 }
 
+/** 0-based index into the current playlist; omitted or invalid means "first track". */
+const PLAYLIST_INDEX_KEYS = [
+    'days',
+    'limit',
+    'station',
+    'sort',
+    'mode',
+    'chart',
+    'week',
+    'run',
+];
+
+/**
+ * @param {URLSearchParams} sp
+ * @returns {number | null}
+ */
+export function parsePlaylistIndex(sp) {
+    const raw = sp.get('idx');
+    if (raw == null || raw === '') {
+        return null;
+    }
+    const n = Number.parseInt(raw, 10);
+    if (!Number.isFinite(n) || n < 0) {
+        return null;
+    }
+    return n;
+}
+
 /**
  * @param {URLSearchParams} base
  * @param {{
@@ -238,6 +266,7 @@ export function parseChartWeek(sp) {
  *   chart?: string,
  *   week?: number | null,
  *   device?: string | null,
+ *   idx?: number | null,
  * }} patch
  */
 export function patchPlaylistState(base, patch) {
@@ -292,6 +321,17 @@ export function patchPlaylistState(base, patch) {
         } else {
             next.delete('device');
         }
+    }
+    if (patch.idx !== undefined) {
+        if (patch.idx === null) {
+            next.delete('idx');
+        } else {
+            next.set('idx', String(Math.max(0, Math.floor(patch.idx))));
+        }
+    }
+    const playlistFiltersChanged = PLAYLIST_INDEX_KEYS.some((k) => patch[k] !== undefined);
+    if (playlistFiltersChanged && patch.idx === undefined) {
+        next.delete('idx');
     }
     return next;
 }
