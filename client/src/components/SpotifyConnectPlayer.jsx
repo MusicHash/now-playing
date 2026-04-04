@@ -88,8 +88,10 @@ export default function SpotifyConnectPlayer({ uris, activeIndex, onActiveIndexC
     const urisRef = useRef(uris);
     const trackEndFiredRef = useRef(false);
     const lastPlayedUriRef = useRef('');
-    /** Once true, track changes auto-play; first play requires an explicit Play click. */
+    /** Once true, URI changes (same index) auto-play; initial load does not. */
     const userPlaybackStartedRef = useRef(false);
+    /** Keeps first paint from auto-playing; changing index (list click, next/prev, track end) always plays. */
+    const prevActiveIndexRef = useRef(activeIndex);
     activeIndexRef.current = activeIndex;
     urisRef.current = uris;
 
@@ -304,13 +306,19 @@ export default function SpotifyConnectPlayer({ uris, activeIndex, onActiveIndexC
         [selectedDeviceId, scheduleFetchPlaybackState],
     );
 
-    // --- Trigger play when activeIndex or uris change (only after user has pressed Play once) ---
+    // --- Trigger play when activeIndex changes (list click, controls, auto-advance) or URI at same index changes ---
     useEffect(() => {
         if (!authenticated || !currentUri || !selectedDeviceId) return;
+        if (prevActiveIndexRef.current !== activeIndex) {
+            prevActiveIndexRef.current = activeIndex;
+            userPlaybackStartedRef.current = true;
+            playUri(currentUri);
+            return;
+        }
         if (!userPlaybackStartedRef.current) return;
         if (currentUri === lastPlayedUriRef.current) return;
         playUri(currentUri);
-    }, [authenticated, currentUri, selectedDeviceId, playUri]);
+    }, [authenticated, currentUri, selectedDeviceId, activeIndex, playUri]);
 
     // --- Pause / Resume ---
     const handleTogglePlay = useCallback(async () => {
