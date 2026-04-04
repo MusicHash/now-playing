@@ -14,15 +14,14 @@ const spotifyHistoryCharts = {
         scraper: {
             type: 'get',
             url: 'aHR0cHM6Ly9vcGVuLnNwb3RpZnkuY29tL2VtYmVkL3BsYXlsaXN0LzJTWFJ2ZnFpTUJYRmthTWkwM25wTFo=',
-            regExp: [new RegExp('<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>', 's')],
         },
 
         parser: {
-            type: 'json',
+            type: 'html',
 
             fields: {
-                artist: 'props.pageProps.state.data.entity.trackList.{Iterator}.subtitle',
-                title: 'props.pageProps.state.data.entity.trackList.{Iterator}.title',
+                artist: '[class*="TrackList_trackListContainer"] li h4',
+                title: '[class*="TrackList_trackListContainer"] li h3',
             },
         },
     },
