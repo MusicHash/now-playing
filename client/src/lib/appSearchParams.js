@@ -226,6 +226,23 @@ export function parseChartWeek(sp) {
     return Number.isFinite(n) && n > 0 ? n : null;
 }
 
+export const PLAY_TYPE_REGULAR = 'regular';
+export const PLAY_TYPE_SHUFFLE = 'shuffle';
+
+/** U+1F500 + U+FE0E (text presentation) — same as &#x1F500;&#xFE0E; */
+export const SHUFFLE_SYMBOL = '\u{1F500}\uFE0E';
+
+/** U+21DB RIGHTWARDS TRIPLE ARROW — regular / in-order play */
+export const REGULAR_PLAY_SYMBOL = '\u21DB';
+
+/**
+ * @param {URLSearchParams} sp
+ * @returns {typeof PLAY_TYPE_REGULAR | typeof PLAY_TYPE_SHUFFLE}
+ */
+export function parsePlayType(sp) {
+    return sp.get('playtype') === PLAY_TYPE_SHUFFLE ? PLAY_TYPE_SHUFFLE : PLAY_TYPE_REGULAR;
+}
+
 /** 0-based index into the current playlist; omitted or invalid means "first track". */
 const PLAYLIST_INDEX_KEYS = [
     'days',
@@ -267,6 +284,7 @@ export function parsePlaylistIndex(sp) {
  *   week?: number | null,
  *   device?: string | null,
  *   idx?: number | null,
+ *   playType?: typeof PLAY_TYPE_REGULAR | typeof PLAY_TYPE_SHUFFLE,
  * }} patch
  */
 export function patchPlaylistState(base, patch) {
@@ -327,6 +345,13 @@ export function patchPlaylistState(base, patch) {
             next.delete('idx');
         } else {
             next.set('idx', String(Math.max(0, Math.floor(patch.idx))));
+        }
+    }
+    if (patch.playType !== undefined) {
+        if (patch.playType === PLAY_TYPE_SHUFFLE) {
+            next.set('playtype', PLAY_TYPE_SHUFFLE);
+        } else {
+            next.delete('playtype');
         }
     }
     const playlistFiltersChanged = PLAYLIST_INDEX_KEYS.some((k) => patch[k] !== undefined);

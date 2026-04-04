@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getSpotifyIFrameAPI } from '../lib/spotifyEmbedIframe.js';
+import {
+    PLAY_TYPE_REGULAR,
+    PLAY_TYPE_SHUFFLE,
+    REGULAR_PLAY_SYMBOL,
+    SHUFFLE_SYMBOL,
+} from '../lib/appSearchParams.js';
 
 /**
  * @param {string} idOrUri
@@ -20,6 +26,12 @@ function toTrackUri(idOrUri) {
  *   uris: string[],
  *   activeIndex: number,
  *   onActiveIndexChange: (index: number) => void,
+ *   playType: string,
+ *   onPlayTypeChange: (next: string) => void,
+ *   onNavigateNext: () => void,
+ *   onNavigatePrevious: () => void,
+ *   canNavigateNext: boolean,
+ *   canNavigatePrevious: boolean,
  * }} props
  */
 const controlBarStyle = {
@@ -44,13 +56,29 @@ const controlButtonStyle = {
     cursor: 'pointer',
 };
 
-export default function SpotifyEmbedPlayer({ uris, activeIndex, onActiveIndexChange }) {
+export default function SpotifyEmbedPlayer({
+    uris,
+    activeIndex,
+    onActiveIndexChange,
+    playType,
+    onPlayTypeChange,
+    onNavigateNext,
+    onNavigatePrevious,
+    canNavigateNext,
+    canNavigatePrevious,
+}) {
     const containerRef = useRef(null);
     const controllerRef = useRef(null);
     const activeIndexRef = useRef(activeIndex);
     const urisRef = useRef(uris);
+    const onNavigateNextRef = useRef(onNavigateNext);
+    onNavigateNextRef.current = onNavigateNext;
+    const canNavigateNextRef = useRef(canNavigateNext);
+    canNavigateNextRef.current = canNavigateNext;
     /** URI passed to createController — only skip loadUri when still on that track */
     const embeddedUriRef = useRef('');
+    /** Index the iframe was created with; same URI at a different row must still load. */
+    const embeddedStartIndexRef = useRef(0);
     const skipLoadUriAfterCreateRef = useRef(true);
     const [isPaused, setIsPaused] = useState(true);
 
@@ -90,6 +118,7 @@ export default function SpotifyEmbedPlayer({ uris, activeIndex, onActiveIndexCha
                     }
                     controllerRef.current = EmbedController;
                     embeddedUriRef.current = normalized[startIdx];
+                    embeddedStartIndexRef.current = startIdx;
                     skipLoadUriAfterCreateRef.current = true;
 
                     let trackEndFired = false;
@@ -101,14 +130,13 @@ export default function SpotifyEmbedPlayer({ uris, activeIndex, onActiveIndexCha
                             return;
                         }
                         if (!trackEndFired && position >= duration - 500) {
-                            trackEndFired = true;
-                            const list = urisRef.current.map(toTrackUri).filter(Boolean);
-                            const idx = activeIndexRef.current;
-                            const next = idx + 1;
-                            if (next < list.length) {
-                                onActiveIndexChange(next);
-                                trackEndFired = false;
+                            if (!canNavigateNextRef.current) {
+                                trackEndFired = true;
+                                return;
                             }
+                            trackEndFired = true;
+                            onNavigateNextRef.current();
+                            trackEndFired = false;
                         }
                     });
                 },
@@ -120,7 +148,7 @@ export default function SpotifyEmbedPlayer({ uris, activeIndex, onActiveIndexCha
             controllerRef.current = null;
             el.innerHTML = '';
         };
-    }, [uriKey, onActiveIndexChange]);
+    }, [uriKey]);
 
     useEffect(() => {
         const c = controllerRef.current;
@@ -134,8 +162,8 @@ export default function SpotifyEmbedPlayer({ uris, activeIndex, onActiveIndexCha
         }
         if (skipLoadUriAfterCreateRef.current) {
             skipLoadUriAfterCreateRef.current = false;
-            /** Effect often runs before the async embed exists; skip only avoids reloading the same URI */
-            if (uri === embeddedUriRef.current) {
+            /** Same URI at another list index (duplicate tracks) must still loadUri + play */
+            if (activeIndex === embeddedStartIndexRef.current && uri === embeddedUriRef.current) {
                 return;
             }
         }
@@ -148,18 +176,16 @@ export default function SpotifyEmbedPlayer({ uris, activeIndex, onActiveIndexCha
     }, []);
 
     const handlePrevious = useCallback(() => {
-        if (activeIndex <= 0) {
-            return;
-        }
-        onActiveIndexChange(activeIndex - 1);
-    }, [activeIndex, onActiveIndexChange]);
+        onNavigatePrevious();
+    }, [onNavigatePrevious]);
 
     const handleNext = useCallback(() => {
-        if (activeIndex >= uris.length - 1) {
-            return;
-        }
-        onActiveIndexChange(activeIndex + 1);
-    }, [activeIndex, onActiveIndexChange, uris.length]);
+        onNavigateNext();
+    }, [onNavigateNext]);
+
+    const handlePlayTypeClick = useCallback(() => {
+        onPlayTypeChange(playType === PLAY_TYPE_SHUFFLE ? PLAY_TYPE_REGULAR : PLAY_TYPE_SHUFFLE);
+    }, [playType, onPlayTypeChange]);
 
     if (uris.length === 0) {
         return (
@@ -178,9 +204,6 @@ export default function SpotifyEmbedPlayer({ uris, activeIndex, onActiveIndexCha
         );
     }
 
-    const canGoPrev = activeIndex > 0;
-    const canGoNext = activeIndex < uris.length - 1;
-
     return (
         <div style={{ width: '100%' }}>
             <div ref={containerRef} style={{ width: '100%', minHeight: 152 }} />
@@ -189,10 +212,10 @@ export default function SpotifyEmbedPlayer({ uris, activeIndex, onActiveIndexCha
                     type="button"
                     style={{
                         ...controlButtonStyle,
-                        opacity: canGoPrev ? 1 : 0.45,
-                        cursor: canGoPrev ? 'pointer' : 'not-allowed',
+                        opacity: canNavigatePrevious ? 1 : 0.45,
+                        cursor: canNavigatePrevious ? 'pointer' : 'not-allowed',
                     }}
-                    disabled={!canGoPrev}
+                    disabled={!canNavigatePrevious}
                     onClick={handlePrevious}
                     aria-label="Previous track"
                 >
@@ -210,14 +233,37 @@ export default function SpotifyEmbedPlayer({ uris, activeIndex, onActiveIndexCha
                     type="button"
                     style={{
                         ...controlButtonStyle,
-                        opacity: canGoNext ? 1 : 0.45,
-                        cursor: canGoNext ? 'pointer' : 'not-allowed',
+                        opacity: canNavigateNext ? 1 : 0.45,
+                        cursor: canNavigateNext ? 'pointer' : 'not-allowed',
                     }}
-                    disabled={!canGoNext}
+                    disabled={!canNavigateNext}
                     onClick={handleNext}
                     aria-label="Next track"
                 >
                     <span aria-hidden="true">⏭</span>
+                </button>
+                <button
+                    type="button"
+                    style={{
+                        ...controlButtonStyle,
+                        minWidth: '2.5rem',
+                        padding: '0.5rem 0.65rem',
+                        background: playType === PLAY_TYPE_SHUFFLE ? '#e0f2fe' : '#fff',
+                        borderColor: playType === PLAY_TYPE_SHUFFLE ? '#0284c7' : '#cbd5e1',
+                        color: playType === PLAY_TYPE_SHUFFLE ? '#0369a1' : '#475569',
+                    }}
+                    onClick={handlePlayTypeClick}
+                    aria-pressed={playType === PLAY_TYPE_SHUFFLE}
+                    title={playType === PLAY_TYPE_SHUFFLE ? 'Shuffle on' : 'Play in order'}
+                    aria-label={
+                        playType === PLAY_TYPE_SHUFFLE
+                            ? 'Play in order: click for regular order'
+                            : 'Shuffle: click to shuffle on next and previous'
+                    }
+                >
+                    <span aria-hidden="true" style={{ fontSize: '1.1rem', lineHeight: 1 }}>
+                        {playType === PLAY_TYPE_SHUFFLE ? SHUFFLE_SYMBOL : REGULAR_PLAY_SYMBOL}
+                    </span>
                 </button>
             </div>
         </div>
