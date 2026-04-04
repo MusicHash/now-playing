@@ -83,7 +83,7 @@ async function insertChartEntries(chartId, yearWeek, fields) {
  * Ordered by position.
  */
 async function getLatestChartEntries(chartId) {
-    const [rows] = await MySQLWrapper.query(
+    const [rows] = await MySQLWrapper.queryWithCache(
         `SELECT c.*, t.spotify_track_id ` +
         `FROM \`${TABLE}\` c ` +
         `LEFT JOIN \`nowplaying_spotify_tracks\` t ON c.spotify_id = t.spotify_id ` +
@@ -91,6 +91,7 @@ async function getLatestChartEntries(chartId) {
         `AND c.chart_year_week = (SELECT MAX(chart_year_week) FROM \`${TABLE}\` WHERE chart_id = ?) ` +
         `ORDER BY c.chart_position ASC`,
         [chartId, chartId],
+        300,
     );
 
     return rows;
@@ -107,7 +108,7 @@ async function getChartEntries(chartId, yearWeek) {
         : `c.chart_year_week = (SELECT MAX(chart_year_week) FROM \`${TABLE}\` WHERE chart_id = ?)`;
     const params = [chartId, yearWeek || chartId];
 
-    const [rows] = await MySQLWrapper.query(
+    const [rows] = await MySQLWrapper.queryWithCache(
         `SELECT c.chart_position, c.chart_year_week, c.entry_artist, c.entry_title, c.entry_extra, ` +
         `t.spotify_track_id ` +
         `FROM \`${TABLE}\` c ` +
@@ -115,6 +116,7 @@ async function getChartEntries(chartId, yearWeek) {
         `WHERE c.chart_id = ? AND ${weekClause} ` +
         `ORDER BY c.chart_position ASC`,
         params,
+        300,
     );
 
     return rows;
@@ -124,9 +126,10 @@ async function getChartEntries(chartId, yearWeek) {
  * Returns all distinct year-week values stored for a given chart, newest first.
  */
 async function getAvailableWeeks(chartId) {
-    const [rows] = await MySQLWrapper.query(
+    const [rows] = await MySQLWrapper.queryWithCache(
         `SELECT DISTINCT chart_year_week FROM \`${TABLE}\` WHERE chart_id = ? ORDER BY chart_year_week DESC`,
         [chartId],
+        3600,
     );
 
     return rows.map((r) => r.chart_year_week);

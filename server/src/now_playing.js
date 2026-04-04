@@ -49,6 +49,7 @@ class NowPlaying {
 
             await this._connectToRedis();
             await this._connectToMySQL();
+            MySQLWrapper.setCache(redisWrapper);
             await this._connectToMetrics();
 
             await this._spotifyConnect();

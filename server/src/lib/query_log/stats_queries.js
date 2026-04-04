@@ -31,6 +31,12 @@ export const MAX_RECENT_LIMIT = 500;
 export const ALLOWED_BUCKET_MINUTES = [1, 5, 10, 15, 30, 60, 120, 240, 480, 1440];
 export const DEFAULT_BUCKET_MINUTES = 60;
 
+
+const CACHE_TTL_1_HOUR = 3600;
+const CACHE_TTL_6_HOURS = CACHE_TTL_1_HOUR * 6;
+const CACHE_TTL_12_HOURS = CACHE_TTL_1_HOUR * 12;
+const CACHE_TTL_1_DAY = CACHE_TTL_1_HOUR * 24;
+
 /**
  * @param {unknown} value
  * @param {number} fallback
@@ -135,7 +141,7 @@ export async function getPlaysByDay(opts = {}) {
             play_date DESC
     `;
 
-    const [rows] = await MySQLWrapper.query(sql, params);
+    const [rows] = await MySQLWrapper.queryWithCache(sql, params, CACHE_TTL_1_DAY);
     return rows;
 }
 
@@ -171,7 +177,7 @@ export async function getMostPlayedTracks(opts = {}) {
         LIMIT ?
     `;
 
-    const [rows] = await MySQLWrapper.query(sql, [days, ...extraParams, limit]);
+    const [rows] = await MySQLWrapper.queryWithCache(sql, [days, ...extraParams, limit], CACHE_TTL_1_DAY);
     return rows;
 }
 
@@ -226,7 +232,7 @@ export async function getDistinctTracksByRecentPlay(opts = {}) {
         LIMIT ?
     `;
 
-    const [rows] = await MySQLWrapper.query(sql, [days, ...extraParams, limit]);
+    const [rows] = await MySQLWrapper.queryWithCache(sql, [days, ...extraParams, limit], CACHE_TTL_1_HOUR);
     return rows;
 }
 
@@ -266,7 +272,7 @@ export async function getTopTracksByMomentum(opts = {}) {
         )
         SELECT d AS play_date FROM dates ORDER BY d ASC
     `;
-    const [spineRows] = await MySQLWrapper.query(spineSql, [days]);
+    const [spineRows] = await MySQLWrapper.queryWithCache(spineSql, [days], CACHE_TTL_1_HOUR);
     const spineDates = spineRows.map((r) => {
         const raw = r.play_date;
         if (raw instanceof Date) {
@@ -296,7 +302,7 @@ export async function getTopTracksByMomentum(opts = {}) {
             spotify_tracks.spotify_track_id,
             DATE(station_log.log_datetime_played)
     `;
-    const [dailyAggRows] = await MySQLWrapper.query(dailyAggSql, [days, ...extraParams]);
+    const [dailyAggRows] = await MySQLWrapper.queryWithCache(dailyAggSql, [days, ...extraParams], CACHE_TTL_6_HOURS);
 
     /** @type {Map<string, Map<string, number>>} */
     const byTrackDate = new Map();
@@ -372,7 +378,7 @@ export async function getTopTracksByMomentum(opts = {}) {
         GROUP BY
             tr.spotify_track_id
     `;
-    const [metaRows] = await MySQLWrapper.query(metaSql, [days, ...extraParams, ...trackIds]);
+    const [metaRows] = await MySQLWrapper.queryWithCache(metaSql, [days, ...extraParams, ...trackIds], CACHE_TTL_1_DAY);
 
     /** @type {Map<string, Record<string, unknown>>} */
     const metaById = new Map(metaRows.map((r) => [String(r.spotify_track_id), r]));
@@ -429,7 +435,7 @@ export async function getTopArtists(opts = {}) {
     `;
     params.push(limit);
 
-    const [rows] = await MySQLWrapper.query(sql, params);
+    const [rows] = await MySQLWrapper.queryWithCache(sql, params, CACHE_TTL_1_DAY);
     return rows;
 }
 
@@ -455,7 +461,7 @@ export async function getTopStations(opts = {}) {
         LIMIT ?
     `;
 
-    const [rows] = await MySQLWrapper.query(sql, [days, limit]);
+    const [rows] = await MySQLWrapper.queryWithCache(sql, [days, limit], CACHE_TTL_6_HOURS);
     return rows;
 }
 
@@ -494,7 +500,7 @@ export async function getRecentPlays(opts = {}) {
         LIMIT ?
     `;
 
-    const [rows] = await MySQLWrapper.query(sql, [days, ...extraParams, limit]);
+    const [rows] = await MySQLWrapper.queryWithCache(sql, [days, ...extraParams, limit], CACHE_TTL_12_HOURS);
     return rows;
 }
 
@@ -510,7 +516,7 @@ export async function getDistinctStationsLogged() {
         ORDER BY log_station_id ASC
     `;
 
-    const [rows] = await MySQLWrapper.query(sql, []);
+    const [rows] = await MySQLWrapper.queryWithCache(sql, [], CACHE_TTL_1_HOUR);
     return rows.map((row) => row.log_station_id);
 }
 
@@ -545,7 +551,7 @@ export async function getPlaysByBucketForTrack(opts = {}) {
     `;
 
     const params = [bucketSec, bucketSec, days, opts.trackId, ...extraParams, bucketSec, bucketSec];
-    const [rows] = await MySQLWrapper.query(sql, params);
+    const [rows] = await MySQLWrapper.queryWithCache(sql, params, CACHE_TTL_6_HOURS);
     return rows;
 }
 
@@ -587,6 +593,6 @@ export async function getPlaysByBucketForArtist(opts = {}) {
     `;
     params.push(bucketSec, bucketSec);
 
-    const [rows] = await MySQLWrapper.query(sql, params);
+    const [rows] = await MySQLWrapper.queryWithCache(sql, params, CACHE_TTL_6_HOURS);
     return rows;
 }

@@ -1,11 +1,13 @@
 import mysql from 'mysql2/promise';
+import crypto from 'node:crypto';
 
 /**
- * Redis
+ * MySQL
  */
 class MySQLWrapper {
     _MySQLInstance = null;
     _MySQL_URI = null;
+    _cache = null;
 
     logger = null;
 
@@ -191,6 +193,63 @@ class MySQLWrapper {
 
     async query(query, params = []) {
         return await this._execute(query, params, 'query');
+    }
+
+    /**
+     * @param {object} cacheClient Any object exposing `get(key)` and `set(key, value, ttl)` (e.g. RedisWrapper).
+     */
+    setCache(cacheClient) {
+        this._cache = cacheClient;
+    }
+
+    _buildCacheKey(query, params) {
+        const raw = query + JSON.stringify(params);
+        const hash = crypto.createHash('sha256').update(raw).digest('hex').slice(0, 16);
+        return `sql_cache:${hash}`;
+    }
+
+    /**
+     * Cached variant of `query()`. Returns the same `[rows, fields]` tuple.
+     * On cache miss the result is stored in Redis for `ttlSeconds`.
+     * All cache errors are swallowed so MySQL is always the fallback.
+     *
+     * @param {string} query
+     * @param {Array} params
+     * @param {number} ttlSeconds
+     */
+    async queryWithCache(query, params = [], ttlSeconds = 300) {
+        const cacheKey = this._buildCacheKey(query, params);
+
+        if (this._cache) {
+            try {
+                const cached = await this._cache.get(cacheKey);
+                if (cached) {
+                    return JSON.parse(cached);
+                }
+            } catch (error) {
+                this.logger.warn({
+                    method: 'queryWithCache',
+                    message: 'Cache read failed, falling back to MySQL',
+                    error,
+                });
+            }
+        }
+
+        const result = await this._execute(query, params, 'query');
+
+        if (this._cache) {
+            try {
+                await this._cache.set(cacheKey, JSON.stringify(result), ttlSeconds);
+            } catch (error) {
+                this.logger.warn({
+                    method: 'queryWithCache',
+                    message: 'Cache write failed',
+                    error,
+                });
+            }
+        }
+
+        return result;
     }
 
     async _getConnection() {
