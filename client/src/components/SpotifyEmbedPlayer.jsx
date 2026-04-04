@@ -129,6 +129,10 @@ export default function SpotifyEmbedPlayer({
                     embeddedStartIndexRef.current = startIdx;
                     skipLoadUriAfterCreateRef.current = true;
 
+                    if (autoAdvanceCount > 0) {
+                        EmbedController.play();
+                    }
+
                     let trackEndFired = false;
                     EmbedController.addListener('playback_update', (e) => {
                         const { position, duration, isPaused: paused } = e.data;
