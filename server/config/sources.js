@@ -946,6 +946,10 @@ const europaPlusStations = {
         parser: {
             type: 'json',
 
+            options: {
+                limit: 1,
+            },
+            
             fields: {
                 artist: '{Iterator}.artist',
                 title: '{Iterator}.title',
