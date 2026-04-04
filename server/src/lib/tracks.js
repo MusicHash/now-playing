@@ -1,5 +1,6 @@
 import { scrape, parse, setLogger } from 'scrapa';
 import logger from '../utils/logger.js';
+import { interpolateUrl } from '../utils/url_template.js';
 
 setLogger(logger);
 
@@ -9,12 +10,17 @@ const getCurrentTracks = async function ({ ID, scraperProps, parserProps }) {
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
+            const decodedUrl = interpolateUrl(
+                Buffer.from(scraperProps.url, 'base64').toString('ascii'),
+                scraperProps.timezone,
+            );
+
             logger.info({
                 method: 'getCurrentTracks',
                 message: `Attempting to scrape data (attempt ${attempt}/${maxRetries})`,
                 metadata: {
                     ID,
-                    url: Buffer.from(scraperProps.url, 'base64').toString('ascii'),
+                    url: decodedUrl,
                     type: scraperProps.type,
                 },
             });
@@ -24,7 +30,7 @@ const getCurrentTracks = async function ({ ID, scraperProps, parserProps }) {
                 : null;
 
             let scrapeResponse = await scrape({
-                url: Buffer.from(scraperProps.url, 'base64').toString('ascii'),
+                url: decodedUrl,
                 type: scraperProps.type,
                 regExp: scraperProps.regExp,
                 payload: scraperProps.payload || {},
@@ -82,7 +88,7 @@ const getCurrentTracks = async function ({ ID, scraperProps, parserProps }) {
                     ID,
                     attempt,
                     maxRetries,
-                    url: Buffer.from(scraperProps.url, 'base64').toString('ascii'),
+                    url: decodedUrl,
                     type: scraperProps.type,
                 },
             });
@@ -96,7 +102,7 @@ const getCurrentTracks = async function ({ ID, scraperProps, parserProps }) {
                     metadata: {
                         ID,
                         totalAttempts: maxRetries,
-                        url: Buffer.from(scraperProps.url, 'base64').toString('ascii'),
+                        url: decodedUrl,
                     },
                 });
                 throw error;

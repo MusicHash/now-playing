@@ -932,9 +932,9 @@ const europaPlusStations = {
         },
 
         scraper: {
-            type: 'websocket',
-            url: 'd3NzOi8vbWV0YWRhdGF3cy5ob3N0aW5ncmFkaW8ucnUv',
-            payload: { fetch: { current: ['ep'] } },
+            type: 'get',
+            url: 'aHR0cHM6Ly9tZXRhLmhvc3RpbmdyYWRpby5ydS9lbWcvZXVyb3BhcGx1cy9oaXN0b3J5P2RhdGU9e1lFQVJ9LXtNT05USH0te0RBWX0mZnJvbT17SE9VUi1QUkVWSU9VU306e01JTlVURX0mdG89e0hPVVJ9OntNSU5VVEV9JmZvcm1hdD1uYXRpdmUmdHlwZXM9MyZvcmRlcj1kZXNj',
+            timezone: 'Europe/Moscow',
         },
 
         now_playing: {
@@ -947,8 +947,11 @@ const europaPlusStations = {
             type: 'json',
 
             fields: {
-                artist: 'ep.current.title',
-                title: 'ep.current.artist',
+                artist: '0.artist',
+                title: '0.title',
+                album: '0.album',
+                genres: '0.genres',
+                release_date: '0.releaseDate',
             },
         },
     },
