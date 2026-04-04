@@ -438,7 +438,7 @@ const europaPlusCharts = {
 
         scraper: {
             type: 'get',
-            url: 'aHR0cHM6Ly9ldXJvcGFwbHVzLnJ1L3BsYXlsaXN0P2NhdGVnb3J5PXRvcDQw',
+            url: 'aHR0cHM6Ly9ldXJvcGFwbHVzLnJ1L3Byb2dyYW1zL3RvcDQw',
         },
 
         now_playing: {
@@ -468,7 +468,7 @@ const europaPlusCharts = {
 
         scraper: {
             type: 'get',
-            url: 'aHR0cHM6Ly9ldXJvcGFwbHVzLnJ1L3BsYXlsaXN0P2NhdGVnb3J5PW5vdmVsdGllcw==',
+            url: 'aHR0cHM6Ly9ldXJvcGFwbHVzLnJ1L25vdmVsdGllcw==',
         },
 
         now_playing: {
