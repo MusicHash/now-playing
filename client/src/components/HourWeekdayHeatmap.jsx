@@ -1,18 +1,15 @@
 import * as d3 from 'd3';
 import { useEffect, useRef } from 'react';
 
-const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-/** MySQL `DAYOFWEEK`: 1 = Sunday … 7 = Saturday → Monday-first column index 0–6. */
-function mysqlDowToMondayIndex(dow) {
+/** MySQL `DAYOFWEEK`: 1 = Sunday … 7 = Saturday → Sunday-first column index 0–6. */
+function mysqlDowToColumnIndex(dow) {
     const d = Number(dow);
-    if (!Number.isFinite(d)) {
+    if (!Number.isFinite(d) || d < 1 || d > 7) {
         return 0;
     }
-    if (d === 1) {
-        return 6;
-    }
-    return d - 2;
+    return d - 1;
 }
 
 /**
@@ -52,7 +49,7 @@ export default function HourWeekdayHeatmap({ data, width, loading, error, scopeA
                 if (!Number.isFinite(h) || h < 0 || h > 23) {
                     continue;
                 }
-                const col = mysqlDowToMondayIndex(dow);
+                const col = mysqlDowToColumnIndex(dow);
                 if (col >= 0 && col < 7) {
                     grid[h][col] += c;
                 }
