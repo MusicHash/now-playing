@@ -947,11 +947,11 @@ const europaPlusStations = {
             type: 'json',
 
             fields: {
-                artist: '0.artist',
-                title: '0.title',
-                album: '0.album',
-                genres: '0.genres',
-                release_date: '0.releaseDate',
+                artist: '{Iterator}.artist',
+                title: '{Iterator}.title',
+                album: '{Iterator}.album',
+                genres: '{Iterator}.genres',
+                release_date: '{Iterator}.releaseDate',
             },
         },
     },
