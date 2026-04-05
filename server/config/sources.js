@@ -50,7 +50,7 @@ const spotifyHistoryCharts = {
 
         scraper: {
             type: 'get',
-            url: 'aHR0cHM6Ly9hcGkuc3BvdGlmeS5jb20vdjEvcGxheWxpc3RzLzVQNkdLRU5vQWlia0ZFNHYxaGpDVWQ=',
+            url: 'aHR0cHM6Ly9hcGkuc3BvdGlmeS5jb20vdjEvcGxheWxpc3RzLzY3SEdGZmZTdHNnMzhzUlJuTkNKV0g=',
             headers: {
                 'authorization': 'Bearer {SPOTIFY_ACCESS_TOKEN}',
             },
