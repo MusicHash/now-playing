@@ -1,13 +1,64 @@
 import { Router } from 'express';
 import prettier from 'prettier';
 
-import { getChartInfo } from '../lib/fetch_sources.js';
+import {
+    getChartInfo,
+    crawlHistoryChartsToNotifyTrackChanges,
+    updatePlaylistContentForAllStations,
+} from '../lib/fetch_sources.js';
 import { addSpotifyHyperLinks } from '../utils/spotify_link_generator.js';
 import { DEFAULT_STATS_DAYS } from '../lib/query_log/stats_queries.js';
-import { stations, charts } from '../../config/sources.js';
+import { stations, charts, historyCharts } from '../../config/sources.js';
 
 export default function debugRoutes(logger) {
     const router = Router();
+
+    const runHistoryChartsCrawl = async (req, res) => {
+        try {
+            await crawlHistoryChartsToNotifyTrackChanges();
+            res.send('Success, crawlHistoryChartsToNotifyTrackChanges finished.');
+        } catch (error) {
+            logger.error({
+                method: 'debug.crawl_history_charts',
+                message: 'Manual history charts crawl failed',
+                error,
+            });
+            res.status(500).send(`Error: ${error?.message || error}`);
+        }
+    };
+
+    const runUpdatePlaylists = async (req, res) => {
+        try {
+            await updatePlaylistContentForAllStations();
+            res.send('Success, updatePlaylistContentForAllStations queued (same as 24h scheduler job).');
+        } catch (error) {
+            logger.error({
+                method: 'debug.update_playlists',
+                message: 'Manual playlist update failed',
+                error,
+            });
+            res.status(500).send(`Error: ${error?.message || error}`);
+        }
+    };
+
+    router.get('/debug', (req, res) => {
+        res.type('html').send(`<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Now Playing · Debug</title>
+</head>
+<body>
+  <h1>Debug</h1>
+  <ul>
+    <li><a href="/api/debug/crawl_history_charts">Run history charts crawl now</a> (same as scheduler: every 10 minutes)</li>
+    <li><a href="/api/debug/update_playlists">Update station playlists now</a> (same as scheduler 24h job — queues per-station updates)</li>
+    <li><a href="/api/actions">All API actions</a></li>
+  </ul>
+</body>
+</html>`);
+    });
 
     router.get('/actions', async (req, res) => {
         let links = {
@@ -19,6 +70,9 @@ export default function debugRoutes(logger) {
             '/api/playlist/sync_charts/all': 'Sync Charts to Spotify from DB (all)',
             '/api/playlist/slice/all': 'Shorten the playlist to limit (all)',
             '/api/debug_channels': 'Debug Channels',
+            '/api/debug': 'Debug · index (manual triggers)',
+            '/api/debug/crawl_history_charts': 'Crawl History Charts (10 min schedule, run now)',
+            '/api/debug/update_playlists': 'Update Station Playlists (24h job, run now)',
         };
 
         let html = Object.keys(links)
@@ -27,7 +81,7 @@ export default function debugRoutes(logger) {
             }, 0)
             .join('\r\n');
 
-        let channelsList = Object.assign({}, stations, charts);
+        let channelsList = Object.assign({}, stations, charts, historyCharts);
         const exampleStation = Object.keys(channelsList)[0] || '';
 
         const d = DEFAULT_STATS_DAYS;
@@ -68,7 +122,7 @@ export default function debugRoutes(logger) {
 
         html += "<li style='margin-top:30px'>Channels List:</li>";
         for (let channelID in channelsList) {
-            html += `<li>${channelID} (<a href="/api/debug/fetch/${channelID}">Debug Fetch</a>)</li>`;
+            html += `<li>${channelID} (<a href="/api/debug/fetch/${encodeURIComponent(channelID)}">Debug Fetch</a>)</li>`;
         }
 
         res.type('html').send(`<!doctype html>
@@ -84,6 +138,12 @@ export default function debugRoutes(logger) {
 </html>`);
     });
 
+    router.get('/debug/crawl_history_charts', runHistoryChartsCrawl);
+    router.post('/debug/crawl_history_charts', runHistoryChartsCrawl);
+
+    router.get('/debug/update_playlists', runUpdatePlaylists);
+    router.post('/debug/update_playlists', runUpdatePlaylists);
+
     router.get('/debug/fetch/:chartID', async (req, res) => {
         let chartID = req.params.chartID;
         let output = [];
@@ -91,7 +151,7 @@ export default function debugRoutes(logger) {
         let trackIds = [];
 
         try {
-            let items = Object.assign({}, stations, charts);
+            let items = Object.assign({}, stations, charts, historyCharts);
             let props = items[chartID];
             let rawURL = Buffer.from(props.scraper.url, 'base64').toString('ascii');
 

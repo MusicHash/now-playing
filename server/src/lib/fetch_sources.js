@@ -1,10 +1,15 @@
 import { getCurrentTracks } from './tracks.js';
 import { updatePlayList, replacePlayList, _getPlaylistID, updatePlaylistMetadata } from './playlist.js';
 
-import { stations, charts } from '../../config/sources.js';
+import { stations, charts, historyCharts } from '../../config/sources.js';
 
 import logger from '../utils/logger.js';
 import { SYSTEM_EVENTS } from '../constants/events.js';
+import {
+    getNewlyPlayedSongs,
+    normalizeHistoryField,
+    extractSpotifyTrackId,
+} from './history_diff.js';
 import { DURATION } from '../constants/numbers.js';
 import { hash } from '../utils/crypt.js';
 import redisWrapper from '../utils/redis_wrapper.js';
@@ -14,6 +19,121 @@ import { getYearWeek, doesChartWeekExist, insertChartEntries, getLatestChartEntr
 import Spotify from './providers/spotify.js';
 import MySQLWrapper from '../utils/mysql_wrapper.js';
 import { cleanNames } from '../utils/strings.js';
+
+const HISTORY_SNAPSHOT_KEY = (station) => `NOWPLAYING:HISTORY:PREV_SNAPSHOT:${station}`;
+
+const normalizeHistorySongList = function (fields) {
+    if (!Array.isArray(fields)) {
+        return [];
+    }
+
+    return fields.map((f) => {
+        const track_id = extractSpotifyTrackId(f);
+
+        const row = {
+            uid: f?.uid != null ? String(f.uid) : '',
+            track_id,
+            artist: normalizeHistoryField(f?.artist),
+            title: normalizeHistoryField(f?.title),
+        };
+
+        if (f?.added_at != null) {
+            row.added_at = String(f.added_at);
+        }
+        if (f?.popularity != null && f.popularity !== '') {
+            row.popularity = Number(f.popularity);
+        }
+        if (f?.duration_ms != null && f.duration_ms !== '') {
+            row.duration_ms = Number(f.duration_ms);
+        }
+
+        return row;
+    });
+};
+
+const saveHistorySnapshot = async function (station, songs, fetchedAt) {
+    const key = HISTORY_SNAPSHOT_KEY(station);
+    await redisWrapper.addHash(key, 'data', JSON.stringify(songs));
+    await redisWrapper.addHash(key, 'datetime', fetchedAt.toString());
+};
+
+const crawlHistoryChartsToNotifyTrackChanges = async function () {
+    for (const station of Object.keys(historyCharts)) {
+        const props = historyCharts[station];
+
+        try {
+            const tracks = await getCurrentTracks({
+                ID: station,
+                scraperProps: props.scraper,
+                parserProps: props.parser,
+            });
+
+            const currentList = normalizeHistorySongList(tracks?.fields);
+
+            if (currentList.length === 0) {
+                logger.warn({
+                    method: 'crawlHistoryChartsToNotifyTrackChanges',
+                    message: 'No history tracks returned, skipping',
+                    metadata: { station },
+                });
+                continue;
+            }
+
+            if (currentList.length !== 100) {
+                logger.warn({
+                    method: 'crawlHistoryChartsToNotifyTrackChanges',
+                    message: 'History list length is not 100; diff may be unreliable',
+                    metadata: { station, count: currentList.length },
+                });
+            }
+
+            const hash = await redisWrapper.getAll(HISTORY_SNAPSHOT_KEY(station));
+            const fetchedAt = new Date();
+
+            if (!hash?.data) {
+                await saveHistorySnapshot(station, currentList, fetchedAt);
+                continue;
+            }
+
+            let previousList;
+
+            try {
+                previousList = JSON.parse(hash.data);
+            } catch {
+                await saveHistorySnapshot(station, currentList, fetchedAt);
+                continue;
+            }
+
+            if (!Array.isArray(previousList)) {
+                await saveHistorySnapshot(station, currentList, fetchedAt);
+                continue;
+            }
+
+            if (previousList.length === 0) {
+                await saveHistorySnapshot(station, currentList, fetchedAt);
+                continue;
+            }
+
+            const newSongs = getNewlyPlayedSongs(previousList, currentList);
+
+            for (let i = newSongs.length - 1; i >= 0; i--) {
+                await eventEmitterWrapper.emit(SYSTEM_EVENTS.ON_STATION_TRACK_UPDATED, {
+                    station,
+                    result: { fields: [newSongs[i]], total: 1 },
+                });
+            }
+
+            await saveHistorySnapshot(station, currentList, fetchedAt);
+        } catch (error) {
+            logger.error({
+                method: 'crawlHistoryChartsToNotifyTrackChanges',
+                message: 'Failed to refresh history chart station',
+                error,
+                metadata: { station },
+            });
+        }
+    }
+};
 
 const didSourceChange = async function (station, response) {
     const hashKey = 'NOWPLAYNG:SORUCES:RECENT_CHANGE_BY_SOURCE';
@@ -403,6 +523,7 @@ const updatePlaylistContentForAllStations = async function () {
 
 export {
     crawlAllStationsToNotifyTrackChanges,
+    crawlHistoryChartsToNotifyTrackChanges,
     refreshChartRemote,
     updatePlaylistContentForAllStations,
     refreshChartAll,

@@ -1,4 +1,10 @@
-import { crawlAllStationsToNotifyTrackChanges, updatePlaylistContentForAllStations, collectChartDataAll, syncAllChartsToSpotify } from './lib/fetch_sources.js';
+import {
+    crawlAllStationsToNotifyTrackChanges,
+    crawlHistoryChartsToNotifyTrackChanges,
+    updatePlaylistContentForAllStations,
+    collectChartDataAll,
+    syncAllChartsToSpotify,
+} from './lib/fetch_sources.js';
 import { sliceAllPlaylists } from './lib/playlist.js';
 
 class Scheduler {
@@ -30,6 +36,25 @@ class Scheduler {
                 });
             }
         }, 45 * 1000);
+
+        const historyChartsInterval = setInterval(
+            async () => {
+                try {
+                    await crawlHistoryChartsToNotifyTrackChanges();
+
+                    this.logger.info({
+                        message: '[AUTO REFRESH] HISTORY CHARTS - every 10 min',
+                    });
+                } catch (error) {
+                    this.logger.error({
+                        method: 'Scheduler.crawlHistoryCharts',
+                        message: 'Error in history charts refresh timer',
+                        error,
+                    });
+                }
+            },
+            10 * 60 * 1000,
+        );
 
         const playlistInterval = setInterval(
             async () => {
@@ -103,7 +128,13 @@ class Scheduler {
             24 * 60 * 60 * 1000,
         );
 
-        this.intervals = [stationInterval, playlistInterval, chartCollectInterval, chartSyncInterval];
+        this.intervals = [
+            stationInterval,
+            historyChartsInterval,
+            playlistInterval,
+            chartCollectInterval,
+            chartSyncInterval,
+        ];
 
         // Shorten all playlists to 220 rows
         /* currently disabled, no need at this point.

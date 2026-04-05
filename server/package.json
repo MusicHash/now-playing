@@ -5,10 +5,10 @@
   "main": "src/now_playing.js",
   "type": "module",
   "scripts": {
-    "test": "NODE_ENV=development node --experimental-vm-modules --env-file ../.env jest",
+    "test": "NODE_ENV=development node --experimental-vm-modules --env-file ../.env ../node_modules/jest/bin/jest.js",
     "start": "NODE_ENV=production NODE_OPTIONS='--experimental-specifier-resolution=node' node --env-file ../.env ./src/now_playing.js",
     "debug": "NODE_ENV=development PINO_LOG_LEVEL=debug NODE_OPTIONS='--experimental-specifier-resolution=node' node --env-file ../.env ./src/now_playing.js",
-    "coverage": "NODE_ENV=development jest --env-file ../.env --collect-coverage"
+    "coverage": "NODE_ENV=development ../node_modules/jest/bin/jest.js --env-file ../.env --collect-coverage"
   },
   "repository": {
     "type": "git",

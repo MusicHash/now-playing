@@ -1,19 +1,290 @@
 //historyCharts
 const spotifyHistoryCharts = {
-    'galgalatz': {
+    '98.1fm_galgalatz': {
         spotify: {
             playlist: 'https://spoti.fi/',
         },
 
         now_playing: {
-            title: 'Galgalatz - Latest History Tracks (#Music)',
+            title: '98.1FM - Galgalatz - Latest History Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 60 * 60 * 1 * 1000,
+            refresh_rate_ms: 10 * 60 * 1000,
         },
 
         scraper: {
             type: 'get',
             url: 'aHR0cHM6Ly9hcGkuc3BvdGlmeS5jb20vdjEvcGxheWxpc3RzLzJTWFJ2ZnFpTUJYRmthTWkwM25wTFo=',
+            headers: {
+                'authorization': 'Bearer {SPOTIFY_ACCESS_TOKEN}',
+            },
+        },
+
+        parser: {
+            type: 'json',
+
+            fields: {
+                added_at: 'tracks.items.{Iterator}.added_at',
+                id: 'tracks.items.{Iterator}.track.id',
+                artist: 'tracks.items.{Iterator}.track.artists.0.name',
+                title: 'tracks.items.{Iterator}.track.name',
+                popularity: 'tracks.items.{Iterator}.track.popularity',
+                duration_ms: 'tracks.items.{Iterator}.track.duration_ms',
+            },
+        },
+    },
+
+    '96.6fm_glz': {
+        spotify: {
+            playlist: 'https://spoti.fi/',
+        },
+
+        now_playing: {
+            title: '96.6FM - GLZ - Latest History Tracks (#Music)',
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 10 * 60 * 1000,
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cHM6Ly9hcGkuc3BvdGlmeS5jb20vdjEvcGxheWxpc3RzLzVQNkdLRU5vQWlia0ZFNHYxaGpDVWQ=',
+            headers: {
+                'authorization': 'Bearer {SPOTIFY_ACCESS_TOKEN}',
+            },
+        },
+
+        parser: {
+            type: 'json',
+
+            fields: {
+                added_at: 'tracks.items.{Iterator}.added_at',
+                id: 'tracks.items.{Iterator}.track.id',
+                artist: 'tracks.items.{Iterator}.track.artists.0.name',
+                title: 'tracks.items.{Iterator}.track.name',
+                popularity: 'tracks.items.{Iterator}.track.popularity',
+                duration_ms: 'tracks.items.{Iterator}.track.duration_ms',
+            },
+        },
+    },
+
+
+    '88fm_kan': {
+        spotify: {
+            playlist: 'https://spoti.fi/',
+        },
+
+        now_playing: {
+            title: '88FM - Kan - Latest History Tracks (#Music)',
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 10 * 60 * 1000,
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cHM6Ly9hcGkuc3BvdGlmeS5jb20vdjEvcGxheWxpc3RzLzVQNkdLRU5vQWlia0ZFNHYxaGpDVWQ=',
+            headers: {
+                'authorization': 'Bearer {SPOTIFY_ACCESS_TOKEN}',
+            },
+        },
+
+        parser: {
+            type: 'json',
+
+            fields: {
+                added_at: 'tracks.items.{Iterator}.added_at',
+                id: 'tracks.items.{Iterator}.track.id',
+                artist: 'tracks.items.{Iterator}.track.artists.0.name',
+                title: 'tracks.items.{Iterator}.track.name',
+                popularity: 'tracks.items.{Iterator}.track.popularity',
+                duration_ms: 'tracks.items.{Iterator}.track.duration_ms',
+            },
+        },
+    },
+
+
+    '97.5fm_gimel': {
+        spotify: {
+            playlist: 'https://spoti.fi/',
+        },
+
+        now_playing: {
+            title: '97.5FM - Kan - Gimel - Latest History Tracks (#Music)',
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 10 * 60 * 1000,
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cHM6Ly9hcGkuc3BvdGlmeS5jb20vdjEvcGxheWxpc3RzLzV2MlpSaUJEd2tMblIwcFNrVWRVVzI=',
+            headers: {
+                'authorization': 'Bearer {SPOTIFY_ACCESS_TOKEN}',
+            },
+        },
+
+        parser: {
+            type: 'json',
+
+            fields: {
+                added_at: 'tracks.items.{Iterator}.added_at',
+                id: 'tracks.items.{Iterator}.track.id',
+                artist: 'tracks.items.{Iterator}.track.artists.0.name',
+                title: 'tracks.items.{Iterator}.track.name',
+                popularity: 'tracks.items.{Iterator}.track.popularity',
+                duration_ms: 'tracks.items.{Iterator}.track.duration_ms',
+            },
+        },
+    },
+
+
+    '103fm': {
+        spotify: {
+            playlist: 'https://spoti.fi/',
+        },
+
+        now_playing: {
+            title: '103FM - Latest History Tracks (#Music)',
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 10 * 60 * 1000,
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cHM6Ly9hcGkuc3BvdGlmeS5jb20vdjEvcGxheWxpc3RzLzVRdFN4d1VDNGYwdGllR1BzZU1SZEE=',
+            headers: {
+                'authorization': 'Bearer {SPOTIFY_ACCESS_TOKEN}',
+            },
+        },
+
+        parser: {
+            type: 'json',
+
+            fields: {
+                added_at: 'tracks.items.{Iterator}.added_at',
+                id: 'tracks.items.{Iterator}.track.id',
+                artist: 'tracks.items.{Iterator}.track.artists.0.name',
+                title: 'tracks.items.{Iterator}.track.name',
+                popularity: 'tracks.items.{Iterator}.track.popularity',
+                duration_ms: 'tracks.items.{Iterator}.track.duration_ms',
+            },
+        },
+    },
+
+
+    '91fm_lev_hamedina': {
+        spotify: {
+            playlist: 'https://spoti.fi/',
+        },
+
+        now_playing: {
+            title: '91FM - Lev Hamedina - Latest History Tracks (#Music)',
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 10 * 60 * 1000,
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cHM6Ly9hcGkuc3BvdGlmeS5jb20vdjEvcGxheWxpc3RzLzFxV3hYd3lWZVRFUTEwTnVNcFhhMTM=',
+            headers: {
+                'authorization': 'Bearer {SPOTIFY_ACCESS_TOKEN}',
+            },
+        },
+
+        parser: {
+            type: 'json',
+
+            fields: {
+                added_at: 'tracks.items.{Iterator}.added_at',
+                id: 'tracks.items.{Iterator}.track.id',
+                artist: 'tracks.items.{Iterator}.track.artists.0.name',
+                title: 'tracks.items.{Iterator}.track.name',
+                popularity: 'tracks.items.{Iterator}.track.popularity',
+                duration_ms: 'tracks.items.{Iterator}.track.duration_ms',
+            },
+        },
+    },
+
+
+    '102fm_tlv': {
+        spotify: {
+            playlist: 'https://spoti.fi/',
+        },
+
+        now_playing: {
+            title: '102FM - Tel-Aviv - Latest History Tracks (#Music)',
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 10 * 60 * 1000,
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cHM6Ly9hcGkuc3BvdGlmeS5jb20vdjEvcGxheWxpc3RzLzc4Zll0MzFqRlRwMU9Fb0VRWGNPYjU=',
+            headers: {
+                'authorization': 'Bearer {SPOTIFY_ACCESS_TOKEN}',
+            },
+        },
+
+        parser: {
+            type: 'json',
+
+            fields: {
+                added_at: 'tracks.items.{Iterator}.added_at',
+                id: 'tracks.items.{Iterator}.track.id',
+                artist: 'tracks.items.{Iterator}.track.artists.0.name',
+                title: 'tracks.items.{Iterator}.track.name',
+                popularity: 'tracks.items.{Iterator}.track.popularity',
+                duration_ms: 'tracks.items.{Iterator}.track.duration_ms',
+            },
+        },
+    },
+
+
+    '107.5fm_haifa': {
+        spotify: {
+            playlist: 'https://spoti.fi/',
+        },
+
+        now_playing: {
+            title: '107.5FM - Radio Haifa - Latest History Tracks (#Music)',
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 10 * 60 * 1000,
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cHM6Ly9hcGkuc3BvdGlmeS5jb20vdjEvcGxheWxpc3RzLzBRVHNHTlg3OFlvQWtVVUdHd2xGTU8=',
+            headers: {
+                'authorization': 'Bearer {SPOTIFY_ACCESS_TOKEN}',
+            },
+        },
+
+        parser: {
+            type: 'json',
+
+            fields: {
+                added_at: 'tracks.items.{Iterator}.added_at',
+                id: 'tracks.items.{Iterator}.track.id',
+                artist: 'tracks.items.{Iterator}.track.artists.0.name',
+                title: 'tracks.items.{Iterator}.track.name',
+                popularity: 'tracks.items.{Iterator}.track.popularity',
+                duration_ms: 'tracks.items.{Iterator}.track.duration_ms',
+            },
+        },
+    },
+
+
+    '101fm_jerusalem': {
+        spotify: {
+            playlist: 'https://spoti.fi/',
+        },
+
+        now_playing: {
+            title: '101FM - Jerusalem - Latest History Tracks (#Music)',
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 10 * 60 * 1000,
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cHM6Ly9hcGkuc3BvdGlmeS5jb20vdjEvcGxheWxpc3RzLzN3UkRmTW9xWTF0RzR5RTV3dmRXM0Q=',
             headers: {
                 'authorization': 'Bearer {SPOTIFY_ACCESS_TOKEN}',
             },
