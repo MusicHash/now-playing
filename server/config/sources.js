@@ -22,6 +22,10 @@ const spotifyHistoryCharts = {
         parser: {
             type: 'json',
 
+            options: {
+                limit: 5,
+            },
+
             fields: {
                 added_at: 'tracks.items.{Iterator}.added_at',
                 id: 'tracks.items.{Iterator}.track.id',
@@ -54,6 +58,10 @@ const spotifyHistoryCharts = {
 
         parser: {
             type: 'json',
+
+            options: {
+                limit: 5,
+            },
 
             fields: {
                 added_at: 'tracks.items.{Iterator}.added_at',
@@ -89,6 +97,10 @@ const spotifyHistoryCharts = {
         parser: {
             type: 'json',
 
+            options: {
+                limit: 5,
+            },
+
             fields: {
                 added_at: 'tracks.items.{Iterator}.added_at',
                 id: 'tracks.items.{Iterator}.track.id',
@@ -122,6 +134,10 @@ const spotifyHistoryCharts = {
 
         parser: {
             type: 'json',
+
+            options: {
+                limit: 5,
+            },
 
             fields: {
                 added_at: 'tracks.items.{Iterator}.added_at',
@@ -157,6 +173,10 @@ const spotifyHistoryCharts = {
         parser: {
             type: 'json',
 
+            options: {
+                limit: 5,
+            },
+
             fields: {
                 added_at: 'tracks.items.{Iterator}.added_at',
                 id: 'tracks.items.{Iterator}.track.id',
@@ -190,6 +210,10 @@ const spotifyHistoryCharts = {
 
         parser: {
             type: 'json',
+
+            options: {
+                limit: 5,
+            },
 
             fields: {
                 added_at: 'tracks.items.{Iterator}.added_at',
@@ -225,6 +249,10 @@ const spotifyHistoryCharts = {
         parser: {
             type: 'json',
 
+            options: {
+                limit: 5,
+            },
+
             fields: {
                 added_at: 'tracks.items.{Iterator}.added_at',
                 id: 'tracks.items.{Iterator}.track.id',
@@ -258,6 +286,10 @@ const spotifyHistoryCharts = {
 
         parser: {
             type: 'json',
+
+            options: {
+                limit: 5,
+            },
 
             fields: {
                 added_at: 'tracks.items.{Iterator}.added_at',
@@ -293,6 +325,10 @@ const spotifyHistoryCharts = {
         parser: {
             type: 'json',
 
+            options: {
+                limit: 5,
+            },
+
             fields: {
                 added_at: 'tracks.items.{Iterator}.added_at',
                 id: 'tracks.items.{Iterator}.track.id',
@@ -326,6 +362,10 @@ const spotifyHistoryCharts = {
 
         parser: {
             type: 'json',
+
+            options: {
+                limit: 5,
+            },
 
             fields: {
                 added_at: 'tracks.items.{Iterator}.added_at',
@@ -361,6 +401,10 @@ const spotifyHistoryCharts = {
         parser: {
             type: 'json',
 
+            options: {
+                limit: 5,
+            },
+
             fields: {
                 added_at: 'tracks.items.{Iterator}.added_at',
                 id: 'tracks.items.{Iterator}.track.id',
@@ -394,6 +438,10 @@ const spotifyHistoryCharts = {
 
         parser: {
             type: 'json',
+
+            options: {
+                limit: 5,
+            },
 
             fields: {
                 added_at: 'tracks.items.{Iterator}.added_at',
