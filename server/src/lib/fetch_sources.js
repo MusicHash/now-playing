@@ -31,7 +31,6 @@ const normalizeHistorySongList = function (fields) {
         const track_id = extractSpotifyTrackId(f);
 
         const row = {
-            uid: f?.uid != null ? String(f.uid) : '',
             track_id,
             artist: normalizeHistoryField(f?.artist),
             title: normalizeHistoryField(f?.title),
