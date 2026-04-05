@@ -12,10 +12,11 @@ import Spotify from '../providers/spotify.js';
 class StationLoggerActor {
     logger;
     blacklistTracks = [
-        '9.7 NOW',
         '#1 For All The Hits',
         'Listen On Your Phone',
         '97 NOW App',
+        'CLUB 997',
+        '9.7 NOW',
         'Injured? Call',
         'Sweet James',
         'SXM App',
