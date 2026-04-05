@@ -300,7 +300,7 @@ class Spotify {
                 });
 
                 searchTracks = await this.searchTracks(query, limit);
-                await redisWrapper.set(cacheKey, JSON.stringify(searchTracks), DURATION.OF_180_DAYS);
+                await redisWrapper.set(cacheKey, JSON.stringify(searchTracks), DURATION.OF_1_YEAR);
             }
         } catch (error) {
             logger.error({
