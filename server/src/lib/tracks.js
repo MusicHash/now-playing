@@ -1,6 +1,7 @@
 import { scrape, parse, setLogger } from 'scrapa';
 import logger from '../utils/logger.js';
 import { interpolateUrl } from '../utils/url_template.js';
+import { resolveScraperHeaders } from '../utils/scraper_headers.js';
 
 setLogger(logger);
 
@@ -29,11 +30,14 @@ const getCurrentTracks = async function ({ ID, scraperProps, parserProps }) {
                 ? { proxy: process.env.PROXY_URI }
                 : null;
 
+            const headers = await resolveScraperHeaders(scraperProps.headers);
+
             let scrapeResponse = await scrape({
                 url: decodedUrl,
                 type: scraperProps.type,
                 regExp: scraperProps.regExp,
                 payload: scraperProps.payload || {},
+                ...(headers ? { headers } : {}),
                 ...proxy,
             });
 

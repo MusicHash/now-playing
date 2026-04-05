@@ -15,6 +15,10 @@ const spotifyHistoryCharts = {
             type: 'get',
             url: 'aHR0cHM6Ly9vcGVuLnNwb3RpZnkuY29tL2VtYmVkL3BsYXlsaXN0LzJTWFJ2ZnFpTUJYRmthTWkwM25wTFo=',
             regExp: [new RegExp('<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>', 's')],
+            headers: {
+                'authorization': 'Bearer {SPOTIFY_ACCESS_TOKEN}',
+                'accept-language': 'en-US,en;q=0.9',
+            },
         },
 
         parser: {
