@@ -21,7 +21,8 @@ const spotifyHistoryCharts = {
             type: 'json',
 
             fields: {
-                uri: 'props.pageProps.state.data.entity.trackList.{Iterator}.uri',
+                uid: 'props.pageProps.state.data.entity.trackList.{Iterator}.uid',
+                track_uri: 'props.pageProps.state.data.entity.trackList.{Iterator}.uri',
                 artist: 'props.pageProps.state.data.entity.trackList.{Iterator}.subtitle',
                 title: 'props.pageProps.state.data.entity.trackList.{Iterator}.title',
             },
