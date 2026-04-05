@@ -13,11 +13,9 @@ const spotifyHistoryCharts = {
 
         scraper: {
             type: 'get',
-            url: 'aHR0cHM6Ly9vcGVuLnNwb3RpZnkuY29tL2VtYmVkL3BsYXlsaXN0LzJTWFJ2ZnFpTUJYRmthTWkwM25wTFo=',
-            regExp: [new RegExp('<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>', 's')],
+            url: 'aHR0cHM6Ly9hcGkuc3BvdGlmeS5jb20vdjEvcGxheWxpc3RzLzJTWFJ2ZnFpTUJYRmthTWkwM25wTFo=',
             headers: {
                 'authorization': 'Bearer {SPOTIFY_ACCESS_TOKEN}',
-                'accept-language': 'en-US,en;q=0.9',
             },
         },
 
@@ -25,10 +23,13 @@ const spotifyHistoryCharts = {
             type: 'json',
 
             fields: {
-                uid: 'props.pageProps.state.data.entity.trackList.{Iterator}.uid',
-                track_uri: 'props.pageProps.state.data.entity.trackList.{Iterator}.uri',
-                artist: 'props.pageProps.state.data.entity.trackList.{Iterator}.subtitle',
-                title: 'props.pageProps.state.data.entity.trackList.{Iterator}.title',
+                added_at: 'tracks.items.{Iterator}.added_at',
+                id: 'tracks.items.{Iterator}.track.id',
+                track_uri: 'tracks.items.{Iterator}.track.uri',
+                artist: 'tracks.items.{Iterator}.track.artists.0.name',
+                title: 'tracks.items.{Iterator}.track.name',
+                popularity: 'tracks.items.{Iterator}.track.popularity',
+                duration_ms: 'tracks.items.{Iterator}.track.duration_ms',
             },
         },
     },
