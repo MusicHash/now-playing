@@ -25,7 +25,6 @@ const spotifyHistoryCharts = {
             fields: {
                 added_at: 'tracks.items.{Iterator}.added_at',
                 id: 'tracks.items.{Iterator}.track.id',
-                track_uri: 'tracks.items.{Iterator}.track.uri',
                 artist: 'tracks.items.{Iterator}.track.artists.0.name',
                 title: 'tracks.items.{Iterator}.track.name',
                 popularity: 'tracks.items.{Iterator}.track.popularity',
