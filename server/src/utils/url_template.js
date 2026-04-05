@@ -8,6 +8,7 @@
  *   {HOUR}          – 2-digit hour in 24h format (00-23)
  *   {HOUR-PREVIOUS} – 1 hour before {HOUR}, wraps at midnight
  *   {MINUTE}        – 2-digit minute (00-59)
+ *   {UNIXTIME}      – seconds since Unix epoch (UTC), same instant as other tokens
  *
  * @param {string} url       - The URL, possibly containing {TOKEN} placeholders.
  * @param {string} [timezone='UTC'] - IANA timezone name used to resolve the tokens.
@@ -16,6 +17,7 @@
 const interpolateUrl = function (url, timezone = 'UTC') {
     if (!url || !url.includes('{')) return url;
 
+    const now = new Date();
     const parts = new Intl.DateTimeFormat('en', {
         year: 'numeric',
         month: '2-digit',
@@ -25,7 +27,7 @@ const interpolateUrl = function (url, timezone = 'UTC') {
         minute: '2-digit',
         timeZone: timezone,
     })
-        .formatToParts(new Date())
+        .formatToParts(now)
         .reduce((acc, p) => {
             acc[p.type] = p.value;
             return acc;
@@ -34,6 +36,7 @@ const interpolateUrl = function (url, timezone = 'UTC') {
     // Normalise hour – Intl can return '24' for midnight in some environments
     const hour = parts.hour === '24' ? '00' : parts.hour;
     const prevHour = String((parseInt(hour, 10) + 23) % 24).padStart(2, '0');
+    const unixSeconds = String(Math.floor(now.getTime() / 1000));
 
     return url
         .replace(/\{YEAR\}/g,          parts.year)
@@ -41,7 +44,8 @@ const interpolateUrl = function (url, timezone = 'UTC') {
         .replace(/\{DAY\}/g,           parts.day)
         .replace(/\{HOUR-PREVIOUS\}/g, prevHour)
         .replace(/\{HOUR\}/g,          hour)
-        .replace(/\{MINUTE\}/g,        parts.minute);
+        .replace(/\{MINUTE\}/g,        parts.minute)
+        .replace(/\{UNIXTIME\}/g,      unixSeconds);
 };
 
 export { interpolateUrl };
