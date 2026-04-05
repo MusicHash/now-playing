@@ -303,6 +303,108 @@ const spotifyHistoryCharts = {
             },
         },
     },
+
+
+    'mtv_il_tv': {
+        spotify: {
+            playlist: 'https://spoti.fi/',
+        },
+
+        now_playing: {
+            title: 'MTV.IL TV - Latest History Tracks (#Music)',
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 10 * 60 * 1000,
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cHM6Ly9hcGkuc3BvdGlmeS5jb20vdjEvcGxheWxpc3RzLzI3MjhvMDFhdWc3Uk0zNVl3MVg4c3E=',
+            headers: {
+                'authorization': 'Bearer {SPOTIFY_ACCESS_TOKEN}',
+            },
+        },
+
+        parser: {
+            type: 'json',
+
+            fields: {
+                added_at: 'tracks.items.{Iterator}.added_at',
+                id: 'tracks.items.{Iterator}.track.id',
+                artist: 'tracks.items.{Iterator}.track.artists.0.name',
+                title: 'tracks.items.{Iterator}.track.name',
+                popularity: 'tracks.items.{Iterator}.track.popularity',
+                duration_ms: 'tracks.items.{Iterator}.track.duration_ms',
+            },
+        },
+    },
+
+
+    '24music_tv': {
+        spotify: {
+            playlist: 'https://spoti.fi/',
+        },
+
+        now_playing: {
+            title: '24.Music TV - Latest History Tracks (#Music)',
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 10 * 60 * 1000,
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cHM6Ly9hcGkuc3BvdGlmeS5jb20vdjEvcGxheWxpc3RzLzczaEZ6djhGWXc4UzkyR2ZrWjhtVDQ=',
+            headers: {
+                'authorization': 'Bearer {SPOTIFY_ACCESS_TOKEN}',
+            },
+        },
+
+        parser: {
+            type: 'json',
+
+            fields: {
+                added_at: 'tracks.items.{Iterator}.added_at',
+                id: 'tracks.items.{Iterator}.track.id',
+                artist: 'tracks.items.{Iterator}.track.artists.0.name',
+                title: 'tracks.items.{Iterator}.track.name',
+                popularity: 'tracks.items.{Iterator}.track.popularity',
+                duration_ms: 'tracks.items.{Iterator}.track.duration_ms',
+            },
+        },
+    },
+
+
+    'music.il_tv': {
+        spotify: {
+            playlist: 'https://spoti.fi/',
+        },
+
+        now_playing: {
+            title: 'Music.IL TV - Latest History Tracks (#Music)',
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 10 * 60 * 1000,
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cHM6Ly9hcGkuc3BvdGlmeS5jb20vdjEvcGxheWxpc3RzLzZwUXVLZUhKZnNON0ZielJpZFhDUnM=',
+            headers: {
+                'authorization': 'Bearer {SPOTIFY_ACCESS_TOKEN}',
+            },
+        },
+
+        parser: {
+            type: 'json',
+
+            fields: {
+                added_at: 'tracks.items.{Iterator}.added_at',
+                id: 'tracks.items.{Iterator}.track.id',
+                artist: 'tracks.items.{Iterator}.track.artists.0.name',
+                title: 'tracks.items.{Iterator}.track.name',
+                popularity: 'tracks.items.{Iterator}.track.popularity',
+                duration_ms: 'tracks.items.{Iterator}.track.duration_ms',
+            },
+        },
+    },
 };
 
 // Charts
