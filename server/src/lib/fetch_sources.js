@@ -135,15 +135,25 @@ const crawlHistoryChartsToNotifyTrackChanges = async function () {
     }
 };
 
+// removes total from payload for cache, not needed
+// some vendors like hostingradio flikers with total field when a new song added
+const withoutTotalForCache = function (payload) {
+    if (payload?.result == null || typeof payload.result !== 'object' || !('total' in payload.result)) {
+        return payload;
+    }
+    const { total, ...result } = payload.result;
+    return { ...payload, result };
+};
+
 const didSourceChange = async function (station, response) {
     const hashKey = 'NOWPLAYNG:SORUCES:RECENT_CHANGE_BY_SOURCE';
     const hashField = station;
-    const lastStationResponse = JSON.parse(await redisWrapper.getHash(hashKey, hashField));
+    const previous = JSON.parse(await redisWrapper.getHash(hashKey, hashField));
 
-    response = JSON.stringify(response);
+    const next = withoutTotalForCache(response);
 
-    if (hash(lastStationResponse) !== hash(response)) {
-        await redisWrapper.addHash(hashKey, hashField, response, DURATION.OF_1_HOUR);
+    if (hash(withoutTotalForCache(previous)) !== hash(next)) {
+        await redisWrapper.addHash(hashKey, hashField, JSON.stringify(next), DURATION.OF_1_HOUR);
 
         return true;
     }
