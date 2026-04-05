@@ -1,5 +1,203 @@
 [
     {
+        "uid": "0f80c9e4e8931e21",
+        "track_uri": "spotify:track:4yI66nbmdr85hvO8tZ71iP",
+        "artist": "Awetrigo",
+        "title": "It's All About The Feeling"
+    },
+    {
+        "uid": "b317b8a07ed4b4d1",
+        "track_uri": "spotify:track:456WNXWhDwYOSf5SpTuqxd",
+        "artist": "Florence + The Machine",
+        "title": "Dog Days Are Over"
+    },
+    {
+        "uid": "1601b8d45507ffce",
+        "track_uri": "spotify:track:5EMV3fTrnULzv8j2Rgo9qy",
+        "artist": "Arik Einstein, Yoni Rechter",
+        "title": "אמא שלי"
+    },
+    {
+        "uid": "999a2ae2fb59fc94",
+        "track_uri": "spotify:track:7tTru1opK2MBWhWEqemYfu",
+        "artist": "Avihu Pinhasov Rhythm Club",
+        "title": "לא מפחד לרקוד"
+    },
+    {
+        "uid": "ca12f8fb58525cce",
+        "track_uri": "spotify:track:37TmAdHOXJwrhbq84v4nN5",
+        "artist": "Kim Wilde, Nena",
+        "title": "You Keep Me Hangin' On"
+    },
+    {
+        "uid": "6f8567698b87805a",
+        "track_uri": "spotify:track:4VrWlk8IQxevMvERoX08iC",
+        "artist": "Sia",
+        "title": "Chandelier"
+    },
+    {
+        "uid": "7fe3c8a9dc66fe01",
+        "track_uri": "spotify:track:3MD6oKyUTnF0k3DodQw82g",
+        "artist": "Yaron Hadad",
+        "title": "זודיאק"
+    },
+    {
+        "uid": "da38e18d537b1ced",
+        "track_uri": "spotify:track:7jrNJv7Nt7ewrXP1V8Dtoc",
+        "artist": "Static & Ben El, Static, Ben El Tavori",
+        "title": "זהב"
+    },
+    {
+        "uid": "081fb4f034f2c36b",
+        "track_uri": "spotify:track:5jE48hhRu8E6zBDPRSkEq7",
+        "artist": "Meghan Trainor",
+        "title": "All About That Bass"
+    },
+    {
+        "uid": "ac1c0a0e3d6ee1f1",
+        "track_uri": "spotify:track:1lbXEepatjRVjoG8pZMtdp",
+        "artist": "Fleetwood Mac",
+        "title": "Dreams"
+    },
+    {
+        "uid": "82205264d1f6b8bd",
+        "track_uri": "spotify:track:7zpZ8m6qH0NJOgI4NmbtA1",
+        "artist": "Jane Bordeaux",
+        "title": "חלמתי שאתה פה"
+    },
+    {
+        "uid": "b70ef6692193f53a",
+        "track_uri": "spotify:track:2OhunYlfKcvrwQBStJD5u8",
+        "artist": "Odeya",
+        "title": "פרפרים"
+    },
+    {
+        "uid": "79067a8f5a5a59ef",
+        "track_uri": "spotify:track:5vwvCYh6hszpuWSXDz8nLn",
+        "artist": "Kelis, CeeLo Green",
+        "title": "Lil Star"
+    },
+    {
+        "uid": "c90a3daf86f61415",
+        "track_uri": "spotify:track:6qDPjJS7nucj3pM1EgJ21e",
+        "artist": "Meir Banai",
+        "title": "שירו של שפשף"
+    },
+    {
+        "uid": "a02f85570ab4674b",
+        "track_uri": "spotify:track:0rNhXjwIf1748jqeHo3n6z",
+        "artist": "Ben Zur",
+        "title": "אהבת השם"
+    },
+    {
+        "uid": "ddc5fe599bbfa73c",
+        "track_uri": "spotify:track:2Pl6BXJEJ5dC2DFocnknDj",
+        "artist": "Sleeping Panda",
+        "title": "Breathin"
+    },
+    {
+        "uid": "cea72507f670aba5",
+        "track_uri": "spotify:track:6VnpKLtfNH4Dk09YSGPSyR",
+        "artist": "Lenny Kravitz",
+        "title": "It Ain't Over 'Til It's Over"
+    },
+    {
+        "uid": "e62178086ecf8586",
+        "track_uri": "spotify:track:7ME5VTthroIXve14QvikcT",
+        "artist": "Eviatar Banai",
+        "title": "את שקט"
+    },
+    {
+        "uid": "406a33b041866c28",
+        "track_uri": "spotify:track:48VjxvrjBbAZ1OrCpquenh",
+        "artist": "Roni Dalumi",
+        "title": "קצת אחרת"
+    },
+    {
+        "uid": "93383a73d9fcb88c",
+        "track_uri": "spotify:track:68PbEHn8ZllDWxU6OK7OwN",
+        "artist": "Santana",
+        "title": "Black Magic Woman/ Gypsy Queen"
+    },
+    {
+        "uid": "b36f60e2405f9292",
+        "track_uri": "spotify:track:0WLVhtlUvoEcXoF9sA6nWM",
+        "artist": "Rita",
+        "title": "ימי התום"
+    },
+    {
+        "uid": "c9aa6e17ed605b8c",
+        "track_uri": "spotify:track:1Xi84slp6FryDSCbzq4UCD",
+        "artist": "Duncan Laurence",
+        "title": "Arcade"
+    },
+    {
+        "uid": "2ab4983ac1ac74cc",
+        "track_uri": "spotify:track:1zusIxNqJu8i4g6P6hJ2Qa",
+        "artist": "Duffy",
+        "title": "Mercy"
+    },
+    {
+        "uid": "d9246b9a262ba740",
+        "track_uri": "spotify:track:1u0I5pq5vchcTu2M4MlAWm",
+        "artist": "Alma Gov",
+        "title": "בסיבוב"
+    },
+    {
+        "uid": "bfa602855c0b89c9",
+        "track_uri": "spotify:track:5WVENUR2pU362m9FO7nAIo",
+        "artist": "Rockfour",
+        "title": "קח לך אישה"
+    },
+    {
+        "uid": "9f63852023b7c4b6",
+        "track_uri": "spotify:track:3pkBzyOhZlWhtdkxN3jpBR",
+        "artist": "Acoustic Heartstrings",
+        "title": "Water Under The Bridge"
+    },
+    {
+        "uid": "fea0b7468d252f96",
+        "track_uri": "spotify:track:19l42lNkAIp5jt06bdVRfR",
+        "artist": "theAngelcy",
+        "title": "Secret Room"
+    },
+    {
+        "uid": "75beda4ec0cf04aa",
+        "track_uri": "spotify:track:10pnfojlZf9nHvKngPHB7k",
+        "artist": "Omer Adam",
+        "title": "אוהבת לא אוהבת"
+    },
+    {
+        "uid": "f2e148ead3dc7a17",
+        "track_uri": "spotify:track:69CriRgO0UbLtZ32DLVrGx",
+        "artist": "נועם קלינשטיין",
+        "title": "אותו דבר"
+    },
+    {
+        "uid": "8bd992310d1052a2",
+        "track_uri": "spotify:track:7FCfMXYTIiQ9b4hDYs4Iol",
+        "artist": "Dua Lipa",
+        "title": "Be the One"
+    },
+    {
+        "uid": "b0718baea5c9f487",
+        "track_uri": "spotify:track:2DmZ7aPhT5jkqLIYxTpQlJ",
+        "artist": "Dire Straits",
+        "title": "Walk Of Life"
+    },
+    {
+        "uid": "da9b8469b092899a",
+        "track_uri": "spotify:track:2HYS3rLZrOD57DsxAgeTym",
+        "artist": "Jimbo J",
+        "title": "יותר מידי"
+    },
+    {
+        "uid": "0174750ba5b14b7f",
+        "track_uri": "spotify:track:3dh1knaa4QIHXzZoiyexoq",
+        "artist": "Korin Allal",
+        "title": "זן נדיר"
+    },
+    {
         "uid": "83ca3a475b400a4f",
         "track_uri": "spotify:track:5LlsD7LdSMkGV4Iu0a2Zq0",
         "artist": "Kings of Leon",
@@ -400,203 +598,5 @@
         "track_uri": "spotify:track:6RUKPb4LETWmmr3iAEQktW",
         "artist": "The Chainsmokers, Coldplay",
         "title": "Something Just Like This"
-    },
-    {
-        "uid": "be1c6e3a0426eff6",
-        "track_uri": "spotify:track:3jLfPfi88liLV6Exc6sLrN",
-        "artist": "James Blunt",
-        "title": "Lose My Number"
-    },
-    {
-        "uid": "8ce3abf5da35bd06",
-        "track_uri": "spotify:track:0TxYhIbIlilswMmzv7mkGX",
-        "artist": "Rami Kleinstein, Hamoatza",
-        "title": "חוץ ממך כלום"
-    },
-    {
-        "uid": "cf608d772bd182c0",
-        "track_uri": "spotify:track:0lY62MsgnDdmtiMbIGrrw1",
-        "artist": "Udi Schneider",
-        "title": "מתחת למים"
-    },
-    {
-        "uid": "376df8097b6c2445",
-        "track_uri": "spotify:track:1oaaSrDJimABpOdCEbw2DJ",
-        "artist": "Sade",
-        "title": "No Ordinary Love"
-    },
-    {
-        "uid": "25bf52b17b2d9794",
-        "track_uri": "spotify:track:0FUTXmetU6qIbwW3uA3UJd",
-        "artist": "Narkis",
-        "title": "מלכה"
-    },
-    {
-        "uid": "1c5f933af7c1733a",
-        "track_uri": "spotify:track:0TLsJljxvUNlL4SGXvldwc",
-        "artist": "Etti Ankri",
-        "title": "מיליונים"
-    },
-    {
-        "uid": "b75c4374ef7f15f0",
-        "track_uri": "spotify:track:6RtPijgfPKROxEzTHNRiDp",
-        "artist": "MAGIC!",
-        "title": "Rude"
-    },
-    {
-        "uid": "6199582b9f048f05",
-        "track_uri": "spotify:track:2fiRJjWb9uk21Gva6oHpKs",
-        "artist": "Jamiroquai",
-        "title": "Cosmic Girl"
-    },
-    {
-        "uid": "32c6e74d782c3f62",
-        "track_uri": "spotify:track:4jUSOnIPXKvBl63Kx7PssT",
-        "artist": "Monica Sex",
-        "title": "זה זמן"
-    },
-    {
-        "uid": "6fb587535f584b23",
-        "track_uri": "spotify:track:57aqwB6tGV9XdxcvlEqPAn",
-        "artist": "Eviatar Banai",
-        "title": "מתי נתנשק"
-    },
-    {
-        "uid": "49d53c8ff95d1ba8",
-        "track_uri": "spotify:track:654RWQK0114aHDlyF7bSaP",
-        "artist": "K-VESSEL, John Moïse",
-        "title": "BOEING TO PARIS"
-    },
-    {
-        "uid": "65dccc82ec199f13",
-        "track_uri": "spotify:track:31D07bXGHwjnkt7Ayq38Z4",
-        "artist": "Miri Mesika, E-Z",
-        "title": "מפחד עלייך"
-    },
-    {
-        "uid": "da5e55f56503132e",
-        "track_uri": "spotify:track:6xoDRN0T8lObi9KQfjgGwD",
-        "artist": "ליאם גולן",
-        "title": "בלי לומר מילה"
-    },
-    {
-        "uid": "c2a46517bf558720",
-        "track_uri": "spotify:track:3UBItNVbFQiVC5hBQlBvnr",
-        "artist": "White Town",
-        "title": "Your Woman"
-    },
-    {
-        "uid": "10015272f154e213",
-        "track_uri": "spotify:track:1diEGoY3sctvJjOopR5xpn",
-        "artist": "Riki Gal",
-        "title": "היי שקטה"
-    },
-    {
-        "uid": "7fd6523d80d5d624",
-        "track_uri": "spotify:track:7tPq06JPk6t0Kk9ptZ6Cia",
-        "artist": "Mergui",
-        "title": "סגול בהיר"
-    },
-    {
-        "uid": "259e83717d6d9990",
-        "track_uri": "spotify:track:3SxSrUogj4LpAkLKXeTtTQ",
-        "artist": "Rex Orange County",
-        "title": "Always"
-    },
-    {
-        "uid": "f3819ef31b89515d",
-        "track_uri": "spotify:track:4TXvJz4TmRI9Bzy4VWNUjl",
-        "artist": "The Rolling Stones",
-        "title": "Miss You"
-    },
-    {
-        "uid": "e17ed19250e2a05e",
-        "track_uri": "spotify:track:0h9lqpfcS37U6zvDCKwQhX",
-        "artist": "Shuli Rand",
-        "title": "אייכה"
-    },
-    {
-        "uid": "05cc860f366dc8d4",
-        "track_uri": "spotify:track:2M9ro2krNb7nr7HSprkEgo",
-        "artist": "Tracy Chapman",
-        "title": "Fast Car"
-    },
-    {
-        "uid": "03a4ca7a7a92b374",
-        "track_uri": "spotify:track:2T3jgoAMbBXiMMD8pSc6QL",
-        "artist": "Amy Macdonald",
-        "title": "This Is The Life"
-    },
-    {
-        "uid": "fb860eb7fdac5a08",
-        "track_uri": "spotify:track:6rX218txoy6aP8nyYR1KLX",
-        "artist": "Yehudit Ravitz",
-        "title": "אהבה יומיומית"
-    },
-    {
-        "uid": "5a0947cb6e4b47bf",
-        "track_uri": "spotify:track:1qEmFfgcLObUfQm0j1W2CK",
-        "artist": "Harry Styles",
-        "title": "Late Night Talking"
-    },
-    {
-        "uid": "61e96b8fc511db5c",
-        "track_uri": "spotify:track:0pQskrTITgmCMyr85tb9qq",
-        "artist": "David Bowie",
-        "title": "Starman - 2012 Remaster"
-    },
-    {
-        "uid": "76eef0effa650944",
-        "track_uri": "spotify:track:56RaW32XnoNa7PnEIor33y",
-        "artist": "Robbie Williams",
-        "title": "Supreme - 2004 Mix"
-    },
-    {
-        "uid": "dcf5e21a2e303549",
-        "track_uri": "spotify:track:78Wu7Y2s6agIhfgoNyAeGg",
-        "artist": "Raviv Kaner",
-        "title": "רסיסים"
-    },
-    {
-        "uid": "47a2956be3651752",
-        "track_uri": "spotify:track:0V0XTJKyq8reOPsuCFsVup",
-        "artist": "Keren Peles",
-        "title": "מבול"
-    },
-    {
-        "uid": "eb3bdffa9e541432",
-        "track_uri": "spotify:track:1Ov4E4nE7E0yzeqpbhEE5g",
-        "artist": "Wyclef Jean, Mary J. Blige",
-        "title": "911 (feat. Mary J. Blige)"
-    },
-    {
-        "uid": "bcb71a23f375c960",
-        "track_uri": "spotify:track:4JmmjsGmOED0sn0Le3r84u",
-        "artist": "Tuna, Ravid Plotnik",
-        "title": "עולם משוגע"
-    },
-    {
-        "uid": "5bdf24fd3e710de6",
-        "track_uri": "spotify:track:1gJOqXpRjz9GeEEwQpcujK",
-        "artist": "Joe Cocker",
-        "title": "You Are So Beautiful"
-    },
-    {
-        "uid": "f8339d632427e012",
-        "track_uri": "spotify:track:0C8pyeus5uoJ4MRt6a4d3y",
-        "artist": "Ofra Haza",
-        "title": "יד ביד"
-    },
-    {
-        "uid": "29b394b0b951ec25",
-        "track_uri": "spotify:track:4rlaGqWwl1cM6EPERYODrw",
-        "artist": "Akiva",
-        "title": "פשוטים"
-    },
-    {
-        "uid": "c41caf308fda2cf1",
-        "track_uri": "spotify:track:0okzWrW6i3Yk7eVZStfLf2",
-        "artist": "Joey G, LUVENGE",
-        "title": "Video Game"
     }
 ]
