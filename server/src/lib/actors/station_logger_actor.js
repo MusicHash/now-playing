@@ -21,6 +21,8 @@ class StationLoggerActor {
         'SXM App',
         'Pulse Top',
         'Verified with',
+        '$1000 Pay Your Bills',
+        'Hourly Weekdays',
         'SXMThePulse',
         'SirriusXMHits1',
         'MorningMashUp',
