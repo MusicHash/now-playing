@@ -24,7 +24,7 @@ WITH flagged AS (
             ORDER BY log_id
         ) AS prev_log_timestamp_played
     FROM nowplaying_station_log
-    WHERE log_station_id IN ('97.5fm_gimel', '102fm_tlv', '107.5fm_haifa', '103fm', '91fm_lev_hamedina')
+    WHERE log_station_id IN ('97.5fm_gimel', '102fm_tlv', '107.5fm_haifa', '103fm', '91fm_lev_hamedina', '101fm_jerusalem', '98.1fm_galgalatz', '96.6fm_glz', '88fm_kan', 'music.il_tv', '24music_tv')
 )
 SELECT
     log_station_id,
@@ -54,7 +54,7 @@ WITH flagged AS (
             ORDER BY log_id
         ) AS prev_log_timestamp_played
     FROM nowplaying_station_log
-    WHERE log_station_id IN ('97.5fm_gimel', '102fm_tlv', '107.5fm_haifa', '103fm', '91fm_lev_hamedina')
+    WHERE log_station_id IN ('97.5fm_gimel', '102fm_tlv', '107.5fm_haifa', '103fm', '91fm_lev_hamedina', '101fm_jerusalem', '98.1fm_galgalatz', '96.6fm_glz', '88fm_kan', 'music.il_tv', '24music_tv')
 )
 SELECT
     log_station_id,

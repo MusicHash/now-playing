@@ -19,10 +19,10 @@ WHERE log_id IN (
                     ORDER BY log_id
                 ) AS prev_log_timestamp_played
             FROM nowplaying_station_log
-            WHERE log_station_id IN ('97.5fm_gimel', '102fm_tlv', '107.5fm_haifa', '103fm', '91fm_lev_hamedina')
+            WHERE log_station_id IN ('97.5fm_gimel', '102fm_tlv', '107.5fm_haifa', '103fm', '91fm_lev_hamedina', '101fm_jerusalem', '98.1fm_galgalatz', '96.6fm_glz', '88fm_kan', 'music.il_tv', '24music_tv')
         ) AS x
         WHERE prev_log_timestamp_played IS NOT NULL
           AND log_timestamp_played >= prev_log_timestamp_played
-          AND (log_timestamp_played - prev_log_timestamp_played) <= 1800
+          AND (log_timestamp_played - prev_log_timestamp_played) <= 3600
     ) AS to_delete
 );

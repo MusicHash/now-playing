@@ -1,0 +1,6 @@
+-- Purge Redis keys sql_cache:* (SQL result cache; see server/src/utils/mysql_wrapper.js).
+-- Paste the line below at the redis-cli prompt, or run: redis-cli 'EVAL "..." 0'
+-- Uses UNLINK (Redis 4+). Replace UNLINK with DEL if your server is older.
+-- This blocks Redis until the script finishes; large keyspaces may stall other clients briefly.
+
+EVAL "local c='0' local n=0 repeat local r=redis.call('SCAN',c,'MATCH','sql_cache:*','COUNT',1000) c=r[1] local k=r[2] for i=1,#k do redis.call('UNLINK',k[i]) n=n+1 end until c=='0' return n" 0
