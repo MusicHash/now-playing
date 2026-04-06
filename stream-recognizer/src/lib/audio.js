@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { enrichSpawnError } from './binaries.js';
@@ -261,15 +261,37 @@ function fpcalcTimeoutMs() {
     return 120_000;
 }
 
-export async function chromaprintFingerprint(fpcalcBin, wavPath) {
+/**
+ * @param {string} out
+ * @returns {{ fingerprint: string, duration: number }}
+ */
+function parseFpcalcJsonOutput(out) {
+    let j;
+    try {
+        j = JSON.parse(out);
+    } catch {
+        throw new Error(`fpcalc: invalid JSON: ${out.slice(0, 200)}`);
+    }
+    const obj = Array.isArray(j) ? j[0] : j;
+    const fingerprint = obj.fingerprint;
+    const duration = Number(obj.duration);
+    if (!fingerprint || !Number.isFinite(duration)) {
+        throw new Error('fpcalc: missing fingerprint or duration');
+    }
+    return { fingerprint, duration };
+}
+
+/**
+ * @param {string} fpcalcBin
+ * @param {string[]} argvArgs fpcalc args after the binary (must end with input file path)
+ */
+async function runFpcalcJson(fpcalcBin, argvArgs) {
     const timeoutMs = fpcalcTimeoutMs();
     const out = await new Promise((resolve, reject) => {
         const chunks = [];
-        const p = spawn(
-            fpcalcBin,
-            ['-json', '-length', '120', wavPath],
-            { stdio: ['ignore', 'pipe', 'pipe'] },
-        );
+        const p = spawn(fpcalcBin, argvArgs, {
+            stdio: ['ignore', 'pipe', 'pipe'],
+        });
         p.stdout?.on('data', (d) => chunks.push(d));
         let err = '';
         p.stderr?.on('data', (d) => {
@@ -291,27 +313,129 @@ export async function chromaprintFingerprint(fpcalcBin, wavPath) {
         });
         p.on('close', (code) => {
             clearTimeout(timer);
+            const out = Buffer.concat(chunks).toString('utf8');
             if (code === 0) {
-                resolve(Buffer.concat(chunks).toString('utf8'));
-            } else {
+                resolve(out);
+                return;
+            }
+            // Some fpcalc builds exit non-zero and print "End of file" on stderr at EOF while
+            // still writing valid JSON to stdout; accept fingerprint when parseable.
+            try {
+                parseFpcalcJsonOutput(out);
+                resolve(out);
+            } catch {
                 reject(new Error(`fpcalc exit ${code}: ${err.slice(-400)}`));
             }
         });
     });
+    return parseFpcalcJsonOutput(out);
+}
 
-    let j;
+/**
+ * Fingerprint a WAV (or other) file. Prefer {@link chromaprintFingerprintFromPcm} when you already
+ * decoded with ffmpeg — fpcalc's WAV reader can fail on some ffmpeg outputs ("End of file" mid-decode).
+ * @param {string} fpcalcBin
+ * @param {string} wavPath
+ */
+export async function chromaprintFingerprint(fpcalcBin, wavPath) {
+    return runFpcalcJson(fpcalcBin, ['-json', '-length', '120', wavPath]);
+}
+
+/**
+ * Mux s16le mono 16 kHz PCM to a standard PCM WAV via ffmpeg so fpcalc reads a normal file.
+ * (Direct fpcalc on raw s16le is flaky across builds; stream-capture WAVs can also confuse fpcalc.)
+ * @param {string} ffmpegBin
+ * @param {string} rawPath
+ * @param {string} wavPath
+ */
+async function ffmpegPcmS16leMono16kToWav(ffmpegBin, rawPath, wavPath) {
+    const timeoutMs = Math.min(decodeTimeoutMs(), 60_000);
+    await new Promise((resolve, reject) => {
+        const p = spawn(
+            ffmpegBin,
+            [
+                '-hide_banner',
+                '-loglevel',
+                'error',
+                '-nostdin',
+                '-f',
+                's16le',
+                '-ar',
+                '16000',
+                '-ac',
+                '1',
+                '-i',
+                rawPath,
+                '-y',
+                wavPath,
+            ],
+            { stdio: ['ignore', 'pipe', 'pipe'] },
+        );
+        let err = '';
+        p.stderr?.on('data', (d) => {
+            err += d.toString();
+        });
+        const timer = setTimeout(() => {
+            try {
+                p.kill('SIGKILL');
+            } catch {
+                /* ignore */
+            }
+            reject(
+                new Error(
+                    `ffmpeg PCM→WAV for fpcalc timed out after ${timeoutMs}ms`,
+                ),
+            );
+        }, timeoutMs);
+        p.on('error', (e) => {
+            clearTimeout(timer);
+            reject(
+                enrichSpawnError(/** @type {NodeJS.ErrnoException} */ (e), ffmpegBin, 'FFMPEG_BIN'),
+            );
+        });
+        p.on('close', (code) => {
+            clearTimeout(timer);
+            if (code === 0) {
+                resolve();
+            } else {
+                reject(
+                    new Error(
+                        `ffmpeg PCM→WAV exit ${code}: ${err.slice(-400)}`,
+                    ),
+                );
+            }
+        });
+    });
+}
+
+/**
+ * Fingerprint from s16le mono 16 kHz PCM (same layout as {@link fileToPcm16kMono}).
+ * Muxes to a canonical WAV with ffmpeg, then runs fpcalc on that file.
+ * @param {string} fpcalcBin
+ * @param {string} ffmpegBin
+ * @param {Buffer} pcmS16leMono16k
+ */
+export async function chromaprintFingerprintFromPcm(
+    fpcalcBin,
+    ffmpegBin,
+    pcmS16leMono16k,
+) {
+    const minBytes = 3200;
+    if (pcmS16leMono16k.byteLength < minBytes) {
+        throw new Error(
+            `fpcalc: PCM too short (${pcmS16leMono16k.byteLength} bytes, need at least ${minBytes})`,
+        );
+    }
+    const dir = await mkdtemp(join(tmpdir(), 'sr-fp-'));
+    const rawPath = join(dir, 'in.s16le');
+    const wavPath = join(dir, 'for-fpcalc.wav');
     try {
-        j = JSON.parse(out);
-    } catch {
-        throw new Error(`fpcalc: invalid JSON: ${out.slice(0, 200)}`);
+        await writeFile(rawPath, pcmS16leMono16k);
+        await ffmpegPcmS16leMono16kToWav(ffmpegBin, rawPath, wavPath);
+        return await runFpcalcJson(fpcalcBin, ['-json', '-length', '120', wavPath]);
+    } finally {
+        await rm(dir, { recursive: true, force: true });
     }
-    const obj = Array.isArray(j) ? j[0] : j;
-    const fingerprint = obj.fingerprint;
-    const duration = Number(obj.duration);
-    if (!fingerprint || !Number.isFinite(duration)) {
-        throw new Error('fpcalc: missing fingerprint or duration');
-    }
-    return { fingerprint, duration };
 }
 
 /**

@@ -1,7 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { copyFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { captureStreamToWav, chromaprintFingerprint, analyzePcmGates, fileToPcm16kMono, cleanupCapturePath } from '../lib/audio.js';
+import {
+    captureStreamToWav,
+    chromaprintFingerprintFromPcm,
+    analyzePcmGates,
+    fileToPcm16kMono,
+    cleanupCapturePath,
+} from '../lib/audio.js';
 import { acoustidLookup } from '../providers/acoustid.js';
 import { acrcloudIdentifyFromFile, isAcrcloudConfigured } from '../providers/acrcloud.js';
 import { shazamIdentifyFromFile, isShazamEnabled } from '../providers/shazam.js';
@@ -131,9 +137,10 @@ export async function runStationTick(station, store, logger, options = {}) {
             return;
         }
 
-        const { fingerprint, duration } = await chromaprintFingerprint(
+        const { fingerprint, duration } = await chromaprintFingerprintFromPcm(
             fpcalcBin,
-            wavPath,
+            ffmpegBin,
+            pcm,
         );
 
         if (prevFp && fingerprint === prevFp) {
