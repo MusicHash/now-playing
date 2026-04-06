@@ -1,6 +1,11 @@
 import mysql from 'mysql2/promise';
 import crypto from 'node:crypto';
 
+const SQL_CACHE_KEY_PREFIX = 'sql_cache:';
+
+/** Redis SCAN pattern for all SQL query cache keys (see queryWithCache). */
+export const SQL_CACHE_REDIS_PATTERN = `${SQL_CACHE_KEY_PREFIX}*`;
+
 /**
  * MySQL
  */
@@ -205,7 +210,7 @@ class MySQLWrapper {
     _buildCacheKey(query, params) {
         const raw = query + JSON.stringify(params);
         const hash = crypto.createHash('sha256').update(raw).digest('hex').slice(0, 16);
-        return `sql_cache:${hash}`;
+        return `${SQL_CACHE_KEY_PREFIX}${hash}`;
     }
 
     /**

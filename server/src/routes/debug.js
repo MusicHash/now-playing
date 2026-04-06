@@ -9,6 +9,8 @@ import {
 import { addSpotifyHyperLinks } from '../utils/spotify_link_generator.js';
 import { DEFAULT_STATS_DAYS } from '../lib/query_log/stats_queries.js';
 import { stations, charts, historyCharts } from '../../config/sources.js';
+import redisWrapper from '../utils/redis_wrapper.js';
+import { SQL_CACHE_REDIS_PATTERN } from '../utils/mysql_wrapper.js';
 
 export default function debugRoutes(logger) {
     const router = Router();
@@ -41,6 +43,22 @@ export default function debugRoutes(logger) {
         }
     };
 
+    const runPurgeSqlCache = async (req, res) => {
+        try {
+            const { deleted } = await redisWrapper.purgeKeyPattern(SQL_CACHE_REDIS_PATTERN);
+            res.type('text').send(
+                `Success, purged ${deleted} Redis key(s) matching ${SQL_CACHE_REDIS_PATTERN} (MySQL query result cache).`,
+            );
+        } catch (error) {
+            logger.error({
+                method: 'debug.purge_sql_cache',
+                message: 'Purge SQL Redis cache failed',
+                error,
+            });
+            res.status(500).send(`Error: ${error?.message || error}`);
+        }
+    };
+
     router.get('/debug', (req, res) => {
         res.type('html').send(`<!doctype html>
 <html lang="en">
@@ -54,6 +72,7 @@ export default function debugRoutes(logger) {
   <ul>
     <li><a href="/api/debug/crawl_history_charts">Run history charts crawl now</a> (same as scheduler: every 10 minutes)</li>
     <li><a href="/api/debug/update_playlists">Update station playlists now</a> (same as scheduler 24h job — queues per-station updates)</li>
+    <li><a href="/api/debug/purge_sql_cache">Purge Redis SQL query cache</a> (<code>sql_cache:*</code>)</li>
     <li><a href="/api/actions">All API actions</a></li>
   </ul>
 </body>
@@ -73,6 +92,7 @@ export default function debugRoutes(logger) {
             '/api/debug': 'Debug · index (manual triggers)',
             '/api/debug/crawl_history_charts': 'Crawl History Charts (10 min schedule, run now)',
             '/api/debug/update_playlists': 'Update Station Playlists (24h job, run now)',
+            '/api/debug/purge_sql_cache': 'Purge Redis SQL query cache (sql_cache:*)',
         };
 
         let html = Object.keys(links)
@@ -143,6 +163,9 @@ export default function debugRoutes(logger) {
 
     router.get('/debug/update_playlists', runUpdatePlaylists);
     router.post('/debug/update_playlists', runUpdatePlaylists);
+
+    router.get('/debug/purge_sql_cache', runPurgeSqlCache);
+    router.post('/debug/purge_sql_cache', runPurgeSqlCache);
 
     router.get('/debug/fetch/:chartID', async (req, res) => {
         let chartID = req.params.chartID;

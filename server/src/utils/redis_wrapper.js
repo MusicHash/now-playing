@@ -182,6 +182,64 @@ class RedisWrapper {
 
         return await this._redisInstance.del(key);
     }
+
+    /**
+     * Delete all keys matching a Redis glob pattern using SCAN (not KEYS) plus batched UNLINK.
+     * Refuses pattern "*" to avoid wiping the entire keyspace.
+     *
+     * @param {string} pattern e.g. "sql_cache:*"
+     * @returns {Promise<{ deleted: number }>}
+     */
+    async purgeKeyPattern(pattern) {
+        if (!this._isEnabled()) {
+            return { deleted: 0 };
+        }
+
+        if (typeof pattern !== 'string' || pattern.trim() === '') {
+            throw new Error('purgeKeyPattern: pattern must be a non-empty string');
+        }
+        if (pattern === '*') {
+            throw new Error('purgeKeyPattern: refusing pattern "*" (would delete all keys)');
+        }
+
+        await this.connect();
+
+        const redis = this._redisInstance;
+        let cursor = '0';
+        let deleted = 0;
+        const countHint = 1000;
+        const unlinkBatch = 500;
+
+        try {
+            do {
+                const [nextCursor, keys] = await redis.scan(
+                    cursor,
+                    'MATCH',
+                    pattern,
+                    'COUNT',
+                    countHint,
+                );
+                cursor = String(nextCursor);
+
+                for (let i = 0; i < keys.length; i += unlinkBatch) {
+                    const chunk = keys.slice(i, i + unlinkBatch);
+                    if (chunk.length) {
+                        deleted += await redis.unlink(...chunk);
+                    }
+                }
+            } while (cursor !== '0');
+        } catch (error) {
+            this.logger.error({
+                method: 'purgeKeyPattern',
+                message: 'Failed to purge Redis keys by pattern',
+                error,
+                metadata: { pattern },
+            });
+            throw error;
+        }
+
+        return { deleted };
+    }
 }
 
 
