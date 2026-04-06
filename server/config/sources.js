@@ -242,7 +242,7 @@ const spotifyHistoryCharts = {
 
         scraper: {
             type: 'get',
-            url: 'aHR0cHM6Ly9hcGkuc3BvdGlmeS5jb20vdjEvcGxheWxpc3RzLzFxV3hYd3lWZVRFUTEwTnVNcFhhMTM=',
+            url: 'aHR0cHM6Ly9hcGkuc3BvdGlmeS5jb20vdjEvcGxheWxpc3RzLzU3NmhRWUc1QUVnWmRNeTFvTjVxQlY=',
             headers: {
                 'authorization': 'Bearer {SPOTIFY_ACCESS_TOKEN}',
             },
