@@ -1,11 +1,51 @@
 //historyCharts
 const spotifyHistoryCharts = {
+    '100fm_radius': {
+        spotify: {
+            playlist: 'https://spoti.fi/',
+        },
+
+        now_playing: 
+        {
+            title: '100FM - Radius - Yam Tihoni Hits - Latest History Tracks (#Music)',
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 10 * 60 * 1000,
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cHM6Ly9hcGkuc3BvdGlmeS5jb20vdjEvcGxheWxpc3RzLzFxV3hYd3lWZVRFUTEwTnVNcFhhMTM=',
+            headers: {
+                'authorization': 'Bearer {SPOTIFY_ACCESS_TOKEN}',
+            },
+        },
+
+        parser: {
+            type: 'json',
+
+            options: {
+                limit: 5,
+            },
+
+            fields: {
+                added_at: 'tracks.items.{Iterator}.added_at',
+                id: 'tracks.items.{Iterator}.track.id',
+                artist: 'tracks.items.{Iterator}.track.artists.0.name',
+                title: 'tracks.items.{Iterator}.track.name',
+                popularity: 'tracks.items.{Iterator}.track.popularity',
+                duration_ms: 'tracks.items.{Iterator}.track.duration_ms',
+            },
+        },
+    },
+
+
     '98.1fm_galgalatz': {
         spotify: {
             playlist: 'https://spoti.fi/',
         },
 
-        now_playing: {
+        now_playing: 
+        {
             title: '98.1FM - Galgalatz - Latest History Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: 10 * 60 * 1000,
@@ -1563,6 +1603,40 @@ const dorognoeStations = {
     },
 };
 
+
+const debug88FMStations = {
+    'debug88FMStations': {
+        spotify: {
+            playlist: 'https://spoti.fi/3516HtY',
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzg4Zm0=',
+        },
+
+        now_playing: {
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 35 * 1000,
+        },
+
+        parser: {
+            type: 'json',
+
+            options: {
+                limit: 1,
+            },
+            
+            fields: {
+                artist: 'artist',
+                title: 'title',
+                acrid: 'acrid',
+            },
+        },
+    },
+};
+
+
 const charts = {
     // IL
     //...kanCharts,
@@ -1591,6 +1665,7 @@ const stations = {
     //...fm103Stations,
 
     // World
+    ...debug88FMStations,
     ...capitalfmStations,
     ...xmStations,
     ...virginStations,
