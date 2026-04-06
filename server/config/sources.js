@@ -1467,7 +1467,7 @@ const z100Stations = {
 
         scraper: {
             type: 'get',
-            url: 'aHR0cHM6Ly96MTAwLmloZWFydC5jb20vbXVzaWMvcmVjZW50bHktcGxheWVkLw==',
+            url: 'aHR0cHM6Ly93ZWJhcGkucmFkaW9lZGl0LmloZWFydC5jb20vZ3JhcGhxbD9vcGVyYXRpb25OYW1lPUdldEN1cnJlbnRseVBsYXlpbmdTb25ncyZ2YXJpYWJsZXM9JTdCJTIyc2x1ZyUyMiUzQSUyMndodHotZm0lMjIlMkMlMjJwYWdpbmclMjIlM0ElN0IlMjJ0YWtlJTIyJTNBMjAlN0QlN0QmZXh0ZW5zaW9ucz0lN0IlMjJwZXJzaXN0ZWRRdWVyeSUyMiUzQSU3QiUyMnZlcnNpb24lMjIlM0ExJTJDJTIyc2hhMjU2SGFzaCUyMiUzQSUyMjM4Njc2M2MxNzE0NTA1NjcxMzMyN2NkZGVjODkwY2Q5ZDRmZWE3NTU4ZWZjNTZkMDliN2NkNDE2N2VlZjYwNjAlMjIlN0QlN0Q=',
         },
 
         now_playing: {
@@ -1477,15 +1477,16 @@ const z100Stations = {
         },
 
         parser: {
-            type: 'html',
+            type: 'json',
 
             options: {
                 limit: 1,
             },
 
             fields: {
-                artist: '.track-details > a:first-child, .track-artist',
-                title: '.livecard-title a:first-child, .track-title',
+                artist: 'data.sites.find.stream.amp.currentlyPlaying.tracks.{Iterator}.artist.artistName',
+                title: 'data.sites.find.stream.amp.currentlyPlaying.tracks.{Iterator}.title',
+                trackId: 'data.sites.find.stream.amp.currentlyPlaying.tracks.{Iterator}.trackId',
             },
         },
     },
