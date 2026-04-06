@@ -1605,14 +1605,14 @@ const dorognoeStations = {
 
 
 const debug88FMStations = {
-    'debug88FMStations': {
+    'stream_88fm-kan': {
         spotify: {
             playlist: 'https://spoti.fi/3516HtY',
         },
 
         scraper: {
             type: 'get',
-            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzg4Zm0=',
+            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzg4Zm0ta2Fu',
         },
 
         now_playing: {
@@ -1626,11 +1626,301 @@ const debug88FMStations = {
             options: {
                 limit: 1,
             },
-            
+
             fields: {
-                artist: 'artist',
-                title: 'title',
-                acrid: 'acrid',
+                artist: 'recognition.artist',
+                title: 'recognition.title',
+                provider: 'recognition.provider',
+            },
+        },
+    },
+    'stream_97.5fm_gimel-kan': {
+        spotify: {
+            playlist: 'https://spoti.fi/3516HtY',
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzk3LjVmbV9naW1lbC1rYW4=',
+        },
+
+        now_playing: {
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 35 * 1000,
+        },
+
+        parser: {
+            type: 'json',
+
+            options: {
+                limit: 1,
+            },
+
+            fields: {
+                artist: 'recognition.artist',
+                title: 'recognition.title',
+                provider: 'recognition.provider',
+            },
+        },
+    },
+    'stream_98.1fm_galgalatz': {
+        spotify: {
+            playlist: 'https://spoti.fi/3516HtY',
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzk4LjFmbV9nYWxnYWxhdHo=',
+        },
+
+        now_playing: {
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 35 * 1000,
+        },
+
+        parser: {
+            type: 'json',
+
+            options: {
+                limit: 1,
+            },
+
+            fields: {
+                artist: 'recognition.artist',
+                title: 'recognition.title',
+                provider: 'recognition.provider',
+            },
+        },
+    },
+    'stream_96.6fm_glz': {
+        spotify: {
+            playlist: 'https://spoti.fi/3516HtY',
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzk2LjZmbV9nbHo=',
+        },
+
+        now_playing: {
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 35 * 1000,
+        },
+
+        parser: {
+            type: 'json',
+
+            options: {
+                limit: 1,
+            },
+
+            fields: {
+                artist: 'recognition.artist',
+                title: 'recognition.title',
+                provider: 'recognition.provider',
+            },
+        },
+    },
+    stream_103fm: {
+        spotify: {
+            playlist: 'https://spoti.fi/3516HtY',
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzEwM2Zt',
+        },
+
+        now_playing: {
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 35 * 1000,
+        },
+
+        parser: {
+            type: 'json',
+
+            options: {
+                limit: 1,
+            },
+
+            fields: {
+                artist: 'recognition.artist',
+                title: 'recognition.title',
+                provider: 'recognition.provider',
+            },
+        },
+    },
+    'stream_102fm-tlv': {
+        spotify: {
+            playlist: 'https://spoti.fi/3516HtY',
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzEwMmZtLXRsdg==',
+        },
+
+        now_playing: {
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 35 * 1000,
+        },
+
+        parser: {
+            type: 'json',
+
+            options: {
+                limit: 1,
+            },
+
+            fields: {
+                artist: 'recognition.artist',
+                title: 'recognition.title',
+                provider: 'recognition.provider',
+            },
+        },
+    },
+    'stream_91fm-lev-hamedina': {
+        spotify: {
+            playlist: 'https://spoti.fi/3516HtY',
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzkxZm0tbGV2LWhhbWVkaW5h',
+        },
+
+        now_playing: {
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 35 * 1000,
+        },
+
+        parser: {
+            type: 'json',
+
+            options: {
+                limit: 1,
+            },
+
+            fields: {
+                artist: 'recognition.artist',
+                title: 'recognition.title',
+                provider: 'recognition.provider',
+            },
+        },
+    },
+    'stream_107.5fm-haifa': {
+        spotify: {
+            playlist: 'https://spoti.fi/3516HtY',
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzEwNy41Zm0taGFpZmE=',
+        },
+
+        now_playing: {
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 35 * 1000,
+        },
+
+        parser: {
+            type: 'json',
+
+            options: {
+                limit: 1,
+            },
+
+            fields: {
+                artist: 'recognition.artist',
+                title: 'recognition.title',
+                provider: 'recognition.provider',
+            },
+        },
+    },
+    'stream_101fm-jerusalem': {
+        spotify: {
+            playlist: 'https://spoti.fi/3516HtY',
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzEwMWZtLWplcnVzYWxlbQ==',
+        },
+
+        now_playing: {
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 35 * 1000,
+        },
+
+        parser: {
+            type: 'json',
+
+            options: {
+                limit: 1,
+            },
+
+            fields: {
+                artist: 'recognition.artist',
+                title: 'recognition.title',
+                provider: 'recognition.provider',
+            },
+        },
+    },
+    'stream_100fm-radius': {
+        spotify: {
+            playlist: 'https://spoti.fi/3516HtY',
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzEwMGZtLXJhZGl1cw==',
+        },
+
+        now_playing: {
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 35 * 1000,
+        },
+
+        parser: {
+            type: 'json',
+
+            options: {
+                limit: 1,
+            },
+
+            fields: {
+                artist: 'recognition.artist',
+                title: 'recognition.title',
+                provider: 'recognition.provider',
+            },
+        },
+    },
+    'stream_24music-tv': {
+        spotify: {
+            playlist: 'https://spoti.fi/3516HtY',
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzI0bXVzaWMtdHY=',
+        },
+
+        now_playing: {
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 35 * 1000,
+        },
+
+        parser: {
+            type: 'json',
+
+            options: {
+                limit: 1,
+            },
+
+            fields: {
+                artist: 'recognition.artist',
+                title: 'recognition.title',
+                provider: 'recognition.provider',
             },
         },
     },

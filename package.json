@@ -1,7 +1,7 @@
 {
   "name": "now-playing-monorepo",
   "private": true,
-  "workspaces": ["server", "client"],
+  "workspaces": ["server", "client", "stream-recognizer"],
   "scripts": {
     "start": "npm start -w server",
     "dev:server": "npm run debug -w server",

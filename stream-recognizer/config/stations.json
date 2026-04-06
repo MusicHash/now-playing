@@ -1,0 +1,79 @@
+{
+  "88fm-kan": {
+    "streamUrl": "https://n-121-4.il.cdn-redge.media/livedash/oil/kancdn-live/live/radio/kan_88/live.livx?indexMode&futc&dvr=7200000",
+    "enabled": true,
+    "intervalMs": null,
+    "vadAggressive": 2,
+    "rmsSilenceDb": null
+  },
+  "97.5fm_gimel-kan": {
+    "streamUrl": "https://n-121-3.il.cdn-redge.media/livedash/oil/kancdn-live/live/radio/kan_gimel/live.livx?indexMode&futc&dvr=7200000",
+    "enabled": true,
+    "intervalMs": null,
+    "vadAggressive": 2,
+    "rmsSilenceDb": null
+  },
+  "98.1fm_galgalatz": {
+    "streamUrl": "https://glzwizzlv.bynetcdn.com/glglz_mp3?awCollectionId=misc&awEpisodeId=glglz",
+    "enabled": true,
+    "intervalMs": null,
+    "vadAggressive": 2,
+    "rmsSilenceDb": null
+  },
+  "96.6fm_glz": {
+    "streamUrl": "https://glzwizzlv.bynetcdn.com/glz_mp3?awCollectionId=misc&awEpisodeId=glz",
+    "enabled": true,
+    "intervalMs": null,
+    "vadAggressive": 2,
+    "rmsSilenceDb": null
+  },
+  "103fm": {
+    "streamUrl": "https://cdn.cybercdn.live/103FM/Live/icecast.audio",
+    "enabled": true,
+    "intervalMs": null,
+    "vadAggressive": 2,
+    "rmsSilenceDb": null
+  },
+  "102fm-tlv": {
+    "streamUrl": "https://cdn88.mediacast.co.il/102fm-tlv/102fm_aac/icecast.audio",
+    "enabled": true,
+    "intervalMs": null,
+    "vadAggressive": 2,
+    "rmsSilenceDb": null
+  },
+  "91fm-lev-hamedina": {
+    "streamUrl": "https://cdn.cybercdn.live/Lev_Hamedina/Audio/icecast.audio",
+    "enabled": true,
+    "intervalMs": null,
+    "vadAggressive": 2,
+    "rmsSilenceDb": null
+  },
+  "107.5fm-haifa": {
+    "streamUrl": "https://1075.livecdn.biz/radiohaifa",
+    "enabled": true,
+    "intervalMs": null,
+    "vadAggressive": 2,
+    "rmsSilenceDb": null
+  },
+  "101fm-jerusalem": {
+    "streamUrl": "https://cdn.cybercdn.live/JerusalemRadio/Live/icecast.audio",
+    "enabled": true,
+    "intervalMs": null,
+    "vadAggressive": 2,
+    "rmsSilenceDb": null
+  },
+  "100fm-radius": {
+    "streamUrl": "https://edge-fs-20.cybercdn.live/Radios_100FM/Audio/chunks.m3u8",
+    "enabled": true,
+    "intervalMs": null,
+    "vadAggressive": 2,
+    "rmsSilenceDb": null
+  },
+  "24music-tv": {
+    "streamUrl": "https://mako-streaming.akamaized.net/direct/hls/live/2035340/ch24live/index.m3u8",
+    "enabled": true,
+    "intervalMs": null,
+    "vadAggressive": 2,
+    "rmsSilenceDb": null
+  }
+}
