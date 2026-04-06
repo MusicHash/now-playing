@@ -27,6 +27,11 @@ export const MAX_STATS_LIMIT = 200;
 export const DEFAULT_RECENT_LIMIT = 50;
 export const MAX_RECENT_LIMIT = 500;
 
+/** Default window for magical-moment (minutes before `at`). */
+export const DEFAULT_MAGICAL_MINUTES = 5;
+/** Max window size for magical-moment queries. */
+export const MAX_MAGICAL_MINUTES = 10080;
+
 /** Allowed `resolutionMinutes` for plays-by-bucket drill-down APIs. */
 export const ALLOWED_BUCKET_MINUTES = [1, 5, 10, 15, 30, 60, 120, 240, 480, 1440];
 export const DEFAULT_BUCKET_MINUTES = 90;
@@ -680,6 +685,150 @@ export async function getRecentPlays(opts = {}) {
 
     const [rows] = await MySQLWrapper.queryWithCache(sql, [days, ...extraParams, limit], CACHE_TTL_12_HOURS);
     return rows;
+}
+
+/**
+ * @param {unknown} value
+ */
+export function clampMagicalMinutes(value) {
+    const n = Number.parseInt(String(value), 10);
+    if (!Number.isFinite(n) || n < 1) {
+        return DEFAULT_MAGICAL_MINUTES;
+    }
+    return Math.min(n, MAX_MAGICAL_MINUTES);
+}
+
+/**
+ * Songs logged per station in `[window_start, window_end]` (inclusive), ending at `at` (or server now).
+ * Not cached — intended for interactive / “now” use.
+ *
+ * @param {{
+ *   at?: Date | null,
+ *   windowMinutes?: unknown,
+ *   station?: string,
+ *   stationLike?: string,
+ * }} opts
+ * @returns {Promise<{
+ *   window_start: string,
+ *   window_end: string,
+ *   window_minutes: number,
+ *   stations: Array<{
+ *     station: string,
+ *     plays: Array<{
+ *       log_datetime_played: string,
+ *       log_artist: string,
+ *       log_title: string,
+ *       spotify_track_id: string,
+ *       spotify_artist_title: string,
+ *       spotify_track_title: string,
+ *       spotify_popularity: number,
+ *     }>,
+ *   }>,
+ * }>}
+ */
+export async function getMagicalMoment(opts = {}) {
+    const windowMinutes = clampMagicalMinutes(opts.windowMinutes);
+    const { sql: extraWhere, params: extraParams } = stationWhereClause(opts);
+
+    /** @type {Date} */
+    let windowEnd;
+    /** @type {Date} */
+    let windowStart;
+
+    if (opts.at instanceof Date && !Number.isNaN(opts.at.getTime())) {
+        windowEnd = opts.at;
+        windowStart = new Date(windowEnd.getTime() - windowMinutes * 60 * 1000);
+    } else {
+        const [[{ server_now }]] = await MySQLWrapper.query(
+            'SELECT NOW() AS server_now',
+        );
+        windowEnd = server_now instanceof Date ? server_now : new Date(server_now);
+        windowStart = new Date(windowEnd.getTime() - windowMinutes * 60 * 1000);
+    }
+
+    const sql = `
+        SELECT
+            station_log.log_station_id,
+            station_log.log_datetime_played,
+            station_log.log_artist,
+            station_log.log_title,
+            spotify_tracks.spotify_track_id,
+            spotify_tracks.spotify_artist_title,
+            spotify_tracks.spotify_track_title,
+            spotify_tracks.spotify_popularity
+        FROM
+            nowplaying_station_log station_log
+        JOIN
+            nowplaying_spotify_tracks spotify_tracks
+            ON station_log.spotify_id = spotify_tracks.spotify_id
+        WHERE
+            station_log.log_datetime_played >= ?
+            AND station_log.log_datetime_played <= ?
+            ${extraWhere}
+        ORDER BY
+            station_log.log_station_id ASC,
+            station_log.log_datetime_played ASC
+    `;
+
+    const [rows] = await MySQLWrapper.query(sql, [windowStart, windowEnd, ...extraParams]);
+
+    /** @type {Map<string, typeof rows>} */
+    const byStation = new Map();
+    for (const row of rows) {
+        const sid = row.log_station_id;
+        if (!byStation.has(sid)) {
+            byStation.set(sid, []);
+        }
+        byStation.get(sid).push({
+            log_datetime_played: row.log_datetime_played,
+            log_artist: row.log_artist,
+            log_title: row.log_title,
+            spotify_track_id: row.spotify_track_id,
+            spotify_artist_title: row.spotify_artist_title,
+            spotify_track_title: row.spotify_track_title,
+            spotify_popularity: row.spotify_popularity,
+        });
+    }
+
+    const stations = [...byStation.entries()]
+        .sort((a, b) => String(a[0]).localeCompare(String(b[0])))
+        .map(([station, plays]) => ({ station, plays }));
+
+    return {
+        window_start: windowStart.toISOString(),
+        window_end: windowEnd.toISOString(),
+        window_minutes: windowMinutes,
+        stations,
+    };
+}
+
+/**
+ * Query params for {@link getMagicalMoment}: `at` (optional ISO datetime), `minutes` / `windowMinutes`, `station`, `stationLike`.
+ *
+ * @param {import('express').Request} req
+ */
+export function magicalMomentParamsFromRequest(req) {
+    const station =
+        typeof req.query.station === 'string' && req.query.station.trim()
+            ? req.query.station.trim()
+            : undefined;
+    const stationLike =
+        typeof req.query.stationLike === 'string' && req.query.stationLike.trim()
+            ? req.query.stationLike.trim()
+            : undefined;
+    const minutes = req.query.minutes ?? req.query.windowMinutes;
+    const atRaw = typeof req.query.at === 'string' ? req.query.at.trim() : '';
+    let at = null;
+    if (atRaw) {
+        const t = Date.parse(atRaw);
+        if (Number.isNaN(t)) {
+            const err = new Error('Invalid at');
+            err.code = 'INVALID_AT';
+            throw err;
+        }
+        at = new Date(t);
+    }
+    return { at, windowMinutes: minutes, station, stationLike };
 }
 
 /**

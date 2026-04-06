@@ -4,6 +4,10 @@ export const MAX_STATS_DAYS = 365;
 export const DEFAULT_STATS_LIMIT = 60;
 export const MAX_STATS_LIMIT = 200;
 
+/** Must match server `stats_queries.js` magical-moment defaults. */
+export const DEFAULT_MAGICAL_MINUTES = 5;
+export const MAX_MAGICAL_MINUTES = 10080;
+
 /** Must match server `MOMENTUM_DIRECTION_*` — momentum endpoints. */
 export const MOMENTUM_DIRECTION_UP = 'up';
 export const MOMENTUM_DIRECTION_DOWN = 'down';
@@ -239,6 +243,30 @@ export function getChartTracksUrl(params) {
         p.set('week', String(params.week));
     }
     return `/api/data/chart-tracks?${p}`;
+}
+
+/**
+ * @param {{
+ *   minutes?: unknown,
+ *   at?: string | undefined,
+ *   station?: string | undefined,
+ * }} params
+ */
+export function getMagicalMomentUrl(params) {
+    const p = new URLSearchParams();
+    const minutes = clampInt(
+        params.minutes,
+        DEFAULT_MAGICAL_MINUTES,
+        MAX_MAGICAL_MINUTES,
+    );
+    p.set('minutes', String(minutes));
+    if (params.at) {
+        p.set('at', params.at);
+    }
+    if (params.station) {
+        p.set('station', params.station);
+    }
+    return `/api/data/stats/magical-moment?${p}`;
 }
 
 /**

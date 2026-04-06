@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import DrillDownPlaysPanel from './DrillDownPlaysPanel.jsx';
+import MagicalMomentPanel from './MagicalMomentPanel.jsx';
 import HourWeekdayHeatmap from './HourWeekdayHeatmap.jsx';
 import PlaysByDayChart from './PlaysByDayChart.jsx';
 import RankedBarChart from './RankedBarChart.jsx';
@@ -481,6 +482,7 @@ export default function RadioStatsDashboard() {
                     onRowClick={handleArtistRowClick}
                 />
             </div>
+            <MagicalMomentPanel stationOptions={stationOptions} />
         </section>
     );
 }

@@ -4,6 +4,7 @@ import MySQLWrapper from '../utils/mysql_wrapper.js';
 import { stations, charts } from '../../config/sources.js';
 import {
     getDistinctStationsLogged,
+    getMagicalMoment,
     getMostPlayedTracks,
     getPlaylistTracks,
     getPlaysByBucketForArtist,
@@ -15,6 +16,7 @@ import {
     getTopArtistsByMomentum,
     getTopStations,
     getTopTracksByMomentum,
+    magicalMomentParamsFromRequest,
 } from '../lib/query_log/stats_queries.js';
 import { getChartEntries, getAvailableWeeks } from '../lib/query_log/chart_log.js';
 
@@ -27,6 +29,20 @@ function requireMysql(_req, res, next) {
         return;
     }
     next();
+}
+
+export async function handleMagicalMoment(req, res) {
+    try {
+        const params = magicalMomentParamsFromRequest(req);
+        const payload = await getMagicalMoment(params);
+        res.json(payload);
+    } catch (error) {
+        if (error?.code === 'INVALID_AT') {
+            res.status(400).json({ error: 'Invalid at', message: 'Use ISO 8601 datetime' });
+            return;
+        }
+        res.status(500).json({ error: 'Query failed', message: String(error?.message || error) });
+    }
 }
 
 function parseQuery(req) {
@@ -148,6 +164,8 @@ export default function dataRoutes(_logger) {
             res.status(500).json({ error: 'Query failed', message: String(error?.message || error) });
         }
     });
+
+    router.get('/data/stats/magical-moment', handleMagicalMoment);
 
     router.get('/data/stats/plays-by-bucket/track', async (req, res) => {
         const trackId =

@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import prettier from 'prettier';
 
+import { handleMagicalMoment } from './data.js';
+import MySQLWrapper, { SQL_CACHE_REDIS_PATTERN } from '../utils/mysql_wrapper.js';
 import {
     getChartInfo,
     crawlHistoryChartsToNotifyTrackChanges,
@@ -10,7 +12,17 @@ import { addSpotifyHyperLinks } from '../utils/spotify_link_generator.js';
 import { DEFAULT_STATS_DAYS } from '../lib/query_log/stats_queries.js';
 import { stations, charts, historyCharts } from '../../config/sources.js';
 import redisWrapper from '../utils/redis_wrapper.js';
-import { SQL_CACHE_REDIS_PATTERN } from '../utils/mysql_wrapper.js';
+
+function requireMysqlForDebug(_req, res, next) {
+    if (!MySQLWrapper.isEnabled()) {
+        res.status(503).json({
+            error: 'MySQL is not configured',
+            enabled: false,
+        });
+        return;
+    }
+    next();
+}
 
 export default function debugRoutes(logger) {
     const router = Router();
@@ -73,6 +85,7 @@ export default function debugRoutes(logger) {
     <li><a href="/api/debug/crawl_history_charts">Run history charts crawl now</a> (same as scheduler: every 10 minutes)</li>
     <li><a href="/api/debug/update_playlists">Update station playlists now</a> (same as scheduler 24h job — queues per-station updates)</li>
     <li><a href="/api/debug/purge_sql_cache">Purge Redis SQL query cache</a> (<code>sql_cache:*</code>)</li>
+    <li><a href="/api/debug/magical-moment">Magical moment</a> (JSON: plays per station in a time window — same as <code>/api/data/stats/magical-moment</code>)</li>
     <li><a href="/api/actions">All API actions</a></li>
   </ul>
 </body>
@@ -93,6 +106,7 @@ export default function debugRoutes(logger) {
             '/api/debug/crawl_history_charts': 'Crawl History Charts (10 min schedule, run now)',
             '/api/debug/update_playlists': 'Update Station Playlists (24h job, run now)',
             '/api/debug/purge_sql_cache': 'Purge Redis SQL query cache (sql_cache:*)',
+            '/api/debug/magical-moment': 'Magical moment (JSON: window of plays per station)',
         };
 
         let html = Object.keys(links)
@@ -124,6 +138,8 @@ export default function debugRoutes(logger) {
             [`/api/data/stats/playlist-tracks?days=${d}&limit=25&sort=play_count`, `playlist-tracks · days=${d}, sort=play_count`],
             [`/api/data/stats/playlist-tracks?days=${d}&limit=25&sort=recent`, `playlist-tracks · days=${d}, sort=recent`],
             [`/api/data/stats/top-tracks?days=${d}&stationLike=glz&limit=20`, `top-tracks · days=${d}, stationLike=glz`],
+            ['/api/data/stats/magical-moment?minutes=5', 'magical-moment · last 5 minutes (all stations, end = now)'],
+            ['/api/debug/magical-moment?minutes=5', 'magical-moment (debug alias) · last 5 minutes'],
         ];
         if (exampleStation) {
             const enc = encodeURIComponent(exampleStation);
@@ -166,6 +182,9 @@ export default function debugRoutes(logger) {
 
     router.get('/debug/purge_sql_cache', runPurgeSqlCache);
     router.post('/debug/purge_sql_cache', runPurgeSqlCache);
+
+    router.get('/debug/magical-moment', requireMysqlForDebug, handleMagicalMoment);
+    router.post('/debug/magical-moment', requireMysqlForDebug, handleMagicalMoment);
 
     router.get('/debug/fetch/:chartID', async (req, res) => {
         let chartID = req.params.chartID;
