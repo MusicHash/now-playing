@@ -78,14 +78,6 @@ const crawlHistoryChartsToNotifyTrackChanges = async function () {
                 continue;
             }
 
-            if (currentList.length !== 100) {
-                logger.warn({
-                    method: 'crawlHistoryChartsToNotifyTrackChanges',
-                    message: 'History list length is not 100; diff may be unreliable',
-                    metadata: { station, count: currentList.length },
-                });
-            }
-
             const hash = await redisWrapper.getAll(HISTORY_SNAPSHOT_KEY(station));
             const fetchedAt = new Date();
 
