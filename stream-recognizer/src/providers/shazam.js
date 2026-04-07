@@ -8,6 +8,8 @@ import { randomInt, randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { ProxyAgent, fetch as undiciFetch } from 'undici';
 
+import { pickNextHttpProxy, proxyHostForLog } from '../lib/http_proxy.js';
+
 const require = createRequire(import.meta.url);
 /** @type {string[]} */
 const SHAZAM_USER_AGENTS = require('./shazam_user_agents.json');
@@ -56,42 +58,34 @@ function envInt(name, fallback) {
     return Number.isFinite(n) ? n : fallback;
 }
 
-/** @type {import('undici').ProxyAgent | null} */
-let shazamProxyAgent = null;
-/** @type {string | null} */
-let shazamProxyAgentUrl = null;
-let shazamProxyLogged = false;
+/** @type {Map<string, import('undici').ProxyAgent>} */
+const proxyAgentByUrl = new Map();
 
 /**
- * Outbound Shazam discovery uses `HTTP_PROXY` when set (same as typical CLI tools).
- *
- * @returns {string | undefined}
+ * @param {string | undefined} proxyUrl
+ * @returns {import('undici').ProxyAgent | undefined}
  */
-function getShazamProxyUrl() {
-    return (process.env.HTTP_PROXY || '').trim() || undefined;
+function getProxyDispatcher(proxyUrl) {
+    if (!proxyUrl) {
+        return undefined;
+    }
+    let agent = proxyAgentByUrl.get(proxyUrl);
+    if (!agent) {
+        agent = new ProxyAgent(proxyUrl);
+        proxyAgentByUrl.set(proxyUrl, agent);
+    }
+    return agent;
 }
 
 /**
- * @returns {import('undici').ProxyAgent | undefined}
+ * @param {string} url
+ * @returns {string}
  */
-function getShazamProxyDispatcher() {
-    const url = getShazamProxyUrl();
-    if (!url) {
-        return undefined;
-    }
-    if (shazamProxyAgentUrl === url && shazamProxyAgent) {
-        return shazamProxyAgent;
-    }
-    if (shazamProxyAgent) {
-        try {
-            shazamProxyAgent.close();
-        } catch {
-            /* ignore */
-        }
-    }
-    shazamProxyAgentUrl = url;
-    shazamProxyAgent = new ProxyAgent(url);
-    return shazamProxyAgent;
+function redactDiscoveryUrl(url) {
+    return url.replace(
+        /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,
+        '{uuid}',
+    );
 }
 
 /**
@@ -180,14 +174,32 @@ function logNoMatch(logger, body, reason) {
  * @param {string} url
  * @param {object} json
  * @param {import('pino').Logger} logger
+ * @param {string | undefined} proxyUrl
+ * @param {number} segmentIndex
  * @returns {Promise<Response>}
  */
-async function fetchDiscoveryOnce(url, json) {
+async function fetchDiscoveryOnce(url, json, logger, proxyUrl, segmentIndex) {
     const timeoutMs = envInt('SHAZAM_FETCH_TIMEOUT_MS', 28_000);
     const ac = new AbortController();
     const t = setTimeout(() => ac.abort(), timeoutMs);
     const language = (process.env.SHAZAM_LANGUAGE || 'en-US').trim();
-    const dispatcher = getShazamProxyDispatcher();
+    const endpointCountry = (process.env.SHAZAM_ENDPOINT_COUNTRY || 'GB').trim();
+    const device = (process.env.SHAZAM_DEVICE || 'iphone').trim().toLowerCase();
+    const ua = discoveryUserAgent();
+    const dispatcher = getProxyDispatcher(proxyUrl);
+    logger.info(
+        {
+            proxy: proxyHostForLog(proxyUrl),
+            segmentIndex,
+            shazamUrl: redactDiscoveryUrl(url),
+            language,
+            endpointCountry,
+            device,
+            userAgent: ua,
+            viaProxy: Boolean(proxyUrl),
+        },
+        'shazam: discovery POST',
+    );
     try {
         return await undiciFetch(url, {
             method: 'POST',
@@ -200,7 +212,7 @@ async function fetchDiscoveryOnce(url, json) {
                 'Content-Type': 'application/json',
                 'X-Shazam-Platform': (process.env.SHAZAM_PLATFORM || 'IPHONE').trim(),
                 'X-Shazam-AppVersion': (process.env.SHAZAM_APP_VERSION || '14.1.0').trim(),
-                'User-Agent': discoveryUserAgent(),
+                'User-Agent': ua,
             },
             body: JSON.stringify(json),
         });
@@ -213,17 +225,12 @@ async function fetchDiscoveryOnce(url, json) {
  * @param {string} url
  * @param {object} json
  * @param {import('pino').Logger} logger
+ * @param {string | undefined} proxyUrl
+ * @param {number} segmentIndex
  * @returns {Promise<unknown>}
  */
-async function postDiscovery(url, json, logger) {
-    if (getShazamProxyUrl() && !shazamProxyLogged) {
-        shazamProxyLogged = true;
-        logger.debug(
-            {},
-            'shazam: discovery requests use HTTP proxy (HTTP_PROXY)',
-        );
-    }
-    let res = await fetchDiscoveryOnce(url, json);
+async function postDiscovery(url, json, logger, proxyUrl, segmentIndex) {
+    let res = await fetchDiscoveryOnce(url, json, logger, proxyUrl, segmentIndex);
     if (res.status === 429) {
         const retryAfter = envInt('SHAZAM_429_RETRY_MS', 2500);
         logger.warn(
@@ -231,7 +238,7 @@ async function postDiscovery(url, json, logger) {
             'shazam: rate limited; backing off once',
         );
         await new Promise((r) => setTimeout(r, retryAfter));
-        res = await fetchDiscoveryOnce(url, json);
+        res = await fetchDiscoveryOnce(url, json, logger, proxyUrl, segmentIndex);
     }
     if (!res.ok) {
         const text = await res.text();
@@ -276,13 +283,19 @@ function buildSearchBody(uri, samplems) {
  *
  * @param {string} wavPath
  * @param {import('pino').Logger} logger
+ * @param {{ httpProxy?: string }} [options] If `httpProxy` is present (including `undefined`), use it; otherwise pick from `HTTP_PROXY` pool (round-robin). Pass the same value as ffmpeg for a given tick.
  * @returns {Promise<{ artist: string; title: string; key?: string } | null>}
  */
-export async function shazamIdentifyFromFile(wavPath, logger) {
+export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
     if (!isShazamEnabled()) {
         logger.debug('shazam: skipped (SHAZAM_DISABLED=1)');
         return null;
     }
+
+    const proxyUrl =
+        options && typeof options === 'object' && 'httpProxy' in options
+            ? options.httpProxy
+            : pickNextHttpProxy();
 
     let buffer;
     try {
@@ -345,7 +358,7 @@ export async function shazamIdentifyFromFile(wavPath, logger) {
         /** @type {unknown} */
         let data;
         try {
-            data = await postDiscovery(url, body, logger);
+            data = await postDiscovery(url, body, logger, proxyUrl, i);
         } catch (e) {
             logger.error({ err: e, segmentIndex: i }, 'shazam: discovery request failed');
             continue;

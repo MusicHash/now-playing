@@ -13,6 +13,7 @@ import { acrcloudIdentifyFromFile, isAcrcloudConfigured } from '../providers/acr
 import { shazamIdentifyFromFile, isShazamEnabled } from '../providers/shazam.js';
 import { envBool, envFloat, envInt, getAudioRecognitionOrder } from '../config.js';
 import { getAcoustidClientKey } from '../lib/acoustid_env.js';
+import { pickNextHttpProxy, proxyHostForLog } from '../lib/http_proxy.js';
 
 /**
  * @param {string} artist
@@ -88,6 +89,9 @@ export async function runStationTick(station, store, logger, options = {}) {
     const vadEnabled = envBool('VAD_ENABLED', true);
     const vadAggressive = station.vadAggressive ?? 2;
 
+    /** Same proxy for ffmpeg capture and Shazam for this tick (HTTP_PROXY pool is round-robin per tick). */
+    const tickHttpProxy = pickNextHttpProxy();
+
     const state = await store.getState(station.id);
     const previous = state?.recognition ?? null;
     const prevKey = previous
@@ -98,13 +102,18 @@ export async function runStationTick(station, store, logger, options = {}) {
     let wavPath = null;
     try {
         log.info(
-            { station: station.id, captureSec },
+            {
+                station: station.id,
+                captureSec,
+                httpProxy: proxyHostForLog(tickHttpProxy),
+            },
             'station tick: ffmpeg capture (see FFMPEG_CAPTURE_TIMEOUT_MS if this stalls)',
         );
         wavPath = await captureStreamToWav(
             ffmpegBin,
             station.streamUrl,
             captureSec,
+            { httpProxy: tickHttpProxy },
         );
 
         const pcm = await fileToPcm16kMono(ffmpegBin, wavPath);
@@ -200,7 +209,9 @@ export async function runStationTick(station, store, logger, options = {}) {
                     priorSteps.push(msg);
                     continue;
                 }
-                const sh = await shazamIdentifyFromFile(wavPath, log);
+                const sh = await shazamIdentifyFromFile(wavPath, log, {
+                    httpProxy: tickHttpProxy,
+                });
                 if (sh && (sh.artist || sh.title)) {
                     match = sh;
                     matchSource = 'shazam';

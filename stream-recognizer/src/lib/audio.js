@@ -29,9 +29,11 @@ function captureTimeoutMs(seconds) {
  * @param {string} ffmpegBin
  * @param {string} streamUrl
  * @param {number} seconds
+ * @param {{ httpProxy?: string }} [options] When set, passed to ffmpeg as `-http_proxy` (same tick as Shazam when using HTTP_PROXY pool).
  * @returns {Promise<string>} path to wav file (caller must unlink)
  */
-export async function captureStreamToWav(ffmpegBin, streamUrl, seconds) {
+export async function captureStreamToWav(ffmpegBin, streamUrl, seconds, options = {}) {
+    const httpProxy = (options.httpProxy || '').trim() || undefined;
     const dir = await mkdtemp(join(tmpdir(), 'sr-cap-'));
     const outPath = join(dir, 'clip.wav');
     const timeoutMs = captureTimeoutMs(seconds);
@@ -42,6 +44,7 @@ export async function captureStreamToWav(ffmpegBin, streamUrl, seconds) {
             '-loglevel',
             'error',
             '-nostdin',
+            ...(httpProxy ? ['-http_proxy', httpProxy] : []),
             '-i',
             streamUrl,
             '-t',
