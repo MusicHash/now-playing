@@ -43,7 +43,7 @@ CDN **DASH / `.livx`** URLs may be slow or unsuitable for a simple `ffmpeg -i �
 
 ### Audio recognition: no match — inspect the capture
 
-Logs include `capturePath`, `fingerprintPrefix`, and **`order`** (provider list). The temp capture is deleted after each tick unless **`DEBUG_CAPTURE_DIR`** is set and **`DEBUG_CAPTURE_ENABLED`** is not disabled (`1` by default). Copies use `{timestamp}-{stationId}-{tickId}-{label}.wav` (UTC ISO time with `:` / `.` replaced for filenames): `no-match` when every provider fails; pre-recognition empty skips use `detected-empty-*`. Successful IDs are copied **only** when **Shazam ran and missed** and a **later** provider in `AUDIO_RECOGNITION_ORDER` matched (label `saved-<provider>-after-shazam-miss`). A Shazam win is never copied to `DEBUG_CAPTURE_DIR`.
+Logs include `capturePath`, `fingerprintPrefix`, and **`order`** (provider list). The temp capture is deleted after each tick unless **`DEBUG_CAPTURE_DIR`** is set and **`DEBUG_CAPTURE_ENABLED`** is not disabled (`1` by default). Copies use `{unixTime}-{stationId}-{tickId}-{label}.wav` (`unixTime` = seconds since Unix epoch): `no-match` when every provider fails; pre-recognition empty skips use `detected-empty-*`. Successful IDs are copied **only** when **Shazam ran and missed** and a **later** provider in `AUDIO_RECOGNITION_ORDER` matched (label `saved-<provider>-after-shazam-miss`). A Shazam win is never copied to `DEBUG_CAPTURE_DIR`.
 
 ### `invalid API key` (HTTP 400, AcoustID error code 4)
 
@@ -80,7 +80,7 @@ Stations file: array of `{ "id", "streamUrl", "enabled", "intervalMs", "vadAggre
 ## HTTP API
 
 - `GET /health` — process up; Redis status (`up`/`down`).
-- `GET /stations` — each station includes config (`id`, `enabled`, `intervalMs`, `streamUrl`) plus **`recognition`** (last saved track payload from Redis, or `null`) and **`lastRun`** (status of the most recent tick: `at`, `tickId`, `outcome`, and optional fields such as `error`, `priorSteps`, `provider`).
+- `GET /stations` — `{ stations: { [key]: { ... } } }`: keys are derived from each station `id` by dropping the substring from the first `-` onward, removing `.`, then replacing any remaining non‑`[a-zA-Z0-9_]` with `_`. Each value still includes the real `id` plus config (`enabled`, `intervalMs`, `streamUrl`), **`recognition`**, and **`lastRun`**.
 - `GET /stations/:id` — `{ id, recognition, lastRun }` for one station (`404` if the Redis key was never written).
 
 Per station, Redis stores `{ recognition, lastRun }`. **`recognition`** holds the track fields: `artist`, `title`, `source` (`acrcloud` \| `shazam` \| `acoustid`), `provider`, `updatedAt` (ISO), Chromaprint `fingerprint`, and optional `acrid`, `shazamKey`. Legacy rows may still include `metadata` / `icy` or `rawTitle` from older versions until rewritten. **`lastRun`** is updated every tick (e.g. `saved_audio`, `no_match`, `skipped_silence`, `error`).

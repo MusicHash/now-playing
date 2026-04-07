@@ -66,6 +66,22 @@ function lastRunWithLocalTime(lastRun) {
 }
 
 /**
+ * Safe object key for `GET /stations` payload: no `.`, truncated before first `-`,
+ * then only `[a-zA-Z0-9_]` (other chars become `_`).
+ * @param {string} id
+ */
+function stationResponseKey(id) {
+    let k = String(id);
+    const dash = k.indexOf('-');
+    if (dash !== -1) {
+        k = k.slice(0, dash);
+    }
+    k = k.replace(/\./g, '');
+    k = k.replace(/[^a-zA-Z0-9_]/g, '_');
+    return k || '_';
+}
+
+/**
  * @param {object} opts
  * @param {import('pino').Logger} opts.logger
  * @param {import('../lib/redis_store.js').RedisStore} opts.store
@@ -97,10 +113,10 @@ export function createHttpServer({ logger, store, stations }) {
     });
 
     app.get('/stations', async (req, res) => {
-        const list = await Promise.all(
+        const entries = await Promise.all(
             stations.map(async (s) => {
                 const state = await store.getState(s.id);
-                return {
+                const payload = {
                     id: s.id,
                     enabled: s.enabled !== false,
                     intervalMs: s.intervalMs ?? null,
@@ -110,9 +126,10 @@ export function createHttpServer({ logger, store, stations }) {
                     ),
                     lastRun: lastRunWithLocalTime(state?.lastRun ?? null),
                 };
+                return [stationResponseKey(s.id), payload];
             }),
         );
-        res.json({ stations: list });
+        res.json({ stations: Object.fromEntries(entries) });
     });
 
     app.get('/stations/:id', async (req, res) => {
