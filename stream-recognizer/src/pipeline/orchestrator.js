@@ -5,6 +5,7 @@ import {
     captureStreamToWav,
     chromaprintFingerprintFromPcm,
     analyzePcmGates,
+    analyzePcmPreRecognitionEmpty,
     fileToPcm16kMono,
     cleanupCapturePath,
 } from '../lib/audio.js';
@@ -60,6 +61,35 @@ function lastRunRecord(tickId, outcome, extra = {}) {
         outcome,
         ...extra,
     };
+}
+
+/**
+ * When DEBUG_CAPTURE_DIR is set and DEBUG_CAPTURE_ENABLED, copy WAV for offline analysis.
+ * @param {string} wavPath
+ * @param {string} stationId
+ * @param {import('pino').Logger} log
+ * @param {string} label filename suffix before `.wav` (e.g. `detected-empty-peak_too_low`, `no-match`)
+ * @returns {Promise<string|undefined>} copied path or undefined
+ */
+async function copyDebugWavIfEnabled(wavPath, stationId, log, label) {
+    const debugDir = (process.env.DEBUG_CAPTURE_DIR || '').trim();
+    const debugCaptureEnabled = envBool('DEBUG_CAPTURE_ENABLED', true);
+    if (!debugDir || !wavPath || !debugCaptureEnabled) {
+        return undefined;
+    }
+    try {
+        await mkdir(debugDir, { recursive: true });
+        const safe = String(label).replace(/[^a-zA-Z0-9_-]+/g, '-');
+        const debugCopyPath = join(debugDir, `${stationId}-${Date.now()}-${safe}.wav`);
+        await copyFile(wavPath, debugCopyPath);
+        return debugCopyPath;
+    } catch (e) {
+        log.warn(
+            { err: e, station: stationId, debugDir },
+            'DEBUG_CAPTURE_DIR copy failed',
+        );
+        return undefined;
+    }
 }
 
 /**
@@ -150,6 +180,61 @@ export async function runStationTick(station, store, logger, options = {}) {
                 }),
             );
             return;
+        }
+
+        const preEmptyEnabled = envBool('PRE_RECOGNITION_EMPTY_CHECK', true);
+        if (preEmptyEnabled) {
+            const minPeakDb = envFloat('PRE_RECOGNITION_MIN_PEAK_DB', -42);
+            const maxSilentFrameRatio = envFloat(
+                'PRE_RECOGNITION_MAX_SILENT_FRAME_RATIO',
+                0.94,
+            );
+            const emptyProbe = analyzePcmPreRecognitionEmpty(pcm, {
+                silenceDb: rmsSilenceDb,
+                minPeakDb,
+                maxSilentFrameRatio,
+            });
+            if (emptyProbe.empty) {
+                const emptyLabel =
+                    emptyProbe.reason != null
+                        ? `detected-empty-${emptyProbe.reason}`
+                        : 'detected-empty';
+                const debugCopyPath = await copyDebugWavIfEnabled(
+                    wavPath,
+                    station.id,
+                    log,
+                    emptyLabel,
+                );
+                log.info(
+                    {
+                        station: station.id,
+                        outcome: 'skipped_empty_segment',
+                        reason: emptyProbe.reason,
+                        meanDb: emptyProbe.meanDb,
+                        peakDb: emptyProbe.peakDb,
+                        silentFrameRatio: emptyProbe.silentFrameRatio,
+                        frameCount: emptyProbe.frameCount,
+                        capturePath: wavPath,
+                        debugCopyPath,
+                        preRecognition: {
+                            minPeakDb,
+                            maxSilentFrameRatio,
+                            silenceDb: rmsSilenceDb,
+                        },
+                    },
+                    'skip: segment is effectively empty (pre-recognition); not sending to fingerprint or APIs',
+                );
+                await store.setLastRun(
+                    station.id,
+                    lastRunRecord(tickId, 'skipped_empty_segment', {
+                        reason: emptyProbe.reason,
+                        meanDb: emptyProbe.meanDb,
+                        peakDb: emptyProbe.peakDb,
+                        silentFrameRatio: emptyProbe.silentFrameRatio,
+                    }),
+                );
+                return;
+            }
         }
 
         const { fingerprint, duration } = await chromaprintFingerprintFromPcm(
@@ -262,25 +347,12 @@ export async function runStationTick(station, store, logger, options = {}) {
         }
 
         if (!match || (!match.artist && !match.title)) {
-            /** @type {string|undefined} */
-            let debugCopyPath;
-            const debugDir = (process.env.DEBUG_CAPTURE_DIR || '').trim();
-            const debugCaptureEnabled = envBool('DEBUG_CAPTURE_ENABLED', true);
-            if (debugDir && wavPath && debugCaptureEnabled) {
-                try {
-                    await mkdir(debugDir, { recursive: true });
-                    debugCopyPath = join(
-                        debugDir,
-                        `${station.id}-${Date.now()}.wav`,
-                    );
-                    await copyFile(wavPath, debugCopyPath);
-                } catch (e) {
-                    log.warn(
-                        { err: e, station: station.id, debugDir },
-                        'DEBUG_CAPTURE_DIR copy failed',
-                    );
-                }
-            }
+            const debugCopyPath = await copyDebugWavIfEnabled(
+                wavPath,
+                station.id,
+                log,
+                'no-match',
+            );
             log.info(
                 {
                     station: station.id,
