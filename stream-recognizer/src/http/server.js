@@ -49,6 +49,23 @@ function recognitionWithLocalTime(recognition) {
 }
 
 /**
+ * Adds `atLocal` next to `at` when serializing (not stored in Redis).
+ * @param {object|null} lastRun
+ */
+function lastRunWithLocalTime(lastRun) {
+    if (!lastRun || typeof lastRun !== 'object') {
+        return lastRun;
+    }
+    const local = isoUtcToLocalOffsetIso(
+        /** @type {{ at?: unknown }} */ (lastRun).at,
+    );
+    if (local === undefined) {
+        return lastRun;
+    }
+    return { ...lastRun, atLocal: local };
+}
+
+/**
  * @param {object} opts
  * @param {import('pino').Logger} opts.logger
  * @param {import('../lib/redis_store.js').RedisStore} opts.store
@@ -91,7 +108,7 @@ export function createHttpServer({ logger, store, stations }) {
                     recognition: recognitionWithLocalTime(
                         state?.recognition ?? null,
                     ),
-                    lastRun: state?.lastRun ?? null,
+                    lastRun: lastRunWithLocalTime(state?.lastRun ?? null),
                 };
             }),
         );
@@ -115,7 +132,7 @@ export function createHttpServer({ logger, store, stations }) {
         res.json({
             id,
             recognition: recognitionWithLocalTime(state.recognition),
-            lastRun: state.lastRun,
+            lastRun: lastRunWithLocalTime(state.lastRun),
         });
     });
 
