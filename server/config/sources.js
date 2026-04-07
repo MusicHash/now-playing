@@ -9,7 +9,7 @@ const spotifyHistoryCharts = {
         {
             title: '100FM - Radius - Yam Tihoni Hits - Latest History Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 10 * 60 * 1000,
+            refresh_rate_ms: 5 * 60 * 1000,
         },
 
         scraper: {
@@ -48,7 +48,7 @@ const spotifyHistoryCharts = {
         {
             title: '98.1FM - Galgalatz - Latest History Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 10 * 60 * 1000,
+            refresh_rate_ms: 5 * 60 * 1000,
         },
 
         scraper: {
@@ -85,7 +85,7 @@ const spotifyHistoryCharts = {
         now_playing: {
             title: '96.6FM - GLZ - Latest History Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 10 * 60 * 1000,
+            refresh_rate_ms: 5 * 60 * 1000,
         },
 
         scraper: {
@@ -123,7 +123,7 @@ const spotifyHistoryCharts = {
         now_playing: {
             title: '88FM - Kan - Latest History Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 10 * 60 * 1000,
+            refresh_rate_ms: 5 * 60 * 1000,
         },
 
         scraper: {
@@ -161,7 +161,7 @@ const spotifyHistoryCharts = {
         now_playing: {
             title: '97.5FM - Kan - Gimel - Latest History Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 10 * 60 * 1000,
+            refresh_rate_ms: 5 * 60 * 1000,
         },
 
         scraper: {
@@ -199,7 +199,7 @@ const spotifyHistoryCharts = {
         now_playing: {
             title: '103FM - Latest History Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 10 * 60 * 1000,
+            refresh_rate_ms: 5 * 60 * 1000,
         },
 
         scraper: {
@@ -237,7 +237,7 @@ const spotifyHistoryCharts = {
         now_playing: {
             title: '91FM - Lev Hamedina - Latest History Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 10 * 60 * 1000,
+            refresh_rate_ms: 5 * 60 * 1000,
         },
 
         scraper: {
@@ -275,7 +275,7 @@ const spotifyHistoryCharts = {
         now_playing: {
             title: '102FM - Tel-Aviv - Latest History Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 10 * 60 * 1000,
+            refresh_rate_ms: 5 * 60 * 1000,
         },
 
         scraper: {
@@ -313,7 +313,7 @@ const spotifyHistoryCharts = {
         now_playing: {
             title: '107.5FM - Radio Haifa - Latest History Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 10 * 60 * 1000,
+            refresh_rate_ms: 5 * 60 * 1000,
         },
 
         scraper: {
@@ -351,7 +351,7 @@ const spotifyHistoryCharts = {
         now_playing: {
             title: '101FM - Jerusalem - Latest History Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 10 * 60 * 1000,
+            refresh_rate_ms: 5 * 60 * 1000,
         },
 
         scraper: {
@@ -389,7 +389,7 @@ const spotifyHistoryCharts = {
         now_playing: {
             title: 'MTV.IL TV - Latest History Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 10 * 60 * 1000,
+            refresh_rate_ms: 5 * 60 * 1000,
         },
 
         scraper: {
@@ -427,7 +427,7 @@ const spotifyHistoryCharts = {
         now_playing: {
             title: '24.Music TV - Latest History Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 10 * 60 * 1000,
+            refresh_rate_ms: 5 * 60 * 1000,
         },
 
         scraper: {
@@ -465,7 +465,7 @@ const spotifyHistoryCharts = {
         now_playing: {
             title: 'Music.IL TV - Latest History Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 10 * 60 * 1000,
+            refresh_rate_ms: 5 * 60 * 1000,
         },
 
         scraper: {

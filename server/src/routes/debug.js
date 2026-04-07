@@ -82,7 +82,7 @@ export default function debugRoutes(logger) {
 <body>
   <h1>Debug</h1>
   <ul>
-    <li><a href="/api/debug/crawl_history_charts">Run history charts crawl now</a> (same as scheduler: every 10 minutes)</li>
+    <li><a href="/api/debug/crawl_history_charts">Run history charts crawl now</a> (same as scheduler: every 5 minutes)</li>
     <li><a href="/api/debug/update_playlists">Update station playlists now</a> (same as scheduler 24h job — queues per-station updates)</li>
     <li><a href="/api/debug/purge_sql_cache">Purge Redis SQL query cache</a> (<code>sql_cache:*</code>)</li>
     <li><a href="/api/debug/magical-moment">Magical moment</a> (JSON: plays per station in a time window — same as <code>/api/data/stats/magical-moment</code>)</li>
@@ -103,7 +103,7 @@ export default function debugRoutes(logger) {
             '/api/playlist/slice/all': 'Shorten the playlist to limit (all)',
             '/api/debug_channels': 'Debug Channels',
             '/api/debug': 'Debug · index (manual triggers)',
-            '/api/debug/crawl_history_charts': 'Crawl History Charts (10 min schedule, run now)',
+            '/api/debug/crawl_history_charts': 'Crawl History Charts (5 min schedule, run now)',
             '/api/debug/update_playlists': 'Update Station Playlists (24h job, run now)',
             '/api/debug/purge_sql_cache': 'Purge Redis SQL query cache (sql_cache:*)',
             '/api/debug/magical-moment': 'Magical moment (JSON: window of plays per station)',

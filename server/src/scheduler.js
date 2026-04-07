@@ -43,7 +43,7 @@ class Scheduler {
                     await crawlHistoryChartsToNotifyTrackChanges();
 
                     this.logger.info({
-                        message: '[AUTO REFRESH] HISTORY CHARTS - every 10 min',
+                        message: '[AUTO REFRESH] HISTORY CHARTS - every 5 min',
                     });
                 } catch (error) {
                     this.logger.error({
@@ -53,7 +53,7 @@ class Scheduler {
                     });
                 }
             },
-            10 * 60 * 1000,
+            5 * 60 * 1000,
         );
 
         const playlistInterval = setInterval(
