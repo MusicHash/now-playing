@@ -767,7 +767,7 @@ export async function getMagicalMoment(opts = {}) {
             ${extraWhere}
         ORDER BY
             station_log.log_station_id ASC,
-            station_log.log_datetime_played ASC
+            station_log.log_datetime_played DESC
     `;
 
     const [rows] = await MySQLWrapper.query(sql, [windowStart, windowEnd, ...extraParams]);
