@@ -4,10 +4,13 @@
  */
 
 import { readFile } from 'node:fs/promises';
-import { randomUUID } from 'node:crypto';
+import { randomInt, randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
+import { ProxyAgent, fetch as undiciFetch } from 'undici';
 
 const require = createRequire(import.meta.url);
+/** @type {string[]} */
+const SHAZAM_USER_AGENTS = require('./shazam_user_agents.json');
 /** @type {{ recognizeBytes: (b: Uint8Array, o?: number, s?: number) => { uri: string; samplems: number; free: () => void }[] }} */
 const { recognizeBytes } = require('shazamio-core');
 
@@ -18,6 +21,23 @@ const SEARCH_FROM_FILE =
 
 const DEFAULT_UA =
     'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148';
+
+/**
+ * Random UA from bundled pool per request. `SHAZAM_USER_AGENT` forces a fixed value.
+ *
+ * @returns {string}
+ */
+function discoveryUserAgent() {
+    const env = (process.env.SHAZAM_USER_AGENT || '').trim();
+    if (env) {
+        return env;
+    }
+    const n = SHAZAM_USER_AGENTS.length;
+    if (n === 0) {
+        return DEFAULT_UA;
+    }
+    return SHAZAM_USER_AGENTS[randomInt(0, n)];
+}
 
 /**
  * @returns {boolean}
@@ -34,6 +54,44 @@ function envInt(name, fallback) {
     }
     const n = Number.parseInt(v, 10);
     return Number.isFinite(n) ? n : fallback;
+}
+
+/** @type {import('undici').ProxyAgent | null} */
+let shazamProxyAgent = null;
+/** @type {string | null} */
+let shazamProxyAgentUrl = null;
+let shazamProxyLogged = false;
+
+/**
+ * Outbound Shazam discovery uses `HTTP_PROXY` when set (same as typical CLI tools).
+ *
+ * @returns {string | undefined}
+ */
+function getShazamProxyUrl() {
+    return (process.env.HTTP_PROXY || '').trim() || undefined;
+}
+
+/**
+ * @returns {import('undici').ProxyAgent | undefined}
+ */
+function getShazamProxyDispatcher() {
+    const url = getShazamProxyUrl();
+    if (!url) {
+        return undefined;
+    }
+    if (shazamProxyAgentUrl === url && shazamProxyAgent) {
+        return shazamProxyAgent;
+    }
+    if (shazamProxyAgent) {
+        try {
+            shazamProxyAgent.close();
+        } catch {
+            /* ignore */
+        }
+    }
+    shazamProxyAgentUrl = url;
+    shazamProxyAgent = new ProxyAgent(url);
+    return shazamProxyAgent;
 }
 
 /**
@@ -129,10 +187,12 @@ async function fetchDiscoveryOnce(url, json) {
     const ac = new AbortController();
     const t = setTimeout(() => ac.abort(), timeoutMs);
     const language = (process.env.SHAZAM_LANGUAGE || 'en-US').trim();
+    const dispatcher = getShazamProxyDispatcher();
     try {
-        return await fetch(url, {
+        return await undiciFetch(url, {
             method: 'POST',
             signal: ac.signal,
+            ...(dispatcher ? { dispatcher } : {}),
             headers: {
                 Accept: 'application/json',
                 'Accept-Language': language,
@@ -140,7 +200,7 @@ async function fetchDiscoveryOnce(url, json) {
                 'Content-Type': 'application/json',
                 'X-Shazam-Platform': (process.env.SHAZAM_PLATFORM || 'IPHONE').trim(),
                 'X-Shazam-AppVersion': (process.env.SHAZAM_APP_VERSION || '14.1.0').trim(),
-                'User-Agent': (process.env.SHAZAM_USER_AGENT || DEFAULT_UA).trim(),
+                'User-Agent': discoveryUserAgent(),
             },
             body: JSON.stringify(json),
         });
@@ -156,6 +216,13 @@ async function fetchDiscoveryOnce(url, json) {
  * @returns {Promise<unknown>}
  */
 async function postDiscovery(url, json, logger) {
+    if (getShazamProxyUrl() && !shazamProxyLogged) {
+        shazamProxyLogged = true;
+        logger.debug(
+            {},
+            'shazam: discovery requests use HTTP proxy (HTTP_PROXY)',
+        );
+    }
     let res = await fetchDiscoveryOnce(url, json);
     if (res.status === 429) {
         const retryAfter = envInt('SHAZAM_429_RETRY_MS', 2500);
