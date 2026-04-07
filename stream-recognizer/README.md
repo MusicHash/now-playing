@@ -43,7 +43,7 @@ CDN **DASH / `.livx`** URLs may be slow or unsuitable for a simple `ffmpeg -i �
 
 ### Audio recognition: no match — inspect the capture
 
-Logs include `capturePath`, `fingerprintPrefix`, and **`order`** (provider list). The temp file is deleted after each tick unless **`DEBUG_CAPTURE_DIR`** is set and **`DEBUG_CAPTURE_ENABLED`** is not disabled (`1` by default); then a copy is kept as `{stationId}-{timestamp}.wav` in that folder.
+Logs include `capturePath`, `fingerprintPrefix`, and **`order`** (provider list). The temp capture is deleted after each tick unless **`DEBUG_CAPTURE_DIR`** is set and **`DEBUG_CAPTURE_ENABLED`** is not disabled (`1` by default). Copies use `{timestamp}-{stationId}-{tickId}-{label}.wav` (UTC ISO time with `:` / `.` replaced for filenames): `no-match` when every provider fails; pre-recognition empty skips use `detected-empty-*`. Successful IDs are copied **only** when **Shazam ran and missed** and a **later** provider in `AUDIO_RECOGNITION_ORDER` matched (label `saved-<provider>-after-shazam-miss`). A Shazam win is never copied to `DEBUG_CAPTURE_DIR`.
 
 ### `invalid API key` (HTTP 400, AcoustID error code 4)
 
@@ -72,7 +72,7 @@ You are almost certainly using the **user** API key from your AcoustID profile. 
 | `VAD_SPEECH_RATIO_SKIP` | Fraction of “speech-like” frames above which clip is skipped |
 | `STATIONS_CONFIG` | Optional path to stations JSON (default `config/stations.json`) |
 | `CORS_ORIGIN` | If set, enables CORS for that origin |
-| `DEBUG_CAPTURE_DIR` | If set, when no provider matches copy the captured WAV here for listening |
+| `DEBUG_CAPTURE_DIR` | If set, copy captures here for no-match / empty skips, and for successful ID only when Shazam missed and a later provider matched (see section above) |
 | `DEBUG_CAPTURE_ENABLED` | `1`/`0` — enable WAV copies to `DEBUG_CAPTURE_DIR` (default `1` when unset) |
 
 Stations file: array of `{ "id", "streamUrl", "enabled", "intervalMs", "vadAggressive", "rmsSilenceDb" }`.

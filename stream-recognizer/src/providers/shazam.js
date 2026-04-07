@@ -279,17 +279,22 @@ function buildSearchBody(uri, samplems) {
 }
 
 /**
+ * @typedef {{ ok: true; artist: string; title: string; key?: string }} ShazamOk
+ * @typedef {{ ok: false; reason: string; detail?: Record<string, unknown> }} ShazamFail
+ */
+
+/**
  * Identify from a WAV (or other supported) file path.
  *
  * @param {string} wavPath
  * @param {import('pino').Logger} logger
  * @param {{ httpProxy?: string }} [options] If `httpProxy` is present (including `undefined`), use it; otherwise pick from `HTTP_PROXY` pool (round-robin). Pass the same value as ffmpeg for a given tick.
- * @returns {Promise<{ artist: string; title: string; key?: string } | null>}
+ * @returns {Promise<ShazamOk | ShazamFail>}
  */
 export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
     if (!isShazamEnabled()) {
         logger.debug('shazam: skipped (SHAZAM_DISABLED=1)');
-        return null;
+        return { ok: false, reason: 'disabled', detail: {} };
     }
 
     const proxyUrl =
@@ -302,7 +307,11 @@ export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
         buffer = await readFile(wavPath);
     } catch (e) {
         logger.error({ err: e, wavPath }, 'shazam: failed to read audio file');
-        return null;
+        return {
+            ok: false,
+            reason: 'read_file_failed',
+            detail: { message: String(e?.message || e) },
+        };
     }
 
     const bytes = new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength);
@@ -312,12 +321,16 @@ export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
         signatures = recognizeBytes(bytes);
     } catch (e) {
         logger.error({ err: e }, 'shazam: recognizeBytes failed');
-        return null;
+        return {
+            ok: false,
+            reason: 'recognize_bytes_failed',
+            detail: { message: String(e?.message || e) },
+        };
     }
 
     if (!Array.isArray(signatures) || signatures.length === 0) {
         logger.info({}, 'shazam: no signatures from recognizeBytes');
-        return null;
+        return { ok: false, reason: 'no_signatures', detail: {} };
     }
 
     const gapMs = envInt('SHAZAM_SIGNATURE_GAP_MS', 450);
@@ -375,10 +388,14 @@ export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
         const track = parseTrack(data);
         if (track && (track.artist || track.title)) {
             freeRest(i + 1);
-            return track;
+            return { ok: true, ...track };
         }
         logNoMatch(logger, data, `segment_${i}_unparsed`);
     }
 
-    return null;
+    return {
+        ok: false,
+        reason: 'no_usable_track_any_segment',
+        detail: { segmentCount: signatures.length },
+    };
 }

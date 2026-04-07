@@ -65,13 +65,16 @@ function lastRunRecord(tickId, outcome, extra = {}) {
 
 /**
  * When DEBUG_CAPTURE_DIR is set and DEBUG_CAPTURE_ENABLED, copy WAV for offline analysis.
+ * Filename: `{timestamp}-{stationId}-{tickId}-{label}.wav` (tickId and label sanitized for the filesystem).
+ *
  * @param {string} wavPath
  * @param {string} stationId
+ * @param {string} tickId
  * @param {import('pino').Logger} log
- * @param {string} label filename suffix before `.wav` (e.g. `detected-empty-peak_too_low`, `no-match`)
+ * @param {string} label e.g. `detected-empty-peak_too_low`, `no-match`, `saved-acrcloud-after-shazam-miss`
  * @returns {Promise<string|undefined>} copied path or undefined
  */
-async function copyDebugWavIfEnabled(wavPath, stationId, log, label) {
+async function copyDebugWavIfEnabled(wavPath, stationId, tickId, log, label) {
     const debugDir = (process.env.DEBUG_CAPTURE_DIR || '').trim();
     const debugCaptureEnabled = envBool('DEBUG_CAPTURE_ENABLED', true);
     if (!debugDir || !wavPath || !debugCaptureEnabled) {
@@ -79,8 +82,13 @@ async function copyDebugWavIfEnabled(wavPath, stationId, log, label) {
     }
     try {
         await mkdir(debugDir, { recursive: true });
+        const fileStamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const safeTick = String(tickId).replace(/[^a-zA-Z0-9_-]+/g, '-');
         const safe = String(label).replace(/[^a-zA-Z0-9_-]+/g, '-');
-        const debugCopyPath = join(debugDir, `${stationId}-${Date.now()}-${safe}.wav`);
+        const debugCopyPath = join(
+            debugDir,
+            `${fileStamp}-${stationId}-${safeTick}-${safe}.wav`,
+        );
         await copyFile(wavPath, debugCopyPath);
         return debugCopyPath;
     } catch (e) {
@@ -202,6 +210,7 @@ export async function runStationTick(station, store, logger, options = {}) {
                 const debugCopyPath = await copyDebugWavIfEnabled(
                     wavPath,
                     station.id,
+                    tickId,
                     log,
                     emptyLabel,
                 );
@@ -265,6 +274,9 @@ export async function runStationTick(station, store, logger, options = {}) {
         /** @type {string[]} */
         const priorSteps = [];
 
+        /** True when Shazam was actually called this tick and did not return a track (for DEBUG_CAPTURE_DIR). */
+        let shazamAttemptedNoMatch = false;
+
         for (const id of order) {
             const name = providerDisplayName(id);
             if (id === 'acrcloud') {
@@ -278,14 +290,25 @@ export async function runStationTick(station, store, logger, options = {}) {
                     continue;
                 }
                 const acr = await acrcloudIdentifyFromFile(wavPath, log);
-                if (acr && (acr.artist || acr.title)) {
-                    match = acr;
+                if (acr.ok && (acr.artist || acr.title)) {
+                    match = {
+                        artist: acr.artist,
+                        title: acr.title,
+                        acrid: acr.acrid,
+                    };
                     matchSource = 'acrcloud';
                     break;
                 }
-                const msg = `${name} did not identify a track for this capture.`;
+                const msg = acr.ok
+                    ? `${name} did not identify a track for this capture.`
+                    : `${name} did not identify (${acr.reason}).`;
                 log.info(
-                    { station: station.id, provider: id, outcome: 'no_match' },
+                    {
+                        station: station.id,
+                        provider: id,
+                        outcome: 'no_match',
+                        reason: acr.ok ? undefined : acr.reason,
+                    },
                     `audio recognition: ${msg}`,
                 );
                 priorSteps.push(msg);
@@ -303,14 +326,26 @@ export async function runStationTick(station, store, logger, options = {}) {
                 const sh = await shazamIdentifyFromFile(wavPath, log, {
                     httpProxy: tickHttpProxy,
                 });
-                if (sh && (sh.artist || sh.title)) {
-                    match = sh;
+                if (sh.ok && (sh.artist || sh.title)) {
+                    match = {
+                        artist: sh.artist,
+                        title: sh.title,
+                        key: sh.key,
+                    };
                     matchSource = 'shazam';
                     break;
                 }
-                const msg = `${name} did not identify a track for this capture.`;
+                shazamAttemptedNoMatch = true;
+                const msg = sh.ok
+                    ? `${name} did not identify a track for this capture.`
+                    : `${name} did not identify (${sh.reason}).`;
                 log.info(
-                    { station: station.id, provider: id, outcome: 'no_match' },
+                    {
+                        station: station.id,
+                        provider: id,
+                        outcome: 'no_match',
+                        reason: sh.ok ? undefined : sh.reason,
+                    },
                     `audio recognition: ${msg}`,
                 );
                 priorSteps.push(msg);
@@ -332,14 +367,26 @@ export async function runStationTick(station, store, logger, options = {}) {
                     duration,
                     logger: log,
                 });
-                if (ac && (ac.artist || ac.title)) {
-                    match = ac;
+                if (ac.ok && (ac.artist || ac.title)) {
+                    match = {
+                        artist: ac.artist,
+                        title: ac.title,
+                        recordingId: ac.recordingId,
+                        score: ac.score,
+                    };
                     matchSource = 'acoustid';
                     break;
                 }
-                const msg = `${name} did not identify a track for this capture.`;
+                const msg = ac.ok
+                    ? `${name} did not identify a track for this capture.`
+                    : `${name} did not identify (${ac.reason}).`;
                 log.info(
-                    { station: station.id, provider: id, outcome: 'no_match' },
+                    {
+                        station: station.id,
+                        provider: id,
+                        outcome: 'no_match',
+                        reason: ac.ok ? undefined : ac.reason,
+                    },
                     `audio recognition: ${msg}`,
                 );
                 priorSteps.push(msg);
@@ -350,6 +397,7 @@ export async function runStationTick(station, store, logger, options = {}) {
             const debugCopyPath = await copyDebugWavIfEnabled(
                 wavPath,
                 station.id,
+                tickId,
                 log,
                 'no-match',
             );
@@ -418,6 +466,19 @@ export async function runStationTick(station, store, logger, options = {}) {
                 priorSteps,
             }),
         });
+
+        const copyDebugAfterShazamFallback =
+            shazamAttemptedNoMatch && matchSource !== 'shazam';
+        const sampleWavCopyPath = copyDebugAfterShazamFallback
+            ? await copyDebugWavIfEnabled(
+                  wavPath,
+                  station.id,
+                  tickId,
+                  log,
+                  `saved-${matchSource}-after-shazam-miss`,
+              )
+            : undefined;
+
         const displayName = [match.artist, match.title].filter(Boolean).join(' — ');
         const winner = providerDisplayName(
             /** @type {'acrcloud' | 'shazam' | 'acoustid'} */ (matchSource),
@@ -433,6 +494,7 @@ export async function runStationTick(station, store, logger, options = {}) {
             artist: match.artist,
             title: match.title,
             displayName,
+            sampleWavCopyPath,
         });
     } catch (e) {
         log.error({ err: e, station: station.id }, 'station tick failed');

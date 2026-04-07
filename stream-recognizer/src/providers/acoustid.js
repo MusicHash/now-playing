@@ -85,12 +85,17 @@ async function postLookup(key, fingerprint, durationSec) {
 }
 
 /**
+ * @typedef {{ ok: true; artist: string; title: string; recordingId?: string; score?: number }} AcoustidOk
+ * @typedef {{ ok: false; reason: string; detail?: Record<string, unknown> }} AcoustidFail
+ */
+
+/**
  * @param {object} params
  * @param {string} [params.clientKey] defaults to {@link getAcoustidClientKey}
  * @param {string} params.fingerprint
  * @param {number} params.duration fpcalc float seconds (stored as-is for candidate building)
  * @param {import('pino').Logger} params.logger
- * @returns {Promise<{ artist: string, title: string, recordingId?: string, score?: number } | null>}
+ * @returns {Promise<AcoustidOk | AcoustidFail>}
  */
 export async function acoustidLookup({ clientKey, fingerprint, duration, logger }) {
     const key = (clientKey || getAcoustidClientKey()).trim();
@@ -98,7 +103,7 @@ export async function acoustidLookup({ clientKey, fingerprint, duration, logger 
         logger.warn(
             'No AcoustID application key (set ACOUSTID_CLIENT_KEY from https://acoustid.org/new-application)',
         );
-        return null;
+        return { ok: false, reason: 'no_client_key', detail: {} };
     }
 
     const rawDur = Number(duration);
@@ -155,7 +160,17 @@ export async function acoustidLookup({ clientKey, fingerprint, duration, logger 
             } else {
                 logger.error(log, 'acoustid HTTP error');
             }
-            return null;
+            return {
+                ok: false,
+                reason: 'lookup_http_error',
+                detail: {
+                    status: res.status,
+                    acoustidErrorCode: code,
+                    acoustidMessage: msg,
+                    bodyPreview: t.slice(0, 500),
+                    durationSec,
+                },
+            };
         }
 
         const json = res.json;
@@ -196,6 +211,7 @@ export async function acoustidLookup({ clientKey, fingerprint, duration, logger 
                     'acoustid: match',
                 );
                 return {
+                    ok: true,
                     artist: artist || '',
                     title: title || '',
                     recordingId: rec.id,
@@ -230,7 +246,17 @@ export async function acoustidLookup({ clientKey, fingerprint, duration, logger 
             );
         }
 
-        return null;
+        return {
+            ok: false,
+            reason: 'matches_but_no_usable_title_artist',
+            detail: {
+                durationSec,
+                fpcalcDurationSeconds: rawDur,
+                topScore: top?.score,
+                topId: top?.id,
+                resultsCount: sorted.length,
+            },
+        };
     }
 
     logger.info(
@@ -250,7 +276,15 @@ export async function acoustidLookup({ clientKey, fingerprint, duration, logger 
         );
     }
 
-    return null;
+    return {
+        ok: false,
+        reason: 'no_fingerprint_matches_any_duration',
+        detail: {
+            fpcalcDurationSeconds: rawDur,
+            triedDurations: candidates,
+            lastTriedDuration,
+        },
+    };
 }
 
 /**

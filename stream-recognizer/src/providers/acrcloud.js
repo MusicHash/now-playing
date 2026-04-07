@@ -37,22 +37,32 @@ const ACRCloud = require('acrcloud');
  */
 
 /**
+ * @param {AcrResponse | null | undefined} res
+ * @returns {Record<string, unknown>}
+ */
+function acrNoMatchDetail(res) {
+    const meta = res && typeof res === 'object' ? res.metadata : null;
+    const m = meta && typeof meta === 'object' ? meta : {};
+    return {
+        statusCode: res?.status?.code,
+        statusMsg: res?.status?.msg,
+        resultType: res?.result_type,
+        metadataKeys: meta ? Object.keys(meta) : [],
+        musicLen: Array.isArray(m.music) ? m.music.length : 0,
+        hummingLen: Array.isArray(m.humming) ? m.humming.length : 0,
+    };
+}
+
+/**
  * @param {import('pino').Logger} logger
  * @param {AcrResponse | null | undefined} res
  * @param {string} reason
  */
 function logAcrNoMatch(logger, res, reason) {
-    const meta = res && typeof res === 'object' ? res.metadata : null;
-    const m = meta && typeof meta === 'object' ? meta : {};
     logger.info(
         {
             reason,
-            statusCode: res?.status?.code,
-            statusMsg: res?.status?.msg,
-            resultType: res?.result_type,
-            metadataKeys: meta ? Object.keys(meta) : [],
-            musicLen: Array.isArray(m.music) ? m.music.length : 0,
-            hummingLen: Array.isArray(m.humming) ? m.humming.length : 0,
+            ...acrNoMatchDetail(res),
         },
         'acrcloud: no track (see statusMsg; set ACRCLOUD_DEBUG_RESPONSE=1 for full JSON)',
     );
@@ -97,16 +107,21 @@ export function isAcrcloudConfigured() {
 }
 
 /**
- * Identify from a WAV (or other) file path. Returns null if no match or misconfigured.
+ * @typedef {{ ok: true; artist: string; title: string; acrid?: string; score?: number }} AcrOk
+ * @typedef {{ ok: false; reason: string; detail?: Record<string, unknown> }} AcrFail
+ */
+
+/**
+ * Identify from a WAV (or other) file path.
  *
  * @param {string} wavPath
  * @param {import('pino').Logger} logger
- * @returns {Promise<{ artist: string; title: string; acrid?: string; score?: number } | null>}
+ * @returns {Promise<AcrOk | AcrFail>}
  */
 export async function acrcloudIdentifyFromFile(wavPath, logger) {
     if (!isAcrcloudConfigured()) {
         logger.debug('ACRCloud: ACRCLOUD_ACCESS_KEY / ACRCLOUD_ACCESS_SECRET not set');
-        return null;
+        return { ok: false, reason: 'not_configured', detail: {} };
     }
 
     const host =
@@ -135,7 +150,11 @@ export async function acrcloudIdentifyFromFile(wavPath, logger) {
         buffer = await readFile(wavPath);
     } catch (e) {
         logger.error({ err: e, wavPath }, 'acrcloud: failed to read audio file');
-        return null;
+        return {
+            ok: false,
+            reason: 'read_file_failed',
+            detail: { message: String(e?.message || e) },
+        };
     }
 
     /** @type {AcrResponse} */
@@ -144,22 +163,24 @@ export async function acrcloudIdentifyFromFile(wavPath, logger) {
         res = await acr.identify(buffer);
     } catch (e) {
         logger.error({ err: e }, 'acrcloud: identify request failed');
-        return null;
+        return {
+            ok: false,
+            reason: 'identify_request_failed',
+            detail: { message: String(e?.message || e) },
+        };
     }
 
     if (!res || typeof res !== 'object') {
-        logAcrNoMatch(logger, res, 'invalid_response');
-        return null;
+        const reason = 'invalid_response';
+        logAcrNoMatch(logger, res, reason);
+        return { ok: false, reason, detail: acrNoMatchDetail(res) };
     }
 
     const code = res?.status?.code;
     if (code !== undefined && code !== 0) {
-        logAcrNoMatch(
-            logger,
-            res,
-            `api_status_${code} (check host, keys, bucket, and console project region)`,
-        );
-        return null;
+        const reason = `api_status_${code} (check host, keys, bucket, and console project region)`;
+        logAcrNoMatch(logger, res, reason);
+        return { ok: false, reason, detail: acrNoMatchDetail(res) };
     }
 
     const music = res?.metadata?.music;
@@ -176,32 +197,20 @@ export async function acrcloudIdentifyFromFile(wavPath, logger) {
     }
 
     if (!bucket || !bucket.length) {
-        logAcrNoMatch(
-            logger,
-            res,
-            'empty_music_and_humming (clip may be ads/talk, or no catalog match; try longer CAPTURE_SECONDS)',
-        );
-        return null;
+        const reason =
+            'empty_music_and_humming (clip may be ads/talk, or no catalog match; try longer CAPTURE_SECONDS)';
+        logAcrNoMatch(logger, res, reason);
+        return { ok: false, reason, detail: acrNoMatchDetail(res) };
     }
 
     const m = bucket[0];
     let { artist, title } = pickArtistTitle(m);
 
     if (!title && !artist) {
-        logAcrNoMatch(
-            logger,
-            res,
-            `first_${bucketName}_bucket_item_has_no_title_or_artist`,
-        );
-        return null;
+        const reason = `first_${bucketName}_bucket_item_has_no_title_or_artist`;
+        logAcrNoMatch(logger, res, reason);
+        return { ok: false, reason, detail: acrNoMatchDetail(res) };
     }
-
-    const out = {
-        artist,
-        title,
-        acrid: m.acrid ? String(m.acrid) : undefined,
-        score: typeof m.score === 'number' ? m.score : undefined,
-    };
 
     if (bucketName === 'humming') {
         logger.info(
@@ -210,5 +219,11 @@ export async function acrcloudIdentifyFromFile(wavPath, logger) {
         );
     }
 
-    return out;
+    return {
+        ok: true,
+        artist,
+        title,
+        acrid: m.acrid ? String(m.acrid) : undefined,
+        score: typeof m.score === 'number' ? m.score : undefined,
+    };
 }
