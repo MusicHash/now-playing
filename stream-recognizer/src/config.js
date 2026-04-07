@@ -85,6 +85,11 @@ export function envBool(name, fallback) {
     return v === '1' || v.toLowerCase() === 'true' || v.toLowerCase() === 'yes';
 }
 
+/** Default poll interval in ms when a station omits `intervalMs`. From `POLL_INTERVAL_SEC` (seconds). */
+export function defaultPollIntervalMs() {
+    return envInt('POLL_INTERVAL_SEC', 120) * 1000;
+}
+
 /** @returns {('acrcloud'|'acoustid'|'shazam')[]} */
 export function getAudioRecognitionOrder() {
     const raw = process.env.AUDIO_RECOGNITION_ORDER || 'acrcloud,acoustid';

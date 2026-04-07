@@ -56,7 +56,7 @@ You are almost certainly using the **user** API key from your AcoustID profile. 
 | `REDIS_URI` | Redis connection string |
 | `HTTP_PORT` | API port (default `3847`) |
 | `REDIS_KEY_PREFIX` | Key prefix (default `stream-recognizer:v1`) |
-| `POLL_INTERVAL_MS` | Default poll interval when station omits `intervalMs` |
+| `POLL_INTERVAL_SEC` | Default poll interval in seconds when station omits `intervalMs` (default `120`) |
 | `ACRCLOUD_HOST` | Identify host — **EU:** `identify-eu-west-1.acrcloud.com`, **US:** `identify-us-west-2.acrcloud.com` (must match your console project region) |
 | `ACRCLOUD_ACCESS_KEY` | ACRCloud access key |
 | `ACRCLOUD_ACCESS_SECRET` | ACRCloud access secret |

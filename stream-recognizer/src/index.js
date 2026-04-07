@@ -1,7 +1,7 @@
 import { createHttpServer } from './http/server.js';
 import logger from './logger.js';
 import { initRedisStore } from './lib/redis_store.js';
-import { loadStations, envInt } from './config.js';
+import { loadStations, envInt, defaultPollIntervalMs } from './config.js';
 import { runStationTick } from './pipeline/orchestrator.js';
 import { probeBinary, missingBinaryHint } from './lib/binaries.js';
 
@@ -10,7 +10,7 @@ const store = initRedisStore(logger, prefix);
 
 const stations = loadStations();
 const port = envInt('HTTP_PORT', 3847);
-const defaultPoll = envInt('POLL_INTERVAL_MS', 120_000);
+const defaultPoll = defaultPollIntervalMs();
 
 const ffmpegBin = process.env.FFMPEG_BIN || 'ffmpeg';
 const fpcalcBin = process.env.FPCALC_BIN || 'fpcalc';

@@ -11,7 +11,13 @@ import {
 import { acoustidLookup } from '../providers/acoustid.js';
 import { acrcloudIdentifyFromFile, isAcrcloudConfigured } from '../providers/acrcloud.js';
 import { shazamIdentifyFromFile, isShazamEnabled } from '../providers/shazam.js';
-import { envBool, envFloat, envInt, getAudioRecognitionOrder } from '../config.js';
+import {
+    envBool,
+    envFloat,
+    envInt,
+    defaultPollIntervalMs,
+    getAudioRecognitionOrder,
+} from '../config.js';
 import { getAcoustidClientKey } from '../lib/acoustid_env.js';
 import { pickNextHttpProxy, proxyHostForLog } from '../lib/http_proxy.js';
 
@@ -80,7 +86,7 @@ export async function runStationTick(station, store, logger, options = {}) {
     const ffmpegBin = process.env.FFMPEG_BIN || 'ffmpeg';
     const fpcalcBin = process.env.FPCALC_BIN || 'fpcalc';
     const captureSec = envInt('CAPTURE_SECONDS', 10);
-    const defaultInterval = envInt('POLL_INTERVAL_MS', 120_000);
+    const defaultInterval = defaultPollIntervalMs();
     const intervalMs = station.intervalMs ?? defaultInterval;
     void intervalMs;
 
