@@ -10,6 +10,7 @@
 
 /**
  * `stations.json` shape: `{ [id]: StationProps }` — id is the key only, not repeated inside entries.
+ * `streamUrl` may be plain `https://...` or `b64:` + base64 (UTF-8); after load it is always a decoded URL.
  * @typedef {Omit<StationConfig, 'id'>} StationProps
  */
 

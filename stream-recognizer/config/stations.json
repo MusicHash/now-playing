@@ -1,76 +1,76 @@
 {
   "88fm-kan": {
-    "streamUrl": "https://n-121-4.il.cdn-redge.media/livedash/oil/kancdn-live/live/radio/kan_88/live.livx?indexMode&futc&dvr=7200000",
+    "streamUrl": "b64:aHR0cHM6Ly9uLTEyMS00LmlsLmNkbi1yZWRnZS5tZWRpYS9saXZlZGFzaC9vaWwva2FuY2RuLWxpdmUvbGl2ZS9yYWRpby9rYW5fODgvbGl2ZS5saXZ4P2luZGV4TW9kZSZmdXRjJmR2cj03MjAwMDAw",
     "enabled": true,
     "intervalMs": null,
     "vadAggressive": 2,
     "rmsSilenceDb": null
   },
   "97.5fm_gimel-kan": {
-    "streamUrl": "https://n-121-3.il.cdn-redge.media/livedash/oil/kancdn-live/live/radio/kan_gimel/live.livx?indexMode&futc&dvr=7200000",
+    "streamUrl": "b64:aHR0cHM6Ly9uLTEyMS0zLmlsLmNkbi1yZWRnZS5tZWRpYS9saXZlZGFzaC9vaWwva2FuY2RuLWxpdmUvbGl2ZS9yYWRpby9rYW5fZ2ltZWwvbGl2ZS5saXZ4P2luZGV4TW9kZSZmdXRjJmR2cj03MjAwMDAw",
     "enabled": true,
     "intervalMs": null,
     "vadAggressive": 2,
     "rmsSilenceDb": null
   },
   "98.1fm_galgalatz": {
-    "streamUrl": "https://glzwizzlv.bynetcdn.com/glglz_mp3?awCollectionId=misc&awEpisodeId=glglz",
+    "streamUrl": "b64:aHR0cHM6Ly9nbHp3aXp6bHYuYnluZXRjZG4uY29tL2dsZ2x6X21wMz9hd0NvbGxlY3Rpb25JZD1taXNjJmF3RXBpc29kZUlkPWdsZ2x6",
     "enabled": true,
     "intervalMs": null,
     "vadAggressive": 2,
     "rmsSilenceDb": null
   },
   "96.6fm_glz": {
-    "streamUrl": "https://glzwizzlv.bynetcdn.com/glz_mp3?awCollectionId=misc&awEpisodeId=glz",
+    "streamUrl": "b64:aHR0cHM6Ly9nbHp3aXp6bHYuYnluZXRjZG4uY29tL2dsel9tcDM/YXdDb2xsZWN0aW9uSWQ9bWlzYyZhd0VwaXNvZGVJZD1nbHo=",
     "enabled": true,
     "intervalMs": null,
     "vadAggressive": 2,
     "rmsSilenceDb": null
   },
   "103fm": {
-    "streamUrl": "https://cdn.cybercdn.live/103FM/Live/icecast.audio",
+    "streamUrl": "b64:aHR0cHM6Ly9jZG4uY3liZXJjZG4ubGl2ZS8xMDNGTS9MaXZlL2ljZWNhc3QuYXVkaW8=",
     "enabled": true,
     "intervalMs": null,
     "vadAggressive": 2,
     "rmsSilenceDb": null
   },
   "102fm-tlv": {
-    "streamUrl": "https://cdn88.mediacast.co.il/102fm-tlv/102fm_aac/icecast.audio",
+    "streamUrl": "b64:aHR0cHM6Ly9jZG44OC5tZWRpYWNhc3QuY28uaWwvMTAyZm0tdGx2LzEwMmZtX2FhYy9pY2VjYXN0LmF1ZGlv",
     "enabled": true,
     "intervalMs": null,
     "vadAggressive": 2,
     "rmsSilenceDb": null
   },
   "91fm-lev-hamedina": {
-    "streamUrl": "https://cdn.cybercdn.live/Lev_Hamedina/Audio/icecast.audio",
+    "streamUrl": "b64:aHR0cHM6Ly9jZG4uY3liZXJjZG4ubGl2ZS9MZXZfSGFtZWRpbmEvQXVkaW8vaWNlY2FzdC5hdWRpbw==",
     "enabled": true,
     "intervalMs": null,
     "vadAggressive": 2,
     "rmsSilenceDb": null
   },
   "107.5fm-haifa": {
-    "streamUrl": "https://1075.livecdn.biz/radiohaifa",
+    "streamUrl": "b64:aHR0cHM6Ly8xMDc1LmxpdmVjZG4uYml6L3JhZGlvaGFpZmE=",
     "enabled": true,
     "intervalMs": null,
     "vadAggressive": 2,
     "rmsSilenceDb": null
   },
   "101fm-jerusalem": {
-    "streamUrl": "https://cdn.cybercdn.live/JerusalemRadio/Live/icecast.audio",
+    "streamUrl": "b64:aHR0cHM6Ly9jZG4uY3liZXJjZG4ubGl2ZS9KZXJ1c2FsZW1SYWRpby9MaXZlL2ljZWNhc3QuYXVkaW8=",
     "enabled": true,
     "intervalMs": null,
     "vadAggressive": 2,
     "rmsSilenceDb": null
   },
   "100fm-radius": {
-    "streamUrl": "https://edge-fs-20.cybercdn.live/Radios_100FM/Audio/chunks.m3u8",
+    "streamUrl": "b64:aHR0cHM6Ly9lZGdlLWZzLTIwLmN5YmVyY2RuLmxpdmUvUmFkaW9zXzEwMEZNL0F1ZGlvL2NodW5rcy5tM3U4",
     "enabled": true,
     "intervalMs": null,
     "vadAggressive": 2,
     "rmsSilenceDb": null
   },
   "24music-tv": {
-    "streamUrl": "https://mako-streaming.akamaized.net/direct/hls/live/2035340/ch24live/index.m3u8",
+    "streamUrl": "b64:aHR0cHM6Ly9tYWtvLXN0cmVhbWluZy5ha2FtYWl6ZWQubmV0L2RpcmVjdC9obHMvbGl2ZS8yMDM1MzQwL2NoMjRsaXZlL2luZGV4Lm0zdTg=",
     "enabled": true,
     "intervalMs": null,
     "vadAggressive": 2,

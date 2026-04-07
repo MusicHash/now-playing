@@ -74,7 +74,7 @@ export async function runStationTick(station, store, logger, options = {}) {
     const log = logger.child({ tickId });
     log.info(
         { station: station.id },
-        'station tick: start (use tickId in logs to correlate this run)',
+        'Station Tick: START',
     );
 
     const ffmpegBin = process.env.FFMPEG_BIN || 'ffmpeg';
@@ -107,7 +107,7 @@ export async function runStationTick(station, store, logger, options = {}) {
                 captureSec,
                 httpProxy: proxyHostForLog(tickHttpProxy),
             },
-            'station tick: ffmpeg capture (see FFMPEG_CAPTURE_TIMEOUT_MS if this stalls)',
+            'Station Tick: FFMPEG Capture Started',
         );
         wavPath = await captureStreamToWav(
             ffmpegBin,
@@ -259,7 +259,8 @@ export async function runStationTick(station, store, logger, options = {}) {
             /** @type {string|undefined} */
             let debugCopyPath;
             const debugDir = (process.env.DEBUG_CAPTURE_DIR || '').trim();
-            if (debugDir && wavPath) {
+            const debugCaptureEnabled = envBool('DEBUG_CAPTURE_ENABLED', true);
+            if (debugDir && wavPath && debugCaptureEnabled) {
                 try {
                     await mkdir(debugDir, { recursive: true });
                     debugCopyPath = join(
@@ -343,24 +344,18 @@ export async function runStationTick(station, store, logger, options = {}) {
         const winner = providerDisplayName(
             /** @type {'acrcloud' | 'shazam' | 'acoustid'} */ (matchSource),
         );
-        const priorSummary =
-            priorSteps.length > 0
-                ? ` Earlier steps: ${priorSteps.join(' ')}`
-                : '';
-        log.info(
-            {
-                station: station.id,
-                source: matchSource,
-                provider: providerLabel,
-                outcome: 'saved',
-                recognitionWinner: matchSource,
-                priorSteps,
-                artist: match.artist,
-                title: match.title,
-            },
-            `audio recognition: ${winner} identified the track and saved it to Redis.${priorSummary}` +
-                (displayName ? ` Track: ${displayName}.` : ''),
-        );
+
+        log.info({
+            station: station.id,
+            source: matchSource,
+            provider: providerLabel,
+            outcome: 'saved',
+            winner,
+            priorSteps,
+            artist: match.artist,
+            title: match.title,
+            displayName,
+        });
     } catch (e) {
         log.error({ err: e, station: station.id }, 'station tick failed');
         try {

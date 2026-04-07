@@ -5,6 +5,33 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /**
+ * Decode `streamUrl` from stations config. Use `b64:` + standard base64 (UTF-8 URL) to avoid
+ * storing plain URLs in JSON; plain `http://` / `https://` values still work.
+ * @param {string} raw
+ * @param {string} stationId
+ * @returns {string}
+ */
+function decodeStreamUrl(raw, stationId) {
+    if (typeof raw !== 'string' || raw === '') {
+        throw new Error(`stations.${stationId}: streamUrl must be a non-empty string`);
+    }
+    let decoded = raw;
+    if (raw.startsWith('b64:')) {
+        try {
+            decoded = Buffer.from(raw.slice(4), 'base64').toString('utf8');
+        } catch {
+            throw new Error(`stations.${stationId}: invalid base64 in streamUrl`);
+        }
+    }
+    if (!decoded.startsWith('http://') && !decoded.startsWith('https://')) {
+        throw new Error(
+            `stations.${stationId}: streamUrl must be an http(s) URL or b64:<base64-encoded URL>`,
+        );
+    }
+    return decoded;
+}
+
+/**
  * @returns {import('./types.js').StationConfig[]}
  */
 export function loadStations() {
@@ -26,7 +53,8 @@ export function loadStations() {
         if (props === null || typeof props !== 'object' || Array.isArray(props)) {
             throw new Error(`stations.${id}: must be an object`);
         }
-        out.push({ ...props, id });
+        const streamUrl = decodeStreamUrl(/** @type {{ streamUrl?: string }} */ (props).streamUrl, id);
+        out.push({ ...props, id, streamUrl });
     }
     return out;
 }
