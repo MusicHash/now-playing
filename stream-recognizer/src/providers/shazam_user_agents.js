@@ -504,7 +504,7 @@ export const LEGACY_IOS_USER_AGENTS = Object.freeze([
     "Mozilla/5.0 (iPad; U; CPU OS 4_3_3 like Mac OS X; en-us) AppleWebKit/533.17.9 (KHTML, like Gecko) Mobile/8J2",
 ]);
 
-/** @type {readonly string[]} Dalvik UAs; Android 11–15 / 12L. */
+/** @type {readonly string[]} Dalvik UAs; Android 11–16 / 12L. Includes recent Samsung Galaxy (S/A/Z/Tab). */
 export const MODERN_ANDROID_USER_AGENTS = Object.freeze([
     "Dalvik/2.1.0 (Linux; U; Android 12; SM-G991B Build/SP1A.210812.016)",
     "Dalvik/2.1.0 (Linux; U; Android 12; SM-G996B Build/SP1A.210812.016)",
@@ -583,6 +583,73 @@ export const MODERN_ANDROID_USER_AGENTS = Object.freeze([
     "Dalvik/2.1.0 (Linux; U; Android 13; SM-T733 Build/TP1A.220624.014)",
     "Dalvik/2.1.0 (Linux; U; Android 14; SM-X710 Build/UP1A.231005.007)",
     "Dalvik/2.1.0 (Linux; U; Android 14; SM-X916B Build/UP1A.231005.007)",
+
+    // Samsung Galaxy S24 / S24+ / S24 Ultra (Android 14–15)
+    "Dalvik/2.1.0 (Linux; U; Android 14; SM-S921B Build/UP1A.231005.007)",
+    "Dalvik/2.1.0 (Linux; U; Android 14; SM-S921U Build/UP1A.231005.007)",
+    "Dalvik/2.1.0 (Linux; U; Android 14; SM-S921E Build/UP1A.231005.007)",
+    "Dalvik/2.1.0 (Linux; U; Android 14; SM-S921N Build/UP1A.231005.007)",
+    "Dalvik/2.1.0 (Linux; U; Android 14; SM-S926B Build/UP1A.231005.007)",
+    "Dalvik/2.1.0 (Linux; U; Android 14; SM-S926U Build/UP1A.231005.007)",
+    "Dalvik/2.1.0 (Linux; U; Android 14; SM-S926N Build/UP1A.231005.007)",
+    "Dalvik/2.1.0 (Linux; U; Android 14; SM-S928B Build/UP1A.231005.007)",
+    "Dalvik/2.1.0 (Linux; U; Android 14; SM-S928U Build/UP1A.231005.007)",
+    "Dalvik/2.1.0 (Linux; U; Android 14; SM-S928N Build/UP1A.231005.007)",
+    "Dalvik/2.1.0 (Linux; U; Android 15; SM-S928U Build/AP3A.241005.015)",
+
+    // Samsung Galaxy S25 / S25+ / S25 Ultra (Android 15–16)
+    "Dalvik/2.1.0 (Linux; U; Android 15; SM-S931B Build/AP3A.240905.015.A2)",
+    "Dalvik/2.1.0 (Linux; U; Android 15; SM-S931U Build/AP3A.240905.015.A2)",
+    "Dalvik/2.1.0 (Linux; U; Android 15; SM-S931U1 Build/AP3A.240905.015.A2)",
+    "Dalvik/2.1.0 (Linux; U; Android 15; SM-S931N Build/AP3A.241005.015)",
+    "Dalvik/2.1.0 (Linux; U; Android 15; SM-S931W Build/AP3A.241005.015)",
+    "Dalvik/2.1.0 (Linux; U; Android 15; SM-S936B Build/AP3A.240905.015.A2)",
+    "Dalvik/2.1.0 (Linux; U; Android 15; SM-S936U Build/AP3A.240905.015.A2)",
+    "Dalvik/2.1.0 (Linux; U; Android 15; SM-S936N Build/AP3A.241005.015)",
+    "Dalvik/2.1.0 (Linux; U; Android 15; SM-S936W Build/AP3A.241005.015)",
+    "Dalvik/2.1.0 (Linux; U; Android 15; SM-S938B Build/AP3A.240905.015.A2)",
+    "Dalvik/2.1.0 (Linux; U; Android 15; SM-S938U Build/AP3A.240905.015.A2)",
+    "Dalvik/2.1.0 (Linux; U; Android 15; SM-S938N Build/AP3A.241005.015)",
+    "Dalvik/2.1.0 (Linux; U; Android 15; SM-S938W Build/AP3A.241005.015)",
+    "Dalvik/2.1.0 (Linux; U; Android 15; SM-S938E Build/AP3A.241005.015)",
+    "Dalvik/2.1.0 (Linux; U; Android 16; SM-S931B Build/BP1A.251205.006)",
+    "Dalvik/2.1.0 (Linux; U; Android 16; SM-S936B Build/BP1A.251205.006)",
+    "Dalvik/2.1.0 (Linux; U; Android 16; SM-S938B Build/BP1A.251205.006)",
+    "Dalvik/2.1.0 (Linux; U; Android 16; SM-S938U Build/BP1A.251205.006)",
+    "Dalvik/2.1.0 (Linux; U; Android 16; SM-S938B Build/CP1A.260305.018)",
+
+    // Samsung Galaxy Z Fold 6 / Flip 6 / Fold 7 / Flip 7
+    "Dalvik/2.1.0 (Linux; U; Android 14; SM-F956U Build/UP1A.231005.007)",
+    "Dalvik/2.1.0 (Linux; U; Android 15; SM-F956B Build/AP3A.240905.015.A2)",
+    "Dalvik/2.1.0 (Linux; U; Android 15; SM-F741U Build/AP3A.241005.015)",
+    "Dalvik/2.1.0 (Linux; U; Android 15; SM-F966B Build/AP3A.241005.015)",
+    "Dalvik/2.1.0 (Linux; U; Android 15; SM-F966U Build/AP3A.241005.015)",
+    "Dalvik/2.1.0 (Linux; U; Android 15; SM-F966N Build/AP3A.241005.015)",
+    "Dalvik/2.1.0 (Linux; U; Android 15; SM-F766B Build/AP3A.241005.015)",
+    "Dalvik/2.1.0 (Linux; U; Android 15; SM-F766U Build/AP3A.241005.015)",
+    "Dalvik/2.1.0 (Linux; U; Android 15; SM-F766W Build/AP3A.241005.015)",
+    "Dalvik/2.1.0 (Linux; U; Android 16; SM-F966U Build/BP1A.251205.006)",
+    "Dalvik/2.1.0 (Linux; U; Android 16; SM-F766B Build/BP1A.251205.006)",
+
+    // Samsung Galaxy A / M mid-range (2024–2025)
+    "Dalvik/2.1.0 (Linux; U; Android 14; SM-A356B Build/UP1A.231005.007)",
+    "Dalvik/2.1.0 (Linux; U; Android 14; SM-A366B Build/UP1A.231005.007)",
+    "Dalvik/2.1.0 (Linux; U; Android 15; SM-A366B Build/AP3A.240905.015.A2)",
+    "Dalvik/2.1.0 (Linux; U; Android 15; SM-A556E Build/AP3A.240905.015.A2)",
+    "Dalvik/2.1.0 (Linux; U; Android 15; SM-A556B Build/AP3A.241005.015)",
+    "Dalvik/2.1.0 (Linux; U; Android 15; SM-A556U Build/AP3A.241005.015)",
+    "Dalvik/2.1.0 (Linux; U; Android 15; SM-A566B Build/AP3A.241005.015)",
+    "Dalvik/2.1.0 (Linux; U; Android 15; SM-M556B Build/AP3A.241005.015)",
+    "Dalvik/2.1.0 (Linux; U; Android 16; SM-A566B Build/BP1A.251205.006)",
+
+    // Samsung Galaxy Tab S9 / S10 / FE (tablets)
+    "Dalvik/2.1.0 (Linux; U; Android 14; SM-X810 Build/UP1A.231005.007)",
+    "Dalvik/2.1.0 (Linux; U; Android 14; SM-X910 Build/UP1A.231005.007)",
+    "Dalvik/2.1.0 (Linux; U; Android 14; SM-X920 Build/UP1A.231005.007)",
+    "Dalvik/2.1.0 (Linux; U; Android 15; SM-X920 Build/AP3A.241005.015)",
+    "Dalvik/2.1.0 (Linux; U; Android 15; SM-X926B Build/AP3A.241005.015)",
+    "Dalvik/2.1.0 (Linux; U; Android 15; SM-X820 Build/AP3A.241005.015)",
+    "Dalvik/2.1.0 (Linux; U; Android 16; SM-X920 Build/BP1A.251205.006)",
 ]);
 
 /** @type {readonly string[]} WebKit mobile UAs; iOS/iPadOS 16–18 and 26. iOS 18: minors 0–8 with patches 1–4; iOS 26: minors 0–4 with patches 1–3 (+ Safari variants). */
