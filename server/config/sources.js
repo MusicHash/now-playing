@@ -1,500 +1,3 @@
-//historyCharts
-const spotifyHistoryCharts = {
-    '100fm_radius': {
-        spotify: {
-            playlist: 'https://spoti.fi/',
-        },
-
-        now_playing: 
-        {
-            title: '100FM - Radius - Yam Tihoni Hits - Latest History Tracks (#Music)',
-            description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 10 * 60 * 1000,
-        },
-
-        scraper: {
-            type: 'get',
-            url: 'aHR0cHM6Ly9hcGkuc3BvdGlmeS5jb20vdjEvcGxheWxpc3RzLzFxV3hYd3lWZVRFUTEwTnVNcFhhMTM=',
-            headers: {
-                'authorization': 'Bearer {SPOTIFY_ACCESS_TOKEN}',
-            },
-        },
-
-        parser: {
-            type: 'json',
-
-            options: {
-                limit: 5,
-            },
-
-            fields: {
-                added_at: 'tracks.items.{Iterator}.added_at',
-                id: 'tracks.items.{Iterator}.track.id',
-                artist: 'tracks.items.{Iterator}.track.artists.0.name',
-                title: 'tracks.items.{Iterator}.track.name',
-                popularity: 'tracks.items.{Iterator}.track.popularity',
-                duration_ms: 'tracks.items.{Iterator}.track.duration_ms',
-            },
-        },
-    },
-
-
-    '98.1fm_galgalatz': {
-        spotify: {
-            playlist: 'https://spoti.fi/',
-        },
-
-        now_playing: 
-        {
-            title: '98.1FM - Galgalatz - Latest History Tracks (#Music)',
-            description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 10 * 60 * 1000,
-        },
-
-        scraper: {
-            type: 'get',
-            url: 'aHR0cHM6Ly9hcGkuc3BvdGlmeS5jb20vdjEvcGxheWxpc3RzLzJTWFJ2ZnFpTUJYRmthTWkwM25wTFo=',
-            headers: {
-                'authorization': 'Bearer {SPOTIFY_ACCESS_TOKEN}',
-            },
-        },
-
-        parser: {
-            type: 'json',
-
-            options: {
-                limit: 5,
-            },
-
-            fields: {
-                added_at: 'tracks.items.{Iterator}.added_at',
-                id: 'tracks.items.{Iterator}.track.id',
-                artist: 'tracks.items.{Iterator}.track.artists.0.name',
-                title: 'tracks.items.{Iterator}.track.name',
-                popularity: 'tracks.items.{Iterator}.track.popularity',
-                duration_ms: 'tracks.items.{Iterator}.track.duration_ms',
-            },
-        },
-    },
-
-    '96.6fm_glz': {
-        spotify: {
-            playlist: 'https://spoti.fi/',
-        },
-
-        now_playing: {
-            title: '96.6FM - GLZ - Latest History Tracks (#Music)',
-            description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 10 * 60 * 1000,
-        },
-
-        scraper: {
-            type: 'get',
-            url: 'aHR0cHM6Ly9hcGkuc3BvdGlmeS5jb20vdjEvcGxheWxpc3RzLzY3SEdGZmZTdHNnMzhzUlJuTkNKV0g=',
-            headers: {
-                'authorization': 'Bearer {SPOTIFY_ACCESS_TOKEN}',
-            },
-        },
-
-        parser: {
-            type: 'json',
-
-            options: {
-                limit: 5,
-            },
-
-            fields: {
-                added_at: 'tracks.items.{Iterator}.added_at',
-                id: 'tracks.items.{Iterator}.track.id',
-                artist: 'tracks.items.{Iterator}.track.artists.0.name',
-                title: 'tracks.items.{Iterator}.track.name',
-                popularity: 'tracks.items.{Iterator}.track.popularity',
-                duration_ms: 'tracks.items.{Iterator}.track.duration_ms',
-            },
-        },
-    },
-
-
-    '88fm_kan': {
-        spotify: {
-            playlist: 'https://spoti.fi/',
-        },
-
-        now_playing: {
-            title: '88FM - Kan - Latest History Tracks (#Music)',
-            description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 10 * 60 * 1000,
-        },
-
-        scraper: {
-            type: 'get',
-            url: 'aHR0cHM6Ly9hcGkuc3BvdGlmeS5jb20vdjEvcGxheWxpc3RzLzVQNkdLRU5vQWlia0ZFNHYxaGpDVWQ=',
-            headers: {
-                'authorization': 'Bearer {SPOTIFY_ACCESS_TOKEN}',
-            },
-        },
-
-        parser: {
-            type: 'json',
-
-            options: {
-                limit: 5,
-            },
-
-            fields: {
-                added_at: 'tracks.items.{Iterator}.added_at',
-                id: 'tracks.items.{Iterator}.track.id',
-                artist: 'tracks.items.{Iterator}.track.artists.0.name',
-                title: 'tracks.items.{Iterator}.track.name',
-                popularity: 'tracks.items.{Iterator}.track.popularity',
-                duration_ms: 'tracks.items.{Iterator}.track.duration_ms',
-            },
-        },
-    },
-
-
-    '97.5fm_gimel': {
-        spotify: {
-            playlist: 'https://spoti.fi/',
-        },
-
-        now_playing: {
-            title: '97.5FM - Kan - Gimel - Latest History Tracks (#Music)',
-            description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 10 * 60 * 1000,
-        },
-
-        scraper: {
-            type: 'get',
-            url: 'aHR0cHM6Ly9hcGkuc3BvdGlmeS5jb20vdjEvcGxheWxpc3RzLzV2MlpSaUJEd2tMblIwcFNrVWRVVzI=',
-            headers: {
-                'authorization': 'Bearer {SPOTIFY_ACCESS_TOKEN}',
-            },
-        },
-
-        parser: {
-            type: 'json',
-
-            options: {
-                limit: 5,
-            },
-
-            fields: {
-                added_at: 'tracks.items.{Iterator}.added_at',
-                id: 'tracks.items.{Iterator}.track.id',
-                artist: 'tracks.items.{Iterator}.track.artists.0.name',
-                title: 'tracks.items.{Iterator}.track.name',
-                popularity: 'tracks.items.{Iterator}.track.popularity',
-                duration_ms: 'tracks.items.{Iterator}.track.duration_ms',
-            },
-        },
-    },
-
-
-    '103fm': {
-        spotify: {
-            playlist: 'https://spoti.fi/',
-        },
-
-        now_playing: {
-            title: '103FM - Latest History Tracks (#Music)',
-            description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 10 * 60 * 1000,
-        },
-
-        scraper: {
-            type: 'get',
-            url: 'aHR0cHM6Ly9hcGkuc3BvdGlmeS5jb20vdjEvcGxheWxpc3RzLzVRdFN4d1VDNGYwdGllR1BzZU1SZEE=',
-            headers: {
-                'authorization': 'Bearer {SPOTIFY_ACCESS_TOKEN}',
-            },
-        },
-
-        parser: {
-            type: 'json',
-
-            options: {
-                limit: 5,
-            },
-
-            fields: {
-                added_at: 'tracks.items.{Iterator}.added_at',
-                id: 'tracks.items.{Iterator}.track.id',
-                artist: 'tracks.items.{Iterator}.track.artists.0.name',
-                title: 'tracks.items.{Iterator}.track.name',
-                popularity: 'tracks.items.{Iterator}.track.popularity',
-                duration_ms: 'tracks.items.{Iterator}.track.duration_ms',
-            },
-        },
-    },
-
-
-    '91fm_lev_hamedina': {
-        spotify: {
-            playlist: 'https://spoti.fi/',
-        },
-
-        now_playing: {
-            title: '91FM - Lev Hamedina - Latest History Tracks (#Music)',
-            description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 10 * 60 * 1000,
-        },
-
-        scraper: {
-            type: 'get',
-            url: 'aHR0cHM6Ly9hcGkuc3BvdGlmeS5jb20vdjEvcGxheWxpc3RzLzU3NmhRWUc1QUVnWmRNeTFvTjVxQlY=',
-            headers: {
-                'authorization': 'Bearer {SPOTIFY_ACCESS_TOKEN}',
-            },
-        },
-
-        parser: {
-            type: 'json',
-
-            options: {
-                limit: 5,
-            },
-
-            fields: {
-                added_at: 'tracks.items.{Iterator}.added_at',
-                id: 'tracks.items.{Iterator}.track.id',
-                artist: 'tracks.items.{Iterator}.track.artists.0.name',
-                title: 'tracks.items.{Iterator}.track.name',
-                popularity: 'tracks.items.{Iterator}.track.popularity',
-                duration_ms: 'tracks.items.{Iterator}.track.duration_ms',
-            },
-        },
-    },
-
-
-    '102fm_tlv': {
-        spotify: {
-            playlist: 'https://spoti.fi/',
-        },
-
-        now_playing: {
-            title: '102FM - Tel-Aviv - Latest History Tracks (#Music)',
-            description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 10 * 60 * 1000,
-        },
-
-        scraper: {
-            type: 'get',
-            url: 'aHR0cHM6Ly9hcGkuc3BvdGlmeS5jb20vdjEvcGxheWxpc3RzLzc4Zll0MzFqRlRwMU9Fb0VRWGNPYjU=',
-            headers: {
-                'authorization': 'Bearer {SPOTIFY_ACCESS_TOKEN}',
-            },
-        },
-
-        parser: {
-            type: 'json',
-
-            options: {
-                limit: 5,
-            },
-
-            fields: {
-                added_at: 'tracks.items.{Iterator}.added_at',
-                id: 'tracks.items.{Iterator}.track.id',
-                artist: 'tracks.items.{Iterator}.track.artists.0.name',
-                title: 'tracks.items.{Iterator}.track.name',
-                popularity: 'tracks.items.{Iterator}.track.popularity',
-                duration_ms: 'tracks.items.{Iterator}.track.duration_ms',
-            },
-        },
-    },
-
-
-    '107.5fm_haifa': {
-        spotify: {
-            playlist: 'https://spoti.fi/',
-        },
-
-        now_playing: {
-            title: '107.5FM - Radio Haifa - Latest History Tracks (#Music)',
-            description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 10 * 60 * 1000,
-        },
-
-        scraper: {
-            type: 'get',
-            url: 'aHR0cHM6Ly9hcGkuc3BvdGlmeS5jb20vdjEvcGxheWxpc3RzLzBRVHNHTlg3OFlvQWtVVUdHd2xGTU8=',
-            headers: {
-                'authorization': 'Bearer {SPOTIFY_ACCESS_TOKEN}',
-            },
-        },
-
-        parser: {
-            type: 'json',
-
-            options: {
-                limit: 5,
-            },
-
-            fields: {
-                added_at: 'tracks.items.{Iterator}.added_at',
-                id: 'tracks.items.{Iterator}.track.id',
-                artist: 'tracks.items.{Iterator}.track.artists.0.name',
-                title: 'tracks.items.{Iterator}.track.name',
-                popularity: 'tracks.items.{Iterator}.track.popularity',
-                duration_ms: 'tracks.items.{Iterator}.track.duration_ms',
-            },
-        },
-    },
-
-
-    '101fm_jerusalem': {
-        spotify: {
-            playlist: 'https://spoti.fi/',
-        },
-
-        now_playing: {
-            title: '101FM - Jerusalem - Latest History Tracks (#Music)',
-            description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 10 * 60 * 1000,
-        },
-
-        scraper: {
-            type: 'get',
-            url: 'aHR0cHM6Ly9hcGkuc3BvdGlmeS5jb20vdjEvcGxheWxpc3RzLzN3UkRmTW9xWTF0RzR5RTV3dmRXM0Q=',
-            headers: {
-                'authorization': 'Bearer {SPOTIFY_ACCESS_TOKEN}',
-            },
-        },
-
-        parser: {
-            type: 'json',
-
-            options: {
-                limit: 5,
-            },
-
-            fields: {
-                added_at: 'tracks.items.{Iterator}.added_at',
-                id: 'tracks.items.{Iterator}.track.id',
-                artist: 'tracks.items.{Iterator}.track.artists.0.name',
-                title: 'tracks.items.{Iterator}.track.name',
-                popularity: 'tracks.items.{Iterator}.track.popularity',
-                duration_ms: 'tracks.items.{Iterator}.track.duration_ms',
-            },
-        },
-    },
-
-
-    'mtv_il_tv': {
-        spotify: {
-            playlist: 'https://spoti.fi/',
-        },
-
-        now_playing: {
-            title: 'MTV.IL TV - Latest History Tracks (#Music)',
-            description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 10 * 60 * 1000,
-        },
-
-        scraper: {
-            type: 'get',
-            url: 'aHR0cHM6Ly9hcGkuc3BvdGlmeS5jb20vdjEvcGxheWxpc3RzLzI3MjhvMDFhdWc3Uk0zNVl3MVg4c3E=',
-            headers: {
-                'authorization': 'Bearer {SPOTIFY_ACCESS_TOKEN}',
-            },
-        },
-
-        parser: {
-            type: 'json',
-
-            options: {
-                limit: 5,
-            },
-
-            fields: {
-                added_at: 'tracks.items.{Iterator}.added_at',
-                id: 'tracks.items.{Iterator}.track.id',
-                artist: 'tracks.items.{Iterator}.track.artists.0.name',
-                title: 'tracks.items.{Iterator}.track.name',
-                popularity: 'tracks.items.{Iterator}.track.popularity',
-                duration_ms: 'tracks.items.{Iterator}.track.duration_ms',
-            },
-        },
-    },
-
-
-    '24music_tv': {
-        spotify: {
-            playlist: 'https://spoti.fi/',
-        },
-
-        now_playing: {
-            title: '24.Music TV - Latest History Tracks (#Music)',
-            description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 10 * 60 * 1000,
-        },
-
-        scraper: {
-            type: 'get',
-            url: 'aHR0cHM6Ly9hcGkuc3BvdGlmeS5jb20vdjEvcGxheWxpc3RzLzczaEZ6djhGWXc4UzkyR2ZrWjhtVDQ=',
-            headers: {
-                'authorization': 'Bearer {SPOTIFY_ACCESS_TOKEN}',
-            },
-        },
-
-        parser: {
-            type: 'json',
-
-            options: {
-                limit: 5,
-            },
-
-            fields: {
-                added_at: 'tracks.items.{Iterator}.added_at',
-                id: 'tracks.items.{Iterator}.track.id',
-                artist: 'tracks.items.{Iterator}.track.artists.0.name',
-                title: 'tracks.items.{Iterator}.track.name',
-                popularity: 'tracks.items.{Iterator}.track.popularity',
-                duration_ms: 'tracks.items.{Iterator}.track.duration_ms',
-            },
-        },
-    },
-
-
-    'music.il_tv': {
-        spotify: {
-            playlist: 'https://spoti.fi/',
-        },
-
-        now_playing: {
-            title: 'Music.IL TV - Latest History Tracks (#Music)',
-            description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 10 * 60 * 1000,
-        },
-
-        scraper: {
-            type: 'get',
-            url: 'aHR0cHM6Ly9hcGkuc3BvdGlmeS5jb20vdjEvcGxheWxpc3RzLzZwUXVLZUhKZnNON0ZielJpZFhDUnM=',
-            headers: {
-                'authorization': 'Bearer {SPOTIFY_ACCESS_TOKEN}',
-            },
-        },
-
-        parser: {
-            type: 'json',
-
-            options: {
-                limit: 5,
-            },
-
-            fields: {
-                added_at: 'tracks.items.{Iterator}.added_at',
-                id: 'tracks.items.{Iterator}.track.id',
-                artist: 'tracks.items.{Iterator}.track.artists.0.name',
-                title: 'tracks.items.{Iterator}.track.name',
-                popularity: 'tracks.items.{Iterator}.track.popularity',
-                duration_ms: 'tracks.items.{Iterator}.track.duration_ms',
-            },
-        },
-    },
-};
-
 // Charts
 const shzmCharts = {
     'shzm-top200-uk': {
@@ -675,7 +178,7 @@ const bigtopCharts = {
         },
 
         now_playing: {
-            title: 'BigTop- 40 Top Tracks (#Music)',
+            title: 'BigTop - 40 Top Tracks (#Music)',
             description: 'Last 40 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: 35 * 1000,
         },
@@ -788,36 +291,6 @@ const billboardCharts = {
     },
 };
 
-const kanCharts = {
-    'kan-gimiel-editor': {
-        spotify: {
-            playlist: 'https://spoti.fi/3PgyZG9',
-        },
-
-        now_playing: {
-            title: 'Kan - Gimel - Editor Selection (#Music)',
-            description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 60 * 60 * 1 * 1000,
-        },
-
-        scraper: {
-            type: 'get',
-            url: 'aHR0cHM6Ly93d3cua2FuLm9yZy5pbC9jb250ZW50L2thbi9yYWRpb19hcnRpY2xlcy9wLTExMjAzLzM2NDYwNC8=',
-        },
-
-        parser: {
-            type: 'html',
-
-            options: {
-                limit: 100,
-            },
-
-            fields: {
-                title: '.magazine-page .article-content ol li',
-            },
-        },
-    },
-};
 
 const bpCharts = {
     'bp-top100': {
@@ -911,7 +384,7 @@ const z100Charts = {
         },
 
         now_playing: {
-            title: 'Z100 - Top Tracks (#Music)',
+            title: 'Z100 - NYC - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: 35 * 1000,
         },
@@ -939,7 +412,7 @@ const europaPlusCharts = {
         },
 
         now_playing: {
-            title: 'EuropaPlus (RU) - Top 40 Tracks (#Music)',
+            title: 'EuropaPlus (RU) - Moscow - Top 40 Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: 35 * 1000,
         },
@@ -1101,13 +574,13 @@ const makoCharts = {
 
 // stations
 const capitalfmStations = {
-    'capitalfm-now': {
+    'capitalfm': {
         spotify: {
             playlist: 'https://spoti.fi/3xaI9Mk',
         },
 
         now_playing: {
-            title: 'CapitalFM - Latest Tracks (#Music)',
+            title: 'CapitalFM - London - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: 35 * 1000,
         },
@@ -1183,7 +656,7 @@ const xmStations = {
 };
 
 const virginStations = {
-    'virgin-recently-played': {
+    'virgin': {
         spotify: {
             playlist: 'https://spoti.fi/3mzvwDd',
         },
@@ -1215,7 +688,71 @@ const virginStations = {
 };
 
 const glzStations = {
-    'glz-onair': {
+    '98.1fm_galgalatz': {
+        spotify: {
+            playlist: 'https://spoti.fi/',
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzk4LjFmbV9nYWxnYWxhdHo=',
+        },
+
+        now_playing: {
+            title: 'Galgalatz - Latest Tracks (#Music)',
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 35 * 1000,
+        },
+
+        parser: {
+            type: 'json',
+
+            options: {
+                limit: 1,
+            },
+
+            fields: {
+                artist: 'recognition.artist',
+                title: 'recognition.title',
+                provider: 'recognition.provider',
+            },
+        },
+    },
+
+
+    '96.6fm_glz': {
+        spotify: {
+            playlist: 'https://spoti.fi/34otpMr',
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzk2LjZmbV9nbHo=',
+        },
+
+        now_playing: {
+            title: 'GLZ - Latest Tracks (#Music)',
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 35 * 1000,
+        },
+
+        parser: {
+            type: 'json',
+
+            options: {
+                limit: 1,
+            },
+
+            fields: {
+                artist: 'recognition.artist',
+                title: 'recognition.title',
+                provider: 'recognition.provider',
+            },
+        },
+    },
+
+    /*
+    'glz-xml-source': {
         spotify: {
             playlist: 'https://spoti.fi/34otpMr',
         },
@@ -1247,66 +784,141 @@ const glzStations = {
             },
         },
     },
+    */
 };
 
-const fm88Stations = {
-    '88fm-live': {
+const kanStations = {
+    '88fm': {
         spotify: {
             playlist: 'https://spoti.fi/3Hi5xfJ',
         },
 
+        scraper: {
+            type: 'get',
+            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzg4Zm0ta2Fu',
+        },
+
         now_playing: {
-            title: '88FM - Latest Tracks (#Music)',
+            title: '88FM - Kan - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: 35 * 1000,
         },
 
+        parser: {
+            type: 'json',
+
+            options: {
+                limit: 1,
+            },
+
+            fields: {
+                artist: 'recognition.artist',
+                title: 'recognition.title',
+                provider: 'recognition.provider',
+            },
+        },
+    },
+
+    '97.5fm_gimel': {
+        spotify: {
+            playlist: 'https://spoti.fi/3PgyZG9',
+        },
+
         scraper: {
             type: 'get',
-            url: 'aHR0cHM6Ly9lcGctb3V0LXMzLWJ1Y2tldC00Mi5zMy1ldS13ZXN0LTEuYW1hem9uYXdzLmNvbS84OGZtX2VwZy54bWw=',
+            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzk3LjVmbV9naW1lbC1rYW4=',
+        },
+
+        now_playing: {
+            title: '97.5FM - Gimel Kan - Latest Tracks (#Music)',
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 35 * 1000,
         },
 
         parser: {
-            type: 'xml',
+            type: 'json',
+
+            options: {
+                limit: 1,
+            },
 
             fields: {
-                title: 'track.name',
-                artist: 'track.artist',
+                artist: 'recognition.artist',
+                title: 'recognition.title',
+                provider: 'recognition.provider',
             },
         },
     },
 };
 
 const fm91Stations = {
-    '91fm-live': {
+    '91fm_lev-hamedina': {
         spotify: {
             playlist: 'https://spoti.fi/3xwUKdc',
         },
 
+        scraper: {
+            type: 'get',
+            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzkxZm0tbGV2LWhhbWVkaW5h',
+        },
+
         now_playing: {
-            title: '91FM - Latest Tracks (#Music)',
+            title: '91FM - Lev Hamedina - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: 35 * 1000,
         },
 
-        scraper: {
-            type: 'get',
-            url: 'aHR0cHM6Ly9lcGctb3V0LXMzLWJ1Y2tldC00Mi5zMy1ldS13ZXN0LTEuYW1hem9uYXdzLmNvbS85MWZtX2VwZy54bWw=',
-        },
-
         parser: {
-            type: 'xml',
+            type: 'json',
+
+            options: {
+                limit: 1,
+            },
 
             fields: {
-                title: 'track.name',
-                artist: 'track.artist',
+                artist: 'recognition.artist',
+                title: 'recognition.title',
+                provider: 'recognition.provider',
             },
         },
     },
 };
 
+
 const fm100Stations = {
-    '100fm-ch91-hot': {
+    '100fm_radius': {
+        spotify: {
+            playlist: 'https://spoti.fi/3nDLuxx',
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzEwMGZtLXJhZGl1cw==',
+        },
+
+        now_playing: {
+            title: '100FM - Radius - Latest Tracks (#Music)',
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 35 * 1000,
+        },
+
+        parser: {
+            type: 'json',
+
+            options: {
+                limit: 1,
+            },
+
+            fields: {
+                artist: 'recognition.artist',
+                title: 'recognition.title',
+                provider: 'recognition.provider',
+            },
+        },
+    },
+
+
+    '100fm_hits': {
         spotify: {
             playlist: 'https://spoti.fi/3pk2cm1',
         },
@@ -1331,120 +943,179 @@ const fm100Stations = {
             },
         },
     },
+};
 
-    '100fm-onair': {
+
+const fm101Stations = {
+    '101fm_jerusalem': {
         spotify: {
-            playlist: 'https://spoti.fi/3nDLuxx',
-        },
-
-        now_playing: {
-            title: '100FM - Latest Tracks (#Music)',
-            description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 35 * 1000,
+            playlist: 'https://spoti.fi/',
         },
 
         scraper: {
             type: 'get',
-            url: 'aHR0cHM6Ly9lcGctb3V0LXMzLWJ1Y2tldC00Mi5zMy1ldS13ZXN0LTEuYW1hem9uYXdzLmNvbS8xMDBmbV9lcGcueG1s',
+            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzEwMWZtLWplcnVzYWxlbQ==',
+        },
+
+        now_playing: {
+            title: '101FM - Radio Jerusalem - Latest Tracks (#Music)',
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 35 * 1000,
         },
 
         parser: {
-            type: 'xml',
+            type: 'json',
+
+            options: {
+                limit: 1,
+            },
 
             fields: {
-                title: 'track.name',
-                artist: 'track.artist',
+                artist: 'recognition.artist',
+                title: 'recognition.title',
+                provider: 'recognition.provider',
             },
         },
     },
 };
 
 const fm102Stations = {
-    '102fm-live': {
+    '102fm_tel-aviv': {
         spotify: {
             playlist: 'https://spoti.fi/3O8W3FG',
         },
 
+        scraper: {
+            type: 'get',
+            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzEwMmZtLXRsdg==',
+        },
+
         now_playing: {
-            title: '102FM - Latest Tracks (#Music)',
+            title: '102FM - Radio Tel-Aviv - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: 35 * 1000,
         },
 
-        scraper: {
-            type: 'get',
-            url: 'aHR0cHM6Ly9lcGctb3V0LXMzLWJ1Y2tldC00Mi5zMy1ldS13ZXN0LTEuYW1hem9uYXdzLmNvbS8xMDJmbV9lcGcueG1s',
-        },
-
         parser: {
-            type: 'xml',
+            type: 'json',
+
+            options: {
+                limit: 1,
+            },
 
             fields: {
-                title: 'track.name',
-                artist: 'track.artist',
+                artist: 'recognition.artist',
+                title: 'recognition.title',
+                provider: 'recognition.provider',
             },
         },
     },
 };
 
 const fm103Stations = {
-    '103fm-live': {
+    '103fm_radio_lelo_hafsaka': {
         spotify: {
             playlist: 'https://spoti.fi/3zwgcl3',
         },
 
+        scraper: {
+            type: 'get',
+            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzEwM2Zt',
+        },
+
         now_playing: {
-            title: '103FM - Latest Tracks (#Music)',
+            title: '103FM - Radio Lelo Hafsaka - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: 35 * 1000,
         },
 
-        scraper: {
-            type: 'get',
-            url: 'aHR0cHM6Ly9lcGctb3V0LXMzLWJ1Y2tldC00Mi5zMy1ldS13ZXN0LTEuYW1hem9uYXdzLmNvbS8xMDNmbV9lcGcueG1s',
-        },
-
         parser: {
-            type: 'xml',
+            type: 'json',
+
+            options: {
+                limit: 1,
+            },
 
             fields: {
-                title: 'track.name',
-                artist: 'track.artist',
+                artist: 'recognition.artist',
+                title: 'recognition.title',
+                provider: 'recognition.provider',
             },
         },
     },
 };
 
+
+
 const fm1075Stations = {
-    '107.5fm-live': {
+    '107.5fm_haifa': {
         spotify: {
             playlist: 'https://spoti.fi/3Qv4oFQ',
         },
 
+        scraper: {
+            type: 'get',
+            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzEwNy41Zm0taGFpZmE=',
+        },
+
         now_playing: {
-            title: '107.5FM - Latest Tracks (#Music)',
+            title: '107.5FM - Radio Haifa - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: 35 * 1000,
         },
 
+        parser: {
+            type: 'json',
+
+            options: {
+                limit: 1,
+            },
+
+            fields: {
+                artist: 'recognition.artist',
+                title: 'recognition.title',
+                provider: 'recognition.provider',
+            },
+        },
+    },
+};
+
+
+const makoStations = {
+    '24music': {
+        spotify: {
+            playlist: 'https://spoti.fi/',
+        },
+
         scraper: {
             type: 'get',
-            url: 'aHR0cHM6Ly9lcGctb3V0LXMzLWJ1Y2tldC00Mi5zMy1ldS13ZXN0LTEuYW1hem9uYXdzLmNvbS8xMDc1Zm1fZXBnLnhtbA==',
+            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzI0bXVzaWMtdHY=',
+        },
+
+        now_playing: {
+            title: '24 Music - TV - Latest Tracks (#Music)',
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 35 * 1000,
         },
 
         parser: {
-            type: 'xml',
+            type: 'json',
+
+            options: {
+                limit: 1,
+            },
 
             fields: {
-                title: 'track.name',
-                artist: 'track.artist',
+                artist: 'recognition.artist',
+                title: 'recognition.title',
+                provider: 'recognition.provider',
             },
         },
     },
 };
 
 const us997Stations = {
-    '99-mow': {
+    '997fm_mow': {
         spotify: {
             playlist: 'https://spoti.fi/2PPx3ul',
         },
@@ -1471,8 +1142,8 @@ const us997Stations = {
     },
 };
 
-const eco99Stations = {
-    'eco99fm-live-radio': {
+const fm99Stations = {
+    '99fm_eco': {
         spotify: {
             playlist: 'https://spoti.fi/3NM3XFc',
         },
@@ -1483,7 +1154,7 @@ const eco99Stations = {
         },
 
         now_playing: {
-            title: 'ECO - Latest Tracks (#Music)',
+            title: 'ECO 99FM - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: 35 * 1000,
         },
@@ -1500,7 +1171,7 @@ const eco99Stations = {
 };
 
 const z100Stations = {
-    'z100-recent': {
+    'z100_nyc': {
         spotify: {
             playlist: 'https://spoti.fi/34Eyq3I',
         },
@@ -1533,7 +1204,7 @@ const z100Stations = {
 };
 
 const europaPlusStations = {
-    'euplus-ru-live': {
+    'europaplus': {
         spotify: {
             playlist: 'https://spoti.fi/3zuFDms',
         },
@@ -1569,7 +1240,7 @@ const europaPlusStations = {
 };
 
 const dorognoeStations = {
-    'dorognoe-ru-live': {
+    'dorognoe': {
         spotify: {
             playlist: 'https://spoti.fi/3516HtY',
         },
@@ -1581,6 +1252,7 @@ const dorognoeStations = {
         },
 
         now_playing: {
+            title: 'Dorognoe (RU) - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: 35 * 1000,
         },
@@ -1604,332 +1276,8 @@ const dorognoeStations = {
 };
 
 
-const debugInternalStreamingStations = {
-    'stream_88fm-kan': {
-        spotify: {
-            playlist: 'https://spoti.fi/3516HtY',
-        },
-
-        scraper: {
-            type: 'get',
-            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzg4Zm0ta2Fu',
-        },
-
-        now_playing: {
-            description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 35 * 1000,
-        },
-
-        parser: {
-            type: 'json',
-
-            options: {
-                limit: 1,
-            },
-
-            fields: {
-                artist: 'recognition.artist',
-                title: 'recognition.title',
-                provider: 'recognition.provider',
-            },
-        },
-    },
-    'stream_97.5fm_gimel-kan': {
-        spotify: {
-            playlist: 'https://spoti.fi/3516HtY',
-        },
-
-        scraper: {
-            type: 'get',
-            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzk3LjVmbV9naW1lbC1rYW4=',
-        },
-
-        now_playing: {
-            description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 35 * 1000,
-        },
-
-        parser: {
-            type: 'json',
-
-            options: {
-                limit: 1,
-            },
-
-            fields: {
-                artist: 'recognition.artist',
-                title: 'recognition.title',
-                provider: 'recognition.provider',
-            },
-        },
-    },
-    'stream_98.1fm_galgalatz': {
-        spotify: {
-            playlist: 'https://spoti.fi/3516HtY',
-        },
-
-        scraper: {
-            type: 'get',
-            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzk4LjFmbV9nYWxnYWxhdHo=',
-        },
-
-        now_playing: {
-            description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 35 * 1000,
-        },
-
-        parser: {
-            type: 'json',
-
-            options: {
-                limit: 1,
-            },
-
-            fields: {
-                artist: 'recognition.artist',
-                title: 'recognition.title',
-                provider: 'recognition.provider',
-            },
-        },
-    },
-    'stream_96.6fm_glz': {
-        spotify: {
-            playlist: 'https://spoti.fi/3516HtY',
-        },
-
-        scraper: {
-            type: 'get',
-            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzk2LjZmbV9nbHo=',
-        },
-
-        now_playing: {
-            description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 35 * 1000,
-        },
-
-        parser: {
-            type: 'json',
-
-            options: {
-                limit: 1,
-            },
-
-            fields: {
-                artist: 'recognition.artist',
-                title: 'recognition.title',
-                provider: 'recognition.provider',
-            },
-        },
-    },
-    stream_103fm: {
-        spotify: {
-            playlist: 'https://spoti.fi/3516HtY',
-        },
-
-        scraper: {
-            type: 'get',
-            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzEwM2Zt',
-        },
-
-        now_playing: {
-            description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 35 * 1000,
-        },
-
-        parser: {
-            type: 'json',
-
-            options: {
-                limit: 1,
-            },
-
-            fields: {
-                artist: 'recognition.artist',
-                title: 'recognition.title',
-                provider: 'recognition.provider',
-            },
-        },
-    },
-    'stream_102fm-tlv': {
-        spotify: {
-            playlist: 'https://spoti.fi/3516HtY',
-        },
-
-        scraper: {
-            type: 'get',
-            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzEwMmZtLXRsdg==',
-        },
-
-        now_playing: {
-            description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 35 * 1000,
-        },
-
-        parser: {
-            type: 'json',
-
-            options: {
-                limit: 1,
-            },
-
-            fields: {
-                artist: 'recognition.artist',
-                title: 'recognition.title',
-                provider: 'recognition.provider',
-            },
-        },
-    },
-    'stream_91fm-lev-hamedina': {
-        spotify: {
-            playlist: 'https://spoti.fi/3516HtY',
-        },
-
-        scraper: {
-            type: 'get',
-            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzkxZm0tbGV2LWhhbWVkaW5h',
-        },
-
-        now_playing: {
-            description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 35 * 1000,
-        },
-
-        parser: {
-            type: 'json',
-
-            options: {
-                limit: 1,
-            },
-
-            fields: {
-                artist: 'recognition.artist',
-                title: 'recognition.title',
-                provider: 'recognition.provider',
-            },
-        },
-    },
-    'stream_107.5fm-haifa': {
-        spotify: {
-            playlist: 'https://spoti.fi/3516HtY',
-        },
-
-        scraper: {
-            type: 'get',
-            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzEwNy41Zm0taGFpZmE=',
-        },
-
-        now_playing: {
-            description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 35 * 1000,
-        },
-
-        parser: {
-            type: 'json',
-
-            options: {
-                limit: 1,
-            },
-
-            fields: {
-                artist: 'recognition.artist',
-                title: 'recognition.title',
-                provider: 'recognition.provider',
-            },
-        },
-    },
-    'stream_101fm-jerusalem': {
-        spotify: {
-            playlist: 'https://spoti.fi/3516HtY',
-        },
-
-        scraper: {
-            type: 'get',
-            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzEwMWZtLWplcnVzYWxlbQ==',
-        },
-
-        now_playing: {
-            description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 35 * 1000,
-        },
-
-        parser: {
-            type: 'json',
-
-            options: {
-                limit: 1,
-            },
-
-            fields: {
-                artist: 'recognition.artist',
-                title: 'recognition.title',
-                provider: 'recognition.provider',
-            },
-        },
-    },
-    'stream_100fm-radius': {
-        spotify: {
-            playlist: 'https://spoti.fi/3516HtY',
-        },
-
-        scraper: {
-            type: 'get',
-            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzEwMGZtLXJhZGl1cw==',
-        },
-
-        now_playing: {
-            description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 35 * 1000,
-        },
-
-        parser: {
-            type: 'json',
-
-            options: {
-                limit: 1,
-            },
-
-            fields: {
-                artist: 'recognition.artist',
-                title: 'recognition.title',
-                provider: 'recognition.provider',
-            },
-        },
-    },
-    'stream_24music-tv': {
-        spotify: {
-            playlist: 'https://spoti.fi/3516HtY',
-        },
-
-        scraper: {
-            type: 'get',
-            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzI0bXVzaWMtdHY=',
-        },
-
-        now_playing: {
-            description: 'Last 200 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 35 * 1000,
-        },
-
-        parser: {
-            type: 'json',
-
-            options: {
-                limit: 1,
-            },
-
-            fields: {
-                artist: 'recognition.artist',
-                title: 'recognition.title',
-                provider: 'recognition.provider',
-            },
-        },
-    },
-};
-
-
 const charts = {
     // IL
-    //...kanCharts,
     ...shzmCharts,
     ...makoCharts,
 
@@ -1940,22 +1288,25 @@ const charts = {
     ...z100Charts,
 };
 
+// empty for now, not needed to monitor history based aggregation of stations, everything should be live
+// it's used as sort of a fallback in original source is limited
 const historyCharts = {
-    ...spotifyHistoryCharts,
+    ...{},
 };
 
 const stations = {
     // IL
     ...glzStations,
-    //...fm88Stations,
-    //...fm91Stations,
-    ...eco99Stations,
-    //...fm100Stations,
-    //...fm102Stations,
-    //...fm103Stations,
+    ...kanStations,
+    ...fm91Stations,
+    ...fm99Stations,
+    ...fm100Stations,
+    ...fm101Stations,
+    ...fm102Stations,
+    ...fm103Stations,
+    ...makoStations,
 
     // World
-    ...debugInternalStreamingStations,
     ...capitalfmStations,
     ...xmStations,
     ...virginStations,
