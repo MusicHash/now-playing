@@ -249,7 +249,7 @@ export default function MagicalMomentPanel({ stationOptions }) {
                                                             const line =
                                                                 artist === ''
                                                                     ? title
-                                                                    : `${artist} — ${title}`;
+                                                                    : `${artist} - ${title}`;
                                                             return (
                                                                 <li key={`${row.station}-${i}-${when}`} style={{ marginBottom: '0.35rem' }}>
                                                                     <span style={{ color: '#64748b', fontSize: '0.82rem' }}>
