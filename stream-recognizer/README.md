@@ -25,7 +25,7 @@ On macOS: `brew install ffmpeg chromaprint`.
 ```bash
 cd stream-recognizer
 cp .env.example .env
-# Edit .env: REDIS_URI, HTTP_PORT
+# Edit .env: REDIS_URI, HTTP_PORT (optional: HTTP_HOST to bind a specific IP)
 # Edit config/stations.json: set streamUrl, id, enabled: true
 npm install
 npm start
@@ -49,6 +49,7 @@ Logs include `capturePath`, `fingerprintPrefix`, and **`order`** (provider list)
 |-----|---------|
 | `REDIS_URI` | Redis connection string |
 | `HTTP_PORT` | API port (default `3847`) |
+| `HTTP_HOST` | Optional bind address (e.g. `192.168.1.10`). If unset, listens on all interfaces. |
 | `REDIS_KEY_PREFIX` | Key prefix (default `stream-recognizer:v1`) |
 | `POLL_INTERVAL_SEC` | Default poll interval in seconds when station omits `intervalMs` (default `120`) |
 | `AUDIO_RECOGNITION_ORDER` | Comma-separated provider ids (default **`shazam`**). Allowed ids are defined in `getAudioRecognitionOrder()` in `src/config.js`. |

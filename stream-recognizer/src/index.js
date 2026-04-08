@@ -1,7 +1,7 @@
 import { createHttpServer } from './http/server.js';
 import logger from './logger.js';
 import { initRedisStore } from './lib/redis_store.js';
-import { loadStations, envInt, defaultPollIntervalMs } from './config.js';
+import { loadStations, envInt, envString, defaultPollIntervalMs } from './config.js';
 import { runStationTick } from './pipeline/orchestrator.js';
 import { probeBinary, missingBinaryHint } from './lib/binaries.js';
 
@@ -10,6 +10,7 @@ const store = initRedisStore(logger, prefix);
 
 const stations = loadStations();
 const port = envInt('HTTP_PORT', 3847);
+const listenHost = envString('HTTP_HOST', '');
 const defaultPoll = defaultPollIntervalMs();
 
 const ffmpegBin = process.env.FFMPEG_BIN || 'ffmpeg';
@@ -17,8 +18,15 @@ const fpcalcBin = process.env.FPCALC_BIN || 'fpcalc';
 const anyStationEnabled = stations.some((s) => s.enabled !== false);
 
 const app = createHttpServer({ logger, store, stations });
-const server = app.listen(port, () => {
-    logger.info({ port }, 'stream-recognizer HTTP listening');
+const server = listenHost
+    ? app.listen(port, listenHost, onListen)
+    : app.listen(port, onListen);
+
+function onListen() {
+    logger.info(
+        listenHost ? { port, host: listenHost } : { port },
+        'stream-recognizer HTTP listening',
+    );
     if (anyStationEnabled) {
         if (!probeBinary(ffmpegBin)) {
             logger.warn(
@@ -33,7 +41,7 @@ const server = app.listen(port, () => {
             );
         }
     }
-});
+}
 
 /** @type {ReturnType<typeof setInterval>[]} */
 const timers = [];

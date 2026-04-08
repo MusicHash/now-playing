@@ -5,15 +5,21 @@
 set -euo pipefail
 
 SCREEN_NAME="stream-recognizer"
-HOST="127.0.0.1"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="$SCRIPT_DIR/.env"
 LOG_FILE="$SCRIPT_DIR/log/stream.log"
 ERROR_FILE="$SCRIPT_DIR/log/err.log"
 
-# Resolve HTTP_PORT from .env if available, fall back to 3847
+# Resolve HTTP_PORT / HTTP_HOST from .env if available
 PORT="$(grep -m1 '^HTTP_PORT=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 | tr -d '[:space:]')"
 PORT="${PORT:-3847}"
+HTTP_HOST="$(grep -m1 '^HTTP_HOST=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 | tr -d '[:space:]')"
+# Health check: use loopback unless bound to a specific non-any address
+if [[ -z "$HTTP_HOST" || "$HTTP_HOST" == "0.0.0.0" || "$HTTP_HOST" == "::" ]]; then
+    HEALTH_HOST="127.0.0.1"
+else
+    HEALTH_HOST="$HTTP_HOST"
+fi
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -30,7 +36,7 @@ is_port_bound() {
 }
 
 is_healthy() {
-    curl -sf "http://${HOST}:${PORT}/health" -o /dev/null --max-time 3
+    curl -sf "http://${HEALTH_HOST}:${PORT}/health" -o /dev/null --max-time 3
 }
 
 # ── stop existing session (restart on re-run) ─────────────────────────────────
@@ -53,7 +59,11 @@ mkdir -p "$SCRIPT_DIR/log"
 
 # ── launch ────────────────────────────────────────────────────────────────────
 
-echo "Starting stream-recognizer on ${HOST}:${PORT}…"
+if [[ -n "$HTTP_HOST" ]]; then
+    echo "Starting stream-recognizer (bind ${HTTP_HOST}:${PORT})…"
+else
+    echo "Starting stream-recognizer on port ${PORT}…"
+fi
 screen -dmS "$SCREEN_NAME" bash -c \
     "cd '$SCRIPT_DIR' && npm start 1>>'$LOG_FILE' 2>>'$ERROR_FILE'"
 
@@ -62,7 +72,7 @@ screen -dmS "$SCREEN_NAME" bash -c \
 for i in $(seq 1 20); do
     sleep 1
     if is_healthy; then
-        green "✓ stream-recognizer is up and healthy on ${HOST}:${PORT}"
+        green "✓ stream-recognizer is up and healthy on ${HEALTH_HOST}:${PORT}"
         echo "  Screen session : $SCREEN_NAME   (screen -r $SCREEN_NAME)"
         echo "  Log            : $LOG_FILE"
         echo "  Errors         : $ERROR_FILE"
