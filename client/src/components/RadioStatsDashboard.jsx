@@ -144,7 +144,7 @@ export default function RadioStatsDashboard() {
             }
             const title = String(row.spotify_track_title ?? '');
             const artist = String(row.spotify_artist_title ?? row.log_artist ?? '');
-            const label = `${title} — ${artist}`.trim() || id;
+            const label = `${artist} - ${title}`.trim() || id;
             const next = patchMetricsDrill(
                 new URLSearchParams(searchParams),
                 { type: 'track', trackId: id.trim(), label },

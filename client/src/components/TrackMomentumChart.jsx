@@ -31,7 +31,7 @@ function seriesLabel(row, entityType) {
     }
     const title = String(row.spotify_track_title ?? '');
     const artist = String(row.spotify_artist_title ?? '');
-    const s = `${title} — ${artist}`.trim();
+    const s = `${artist} - ${title}`.trim();
     return s || '(unknown)';
 }
 

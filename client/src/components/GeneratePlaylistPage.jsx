@@ -879,7 +879,7 @@ export default function GeneratePlaylistPage() {
                                         textOverflow: 'ellipsis',
                                     }}
                                 >
-                                    {title} — {artist}
+                                    {artist} - {title}
                                     <span style={{ color: '#64748b', fontWeight: 400 }}>
                                         {plays}
                                         {last}
