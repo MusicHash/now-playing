@@ -6,6 +6,13 @@
     "vadAggressive": 2,
     "rmsSilenceDb": null
   },
+  "90fm_radio_emtza_hadereh": {
+    "streamUrl": "b64:aHR0cHM6Ly9jZG4uY3liZXJjZG4ubGl2ZS9FbXR6YV9IYWRlcmVjaC9MaXZlX0F1ZGlvL2ljZWNhc3QuYXVkaW8=",
+    "enabled": true,
+    "intervalMs": null,
+    "vadAggressive": 2,
+    "rmsSilenceDb": null
+  },
   "97fm_darom": {
     "streamUrl": "b64:aHR0cHM6Ly9jZG4uY3liZXJjZG4ubGl2ZS9EYXJvbV85N0ZNL0xpdmUvaWNlY2FzdC5hdWRpbw==",
     "enabled": true,
@@ -71,6 +78,13 @@
   },
   "100fm-radius": {
     "streamUrl": "b64:aHR0cHM6Ly9lZGdlLWZzLTIwLmN5YmVyY2RuLmxpdmUvUmFkaW9zXzEwMEZNL0F1ZGlvL2NodW5rcy5tM3U4",
+    "enabled": true,
+    "intervalMs": null,
+    "vadAggressive": 2,
+    "rmsSilenceDb": null
+  },
+  "radioplus": {
+    "streamUrl": "b64:aHR0cHM6Ly9zMy55ZXNzdHJlYW1pbmcubmV0OjE3MDQ5L3N0cmVhbQ==",
     "enabled": true,
     "intervalMs": null,
     "vadAggressive": 2,
