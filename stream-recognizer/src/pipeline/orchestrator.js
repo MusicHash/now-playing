@@ -364,7 +364,6 @@ export async function runStationTick(station, store, logger, options = {}) {
         const payload = {
             artist: match.artist,
             title: match.title,
-            source: matchSource,
             provider: matchSource,
             fingerprint,
             updatedAt: new Date().toISOString(),
