@@ -1047,7 +1047,38 @@ const fm103Stations = {
     },
 };
 
+const fm97Stations = {
+    '97fm_darom': {
+        spotify: {
+            playlist: 'https://spoti.fi/',
+        },
 
+        scraper: {
+            type: 'get',
+            url: '',
+        },
+
+        now_playing: {
+            title: '97FM - Radio Darom - Latest Tracks (#Music)',
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 35 * 1000,
+        },
+
+        parser: {
+            type: 'json',
+
+            options: {
+                limit: 1,
+            },
+
+            fields: {
+                artist: 'recognition.artist',
+                title: 'recognition.title',
+                provider: 'recognition.provider',
+            },
+        },
+    },
+};
 
 const fm1075Stations = {
     '107.5fm_haifa': {
@@ -1301,11 +1332,13 @@ const stations = {
     ...glzStations,
     ...kanStations,
     ...fm91Stations,
+    ...fm97Stations,
     ...fm99Stations,
     ...fm100Stations,
     ...fm101Stations,
     ...fm102Stations,
     ...fm103Stations,
+    ...fm1075Stations,
     ...makoStations,
 
     // World
