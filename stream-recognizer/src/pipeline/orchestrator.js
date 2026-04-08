@@ -5,7 +5,6 @@ import {
     captureStreamToWav,
     chromaprintFingerprintFromPcm,
     analyzePcmGates,
-    analyzePcmPreRecognitionEmpty,
     fileToPcm16kMono,
     cleanupCapturePath,
 } from '../lib/audio.js';
@@ -243,63 +242,6 @@ export async function runStationTick(station, store, logger, options = {}) {
                 }),
             );
             return;
-        }
-
-        const preEmptyEnabled = envBool('PRE_RECOGNITION_EMPTY_CHECK', true);
-        if (preEmptyEnabled) {
-            const minPeakDb = envFloat('PRE_RECOGNITION_MIN_PEAK_DB', -42);
-            const maxSilentFrameRatio = envFloat(
-                'PRE_RECOGNITION_MAX_SILENT_FRAME_RATIO',
-                0.94,
-            );
-            const emptyProbe = analyzePcmPreRecognitionEmpty(pcm, {
-                silenceDb: rmsSilenceDb,
-                minPeakDb,
-                maxSilentFrameRatio,
-            });
-            if (emptyProbe.empty) {
-                const emptyLabel =
-                    emptyProbe.reason != null
-                        ? `detected-empty-${emptyProbe.reason}`
-                        : 'detected-empty';
-                const debugCopy = await copyDebugWavIfEnabled(
-                    wavPath,
-                    station.id,
-                    tickId,
-                    log,
-                    emptyLabel,
-                );
-                const debugCopyPath = debugCopy?.wavPath;
-                log.info(
-                    {
-                        station: station.id,
-                        outcome: 'skipped_empty_segment',
-                        reason: emptyProbe.reason,
-                        meanDb: emptyProbe.meanDb,
-                        peakDb: emptyProbe.peakDb,
-                        silentFrameRatio: emptyProbe.silentFrameRatio,
-                        frameCount: emptyProbe.frameCount,
-                        capturePath: wavPath,
-                        debugCopyPath,
-                        preRecognition: {
-                            minPeakDb,
-                            maxSilentFrameRatio,
-                            silenceDb: rmsSilenceDb,
-                        },
-                    },
-                    'skip: segment is effectively empty (pre-recognition); not sending to fingerprint or APIs',
-                );
-                await store.setLastRun(
-                    station.id,
-                    lastRunRecord(tickId, 'skipped_empty_segment', {
-                        reason: emptyProbe.reason,
-                        meanDb: emptyProbe.meanDb,
-                        peakDb: emptyProbe.peakDb,
-                        silentFrameRatio: emptyProbe.silentFrameRatio,
-                    }),
-                );
-                return;
-            }
         }
 
         const { fingerprint, duration } = await chromaprintFingerprintFromPcm(
