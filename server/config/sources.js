@@ -853,6 +853,39 @@ const kanStations = {
     },
 };
 
+const fm90Stations = {
+    '90fm_radio_emtza_hadereh': {
+        spotify: {
+            playlist: 'https://spoti.fi/',
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzkwZm1fcmFkaW9fZW10emFfaGFkZXJlaA==',
+        },
+
+        now_playing: {
+            title: '90FM - Radio Emtza Hadereh - Latest Tracks (#Music)',
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 35 * 1000,
+        },
+
+        parser: {
+            type: 'json',
+
+            options: {
+                limit: 1,
+            },
+
+            fields: {
+                artist: 'recognition.artist',
+                title: 'recognition.title',
+                provider: 'recognition.provider',
+            },
+        },
+    },
+};
+
 const fm91Stations = {
     '91fm_lev-hamedina': {
         spotify: {
@@ -994,6 +1027,37 @@ const fm102Stations = {
 
         now_playing: {
             title: '102FM - Radio Tel-Aviv - Latest Tracks (#Music)',
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 35 * 1000,
+        },
+
+        parser: {
+            type: 'json',
+
+            options: {
+                limit: 1,
+            },
+
+            fields: {
+                artist: 'recognition.artist',
+                title: 'recognition.title',
+                provider: 'recognition.provider',
+            },
+        },
+    },
+
+    '102fm_eilat': {
+        spotify: {
+            playlist: 'https://spoti.fi/',
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzEwMmZtLWVpbGF0',
+        },
+
+        now_playing: {
+            title: '102FM - Radio Eilat - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: 35 * 1000,
         },
@@ -1331,6 +1395,7 @@ const stations = {
     // IL
     ...glzStations,
     ...kanStations,
+    ...fm90Stations,
     ...fm91Stations,
     ...fm97Stations,
     ...fm99Stations,
