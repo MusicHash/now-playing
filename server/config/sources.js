@@ -171,6 +171,117 @@ const shzmCharts = {
     },
 };
 
+
+const makoCharts = {
+    'mako-international': {
+        spotify: {
+            playlist: 'https://spoti.fi/',
+        },
+
+        now_playing: {
+            title: 'Mako - International Top 20 Tracks (#Music)',
+            description: 'Top 20 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 35 * 1000,
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cHM6Ly9oaXRsaXN0Lm1ha28uY28uaWwvaW50ZXJuYXRpb25hbA==',
+        },
+
+        parser: {
+            type: 'html',
+
+            fields: {
+                artist: '[class*="artist-and-title-"] h3',
+                title: '[class*="artist-and-title-"] h4',
+            },
+        },
+    },
+
+
+    'mako-israeli': {
+        spotify: {
+            playlist: 'https://spoti.fi/',
+        },
+
+        now_playing: {
+            title: 'Mako - Israel Top 100 Tracks (#Music)',
+            description: 'Top 100 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 35 * 1000,
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cHM6Ly9oaXRsaXN0Lm1ha28uY28uaWwvaXNyYWVs',
+        },
+
+        parser: {
+            type: 'html',
+
+            fields: {
+                artist: '[class*="artist-and-title-"] h3',
+                title: '[class*="artist-and-title-"] h4',
+            },
+        },
+    },
+
+
+    'mako-new-songs': {
+        spotify: {
+            playlist: 'https://spoti.fi/',
+        },
+
+        now_playing: {
+            title: 'Mako - New Songs Top 100 Tracks (#Music)',
+            description: 'Top 100 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 35 * 1000,
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cHM6Ly9oaXRsaXN0Lm1ha28uY28uaWwvbmV3LXNvbmdz',
+        },
+
+        parser: {
+            type: 'html',
+
+            fields: {
+                artist: '[class*="artist-and-title-"] h3',
+                title: '[class*="artist-and-title-"] h4',
+            },
+        },
+    },
+
+
+    'mako-top100': {
+        spotify: {
+            playlist: 'https://spoti.fi/',
+        },
+
+        now_playing: {
+            title: 'Mako - Top 100 Tracks (#Music)',
+            description: 'Top 100 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 35 * 1000,
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cHM6Ly9oaXRsaXN0Lm1ha28uY28uaWwv',
+        },
+
+        parser: {
+            type: 'html',
+
+            fields: {
+                artist: '[class*="artist-and-title-"] h3',
+                title: '[class*="artist-and-title-"] h4',
+            },
+        },
+    },
+};
+
+
 const bigtopCharts = {
     'bigtop-40': {
         spotify: {
@@ -299,7 +410,7 @@ const bpCharts = {
         },
 
         now_playing: {
-            title: 'BP Top - Latest Tracks (#Music)',
+            title: 'BP Top 100 - Latest Tracks (#Music)',
             description: 'Last 100 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: 60 * 60 * 1 * 1000,
         },
@@ -338,7 +449,7 @@ const bpCharts = {
         },
 
         now_playing: {
-            title: 'BP Psy Trance (Full On) - Latest Tracks (#Music)',
+            title: 'BP Top 100 - Psy Trance (Full On) - Latest Tracks (#Music)',
             description: 'Last 100 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: 60 * 60 * 1 * 1000,
         },
@@ -384,7 +495,7 @@ const z100Charts = {
         },
 
         now_playing: {
-            title: 'Z100 - NYC - Latest Tracks (#Music)',
+            title: 'Z100 - NYC - Top 140 Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: 35 * 1000,
         },
@@ -401,7 +512,7 @@ const z100Charts = {
 };
 
 const europaPlusCharts = {
-    'euplus-ru-top': {
+    'europaplus-top': {
         spotify: {
             playlist: 'https://spoti.fi/3rMaJA5',
         },
@@ -431,7 +542,7 @@ const europaPlusCharts = {
         },
     },
 
-    'euplus-ru-new': {
+    'europaplus-new': {
         spotify: {
             playlist: 'https://spoti.fi/3o9gtBY',
         },
@@ -462,115 +573,6 @@ const europaPlusCharts = {
     },
 };
 
-
-const makoCharts = {
-    'mako-international': {
-        spotify: {
-            playlist: 'https://spoti.fi/',
-        },
-
-        now_playing: {
-            title: 'Mako - International Top 20 Tracks (#Music)',
-            description: 'Top 20 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 35 * 1000,
-        },
-
-        scraper: {
-            type: 'get',
-            url: 'aHR0cHM6Ly9oaXRsaXN0Lm1ha28uY28uaWwvaW50ZXJuYXRpb25hbA==',
-        },
-
-        parser: {
-            type: 'html',
-
-            fields: {
-                artist: '[class*="artist-and-title-"] h3',
-                title: '[class*="artist-and-title-"] h4',
-            },
-        },
-    },
-
-
-    'mako-israeli': {
-        spotify: {
-            playlist: 'https://spoti.fi/',
-        },
-
-        now_playing: {
-            title: 'Mako - Israel Top 100 Tracks (#Music)',
-            description: 'Top 100 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 35 * 1000,
-        },
-
-        scraper: {
-            type: 'get',
-            url: 'aHR0cHM6Ly9oaXRsaXN0Lm1ha28uY28uaWwvaXNyYWVs',
-        },
-
-        parser: {
-            type: 'html',
-
-            fields: {
-                artist: '[class*="artist-and-title-"] h3',
-                title: '[class*="artist-and-title-"] h4',
-            },
-        },
-    },
-
-
-    'mako-new-songs': {
-        spotify: {
-            playlist: 'https://spoti.fi/',
-        },
-
-        now_playing: {
-            title: 'Mako - New Songs Top 100 Tracks (#Music)',
-            description: 'Top 100 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 35 * 1000,
-        },
-
-        scraper: {
-            type: 'get',
-            url: 'aHR0cHM6Ly9oaXRsaXN0Lm1ha28uY28uaWwvbmV3LXNvbmdz',
-        },
-
-        parser: {
-            type: 'html',
-
-            fields: {
-                artist: '[class*="artist-and-title-"] h3',
-                title: '[class*="artist-and-title-"] h4',
-            },
-        },
-    },
-
-
-    'mako-top100': {
-        spotify: {
-            playlist: 'https://spoti.fi/',
-        },
-
-        now_playing: {
-            title: 'Mako - Top 100 Tracks (#Music)',
-            description: 'Top 100 Tracks. LAST UPDATE: {now}',
-            refresh_rate_ms: 35 * 1000,
-        },
-
-        scraper: {
-            type: 'get',
-            url: 'aHR0cHM6Ly9oaXRsaXN0Lm1ha28uY28uaWwv',
-        },
-
-        parser: {
-            type: 'html',
-
-            fields: {
-                artist: '[class*="artist-and-title-"] h3',
-                title: '[class*="artist-and-title-"] h4',
-            },
-        },
-    },
-};
 
 // stations
 const capitalfmStations = {
@@ -699,7 +701,7 @@ const glzStations = {
         },
 
         now_playing: {
-            title: 'Galgalatz - Latest Tracks (#Music)',
+            title: '98.1FM - Galgalatz - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: 35 * 1000,
         },
@@ -731,7 +733,7 @@ const glzStations = {
         },
 
         now_playing: {
-            title: 'GLZ - Latest Tracks (#Music)',
+            title: '96.6FM - GLZ - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: 35 * 1000,
         },
