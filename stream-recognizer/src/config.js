@@ -90,22 +90,26 @@ export function defaultPollIntervalMs() {
     return envInt('POLL_INTERVAL_SEC', 120) * 1000;
 }
 
-/** @returns {('acrcloud'|'acoustid'|'shazam')[]} */
+/**
+ * Ordered provider ids tried per tick. Add new ids here and in {@link ../pipeline/orchestrator.js}
+ * (and implement `src/providers/<id>.js`).
+ * @returns {string[]}
+ */
 export function getAudioRecognitionOrder() {
-    const raw = process.env.AUDIO_RECOGNITION_ORDER || 'acrcloud,acoustid';
+    const raw = process.env.AUDIO_RECOGNITION_ORDER || 'shazam';
     const parts = raw
         .split(/[\s,]+/)
         .map((s) => s.trim().toLowerCase())
         .filter(Boolean);
-    const allowed = new Set(['acrcloud', 'acoustid', 'shazam']);
+    const allowed = new Set(['shazam']);
     const out = [];
     for (const p of parts) {
         if (allowed.has(p) && !out.includes(p)) {
-            out.push(/** @type {'acrcloud'|'acoustid'|'shazam'} */ (p));
+            out.push(p);
         }
     }
     if (out.length === 0) {
-        return ['acrcloud', 'acoustid'];
+        return ['shazam'];
     }
     return out;
 }

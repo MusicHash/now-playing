@@ -18,13 +18,14 @@
  * @typedef {Object} RecognitionResult
  * @property {string} artist
  * @property {string} title
- * @property {'acrcloud'|'acoustid'|'shazam'|'skipped'} source
+ * @property {'shazam'|'skipped'} source
  * @property {string} provider
  * @property {string} [rawTitle]
  * @property {string} [fingerprint]
  * @property {string} [skipReason]
  * @property {string} [isrc]
  * @property {string} [shazamKey]
+ * @property {string} [acrid] legacy
  */
 
 export {};
