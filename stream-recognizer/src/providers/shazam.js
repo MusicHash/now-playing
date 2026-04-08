@@ -9,10 +9,9 @@ import { createRequire } from 'node:module';
 import { ProxyAgent, fetch as undiciFetch } from 'undici';
 
 import { pickNextHttpProxy, proxyHostForLog } from '../lib/http_proxy.js';
+import { SHAZAM_USER_AGENTS } from './shazam_user_agents.js';
 
 const require = createRequire(import.meta.url);
-/** @type {string[]} */
-const SHAZAM_USER_AGENTS = require('./shazam_user_agents.json');
 /** @type {{ recognizeBytes: (b: Uint8Array, o?: number, s?: number) => { uri: string; samplems: number; free: () => void }[] }} */
 const { recognizeBytes } = require('shazamio-core');
 
