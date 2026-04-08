@@ -1055,7 +1055,7 @@ const fm97Stations = {
 
         scraper: {
             type: 'get',
-            url: '',
+            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzk3Zm1fZGFyb20=',
         },
 
         now_playing: {

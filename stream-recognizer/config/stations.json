@@ -7,7 +7,7 @@
     "rmsSilenceDb": null
   },
   "97fm_darom": {
-    "streamUrl": "b64:aHR0cHM6Ly9jZG4uY3liZXJjZG4ubGl2ZS9EYXJvbV85N0ZNL0xpdmUvaWNlY2FzdC5hdWRpbwo=",
+    "streamUrl": "b64:aHR0cHM6Ly9jZG4uY3liZXJjZG4ubGl2ZS9EYXJvbV85N0ZNL0xpdmUvaWNlY2FzdC5hdWRpbw==",
     "enabled": true,
     "intervalMs": null,
     "vadAggressive": 2,
