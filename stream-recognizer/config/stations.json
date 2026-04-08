@@ -90,6 +90,13 @@
     "vadAggressive": 2,
     "rmsSilenceDb": null
   },
+  "100fm-hits": {
+    "streamUrl": "b64:aHR0cHM6Ly9nYjI1LnN0cmVhbWdhdGVzLm5ldC9yYWRpb3MtYXVkaW8vMTAwSGl0cy9jaHVua3MubTN1OA==",
+    "enabled": true,
+    "intervalMs": null,
+    "vadAggressive": 2,
+    "rmsSilenceDb": null
+  },
   "radioplus": {
     "streamUrl": "b64:aHR0cHM6Ly9zMy55ZXNzdHJlYW1pbmcubmV0OjE3MDQ5L3N0cmVhbQ==",
     "enabled": true,
