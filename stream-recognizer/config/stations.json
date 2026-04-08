@@ -55,6 +55,13 @@
     "vadAggressive": 2,
     "rmsSilenceDb": null
   },
+  "102fm-eilat": {
+    "streamUrl": "b64:aHR0cHM6Ly9laWxhdC5saXZlY2RuLmJpei9laWxhdDEwMg==",
+    "enabled": true,
+    "intervalMs": null,
+    "vadAggressive": 2,
+    "rmsSilenceDb": null
+  },
   "91fm-lev-hamedina": {
     "streamUrl": "b64:aHR0cHM6Ly9jZG4uY3liZXJjZG4ubGl2ZS9MZXZfSGFtZWRpbmEvQXVkaW8vaWNlY2FzdC5hdWRpbw==",
     "enabled": true,
