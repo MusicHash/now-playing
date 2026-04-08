@@ -966,15 +966,20 @@ const fm100Stations = {
 
         scraper: {
             type: 'get',
-            url: 'aHR0cDovL2RpZ2l0YWwuMTAwZm0uY28uaWwvbGFiZWwvQ2g5MS1Ib3QueG1s',
+            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzEwMGZtLWhpdHM=',
         },
 
         parser: {
-            type: 'xml',
+            type: 'json',
+
+            options: {
+                limit: 1,
+            },
 
             fields: {
-                title: 'track.name',
-                artist: 'track.artist',
+                artist: 'recognition.artist',
+                title: 'recognition.title',
+                provider: 'recognition.provider',
             },
         },
     },
