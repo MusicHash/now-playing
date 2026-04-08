@@ -1177,6 +1177,38 @@ const fm1075Stations = {
     },
 };
 
+const radioplusStations = {
+    'radioplus': {
+        spotify: {
+            playlist: 'https://spoti.fi/',
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zL3JhZGlvcGx1cw==',
+        },
+
+        now_playing: {
+            title: 'Radio Plus - Latest Tracks (#Music)',
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 35 * 1000,
+        },
+
+        parser: {
+            type: 'json',
+
+            options: {
+                limit: 1,
+            },
+
+            fields: {
+                artist: 'recognition.artist',
+                title: 'recognition.title',
+                provider: 'recognition.provider',
+            },
+        },
+    },
+};
 
 const makoStations = {
     '24music': {
@@ -1404,6 +1436,7 @@ const stations = {
     ...fm102Stations,
     ...fm103Stations,
     ...fm1075Stations,
+    ...radioplusStations,
     ...makoStations,
 
     // World
