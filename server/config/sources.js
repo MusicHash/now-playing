@@ -574,13 +574,13 @@ const makoCharts = {
 
 // stations
 const capitalfmStations = {
-    'capitalfm': {
+    '95.8fm_capitalfm_london': {
         spotify: {
             playlist: 'https://spoti.fi/3xaI9Mk',
         },
 
         now_playing: {
-            title: 'CapitalFM - London - Latest Tracks (#Music)',
+            title: '95.8FM - CapitalFM - London - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: 35 * 1000,
         },
@@ -1171,7 +1171,7 @@ const fm99Stations = {
 };
 
 const z100Stations = {
-    'z100_nyc': {
+    '100.3fm_z100_nyc': {
         spotify: {
             playlist: 'https://spoti.fi/34Eyq3I',
         },
