@@ -375,7 +375,6 @@ export async function runStationTick(station, store, logger, options = {}) {
         await store.mergeState(station.id, {
             recognition: payload,
             lastRun: lastRunRecord(tickId, 'saved_audio', {
-                recognitionProvider: matchSource,
                 provider: matchSource,
                 priorSteps,
             }),
@@ -401,7 +400,6 @@ export async function runStationTick(station, store, logger, options = {}) {
 
         log.info({
             station: station.id,
-            source: matchSource,
             provider: matchSource,
             outcome: 'saved',
             winner,
