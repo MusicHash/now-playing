@@ -1204,7 +1204,7 @@ const z100Stations = {
 };
 
 const europaPlusStations = {
-    'europaplus': {
+    '106.2fm_europaplus_moscow': {
         spotify: {
             playlist: 'https://spoti.fi/3zuFDms',
         },
@@ -1216,7 +1216,7 @@ const europaPlusStations = {
         },
 
         now_playing: {
-            title: 'Europa (RU) - Latest Tracks (#Music)',
+            title: '106.2FM - EuropaPlus (RU) - Moscow - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: 35 * 1000,
         },
@@ -1240,7 +1240,7 @@ const europaPlusStations = {
 };
 
 const dorognoeStations = {
-    'dorognoe': {
+    '96.0fm_dorognoe_moscow': {
         spotify: {
             playlist: 'https://spoti.fi/3516HtY',
         },
@@ -1252,7 +1252,7 @@ const dorognoeStations = {
         },
 
         now_playing: {
-            title: 'Dorognoe (RU) - Latest Tracks (#Music)',
+            title: '96.0FM - Dorognoe (RU) - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: 35 * 1000,
         },
