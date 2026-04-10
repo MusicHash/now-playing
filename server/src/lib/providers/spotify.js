@@ -3,6 +3,7 @@ import SpotifyWebApi from 'spotify-web-api-node';
 import { DURATION } from '../../constants/numbers.js';
 import logger from '../../utils/logger.js';
 import redisWrapper from '../../utils/redis_wrapper.js';
+import { normalizeStringForCacheKey } from '../../utils/normalize_string_cache_key.js';
 import metricsWrapper from '../../utils/metrics_wrapper.js';
 
 const scopes = ['playlist-read-private', 'playlist-modify-private', 'playlist-modify-public'];
@@ -272,7 +273,7 @@ class Spotify {
 
     async searchTracksWithCache(query, limit = 1) {
         const KEY_PREFIX = 'SONG';
-        const cacheKey = `${KEY_PREFIX}:${query}`;
+        const cacheKey = `${KEY_PREFIX}:${normalizeStringForCacheKey(query)}`;
         let searchTracks = null;
 
         try {
