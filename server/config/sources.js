@@ -589,7 +589,7 @@ const capitalfmStations = {
 
         scraper: {
             type: 'get',
-            url: 'aHR0cHM6Ly93d3cuY2FwaXRhbGZtLmNvbS9yYWRpby9sYXN0LXBsYXllZC1zb25ncy8=',
+            url: 'aHR0cHM6Ly93d3cuY2FwaXRhbGZtLmNvbS9yYWRpby9sYXN0LXBsYXllZC1zb25ncy8/e1VOSVhUSU1FfQ==',
         },
 
         parser: {
