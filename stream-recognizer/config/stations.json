@@ -76,7 +76,8 @@
     "vadAggressive": 2,
     "rmsSilenceDb": null,
     "recognitionBlacklist": [
-      "Network Music Ensemble"
+      "Network Music Ensemble",
+      "Doug Petty"
     ]
   },
   "101fm-jerusalem": {
