@@ -214,7 +214,7 @@ export async function getMostPlayedTracks(opts = {}) {
         LIMIT ?
     `;
 
-    const [rows] = await MySQLWrapper.queryWithCache(sql, [days, ...extraParams, limit], CACHE_TTL_1_DAY);
+    const [rows] = await MySQLWrapper.query(sql, [days, ...extraParams, limit], CACHE_TTL_1_DAY);
     return rows;
 }
 
@@ -269,7 +269,7 @@ export async function getDistinctTracksByRecentPlay(opts = {}) {
         LIMIT ?
     `;
 
-    const [rows] = await MySQLWrapper.queryWithCache(sql, [days, ...extraParams, limit], CACHE_TTL_1_HOUR);
+    const [rows] = await MySQLWrapper.query(sql, [days, ...extraParams, limit], CACHE_TTL_1_HOUR);
     return rows;
 }
 
