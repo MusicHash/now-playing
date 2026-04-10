@@ -74,7 +74,11 @@
     "enabled": true,
     "intervalMs": null,
     "vadAggressive": 2,
-    "rmsSilenceDb": null
+    "rmsSilenceDb": null,
+    "recognitionBlacklist": [
+      "Network Music Ensemble",
+      "Defending Champions"
+    ]
   },
   "101fm-jerusalem": {
     "streamUrl": "b64:aHR0cHM6Ly9jZG4uY3liZXJjZG4ubGl2ZS9KZXJ1c2FsZW1SYWRpby9MaXZlL2ljZWNhc3QuYXVkaW8=",

@@ -6,6 +6,7 @@
  * @property {number|null} [intervalMs]
  * @property {number} [vadAggressive] 0-3 for webrtcvad-style; mapped to heuristic strictness
  * @property {number|null} [rmsSilenceDb] override env RMS_SILENCE_DB
+ * @property {string[]} [recognitionBlacklist] phrases; if any appear as a substring in artist or title (case-insensitive), recognition is not updated
  */
 
 /**

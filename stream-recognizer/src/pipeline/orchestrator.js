@@ -36,6 +36,36 @@ export function normalizeTrackKey(artist, title) {
 }
 
 /**
+ * @param {import('../types.js').StationConfig} station
+ * @param {string} artist
+ * @param {string} title
+ * @returns {string | null} first matching blacklist phrase (trimmed), or null
+ */
+export function recognitionBlacklistMatch(station, artist, title) {
+    const list = station.recognitionBlacklist;
+    if (!Array.isArray(list) || list.length === 0) {
+        return null;
+    }
+    const haystack = `${String(artist || '')} ${String(title || '')}`
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .trim();
+    for (const entry of list) {
+        if (typeof entry !== 'string') {
+            continue;
+        }
+        const needle = entry.toLowerCase().replace(/\s+/g, ' ').trim();
+        if (needle === '') {
+            continue;
+        }
+        if (haystack.includes(needle)) {
+            return entry.trim();
+        }
+    }
+    return null;
+}
+
+/**
  * Last path segment for DEBUG_CAPTURE_DIR companion .txt filenames (Unicode allowed).
  * @param {string} artist
  * @param {string} title
@@ -352,6 +382,40 @@ export async function runStationTick(station, store, logger, options = {}) {
         }
 
         const key = normalizeTrackKey(match.artist, match.title);
+        const blacklistHit = recognitionBlacklistMatch(
+            station,
+            match.artist,
+            match.title,
+        );
+        if (blacklistHit) {
+            const displayName = [match.artist, match.title]
+                .filter(Boolean)
+                .join(' — ');
+            log.info(
+                {
+                    station: station.id,
+                    provider: matchSource,
+                    outcome: 'blacklisted_skipped',
+                    blacklistMatch: blacklistHit,
+                    artist: match.artist,
+                    title: match.title,
+                    displayName,
+                },
+                'recognition matched station blacklist phrase; not updating recognition',
+            );
+            await store.setLastRun(
+                station.id,
+                lastRunRecord(tickId, 'blacklisted_skipped', {
+                    provider: matchSource,
+                    artist: match.artist,
+                    title: match.title,
+                    blacklistMatch: blacklistHit,
+                    priorSteps,
+                }),
+            );
+            return;
+        }
+
         if (prevKey === key) {
             log.debug({ station: station.id }, 'same track key as Redis; skip write');
             await store.setLastRun(
