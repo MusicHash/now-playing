@@ -1,7 +1,13 @@
 import { createHttpServer } from './http/server.js';
 import logger from './logger.js';
 import { initRedisStore } from './lib/redis_store.js';
-import { loadStations, envInt, envString, defaultPollIntervalMs } from './config.js';
+import {
+    loadStations,
+    loadRecognitionBlacklist,
+    envInt,
+    envString,
+    defaultPollIntervalMs,
+} from './config.js';
 import { runStationTick } from './pipeline/orchestrator.js';
 import { probeBinary, missingBinaryHint } from './lib/binaries.js';
 
@@ -9,6 +15,7 @@ const prefix = process.env.REDIS_KEY_PREFIX || 'stream-recognizer:v1';
 const store = initRedisStore(logger, prefix);
 
 const stations = loadStations();
+const recognitionBlacklist = loadRecognitionBlacklist();
 const port = envInt('HTTP_PORT', 3847);
 const listenHost = envString('HTTP_HOST', '');
 const defaultPoll = defaultPollIntervalMs();
@@ -56,11 +63,15 @@ for (const station of stations) {
     stagger += Math.min(5000, Math.floor(ms / 4));
 
     setTimeout(() => {
-        runStationTick(station, store, logger).catch((e) => {
+        runStationTick(station, store, logger, {
+            recognitionBlacklist,
+        }).catch((e) => {
             logger.error({ err: e, station: station.id }, 'initial tick failed');
         });
         const t = setInterval(() => {
-            runStationTick(station, store, logger).catch((e) => {
+            runStationTick(station, store, logger, {
+                recognitionBlacklist,
+            }).catch((e) => {
                 logger.error({ err: e, station: station.id }, 'tick failed');
             });
         }, ms);

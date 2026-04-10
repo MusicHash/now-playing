@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -53,10 +53,40 @@ export function loadStations() {
         if (props === null || typeof props !== 'object' || Array.isArray(props)) {
             throw new Error(`stations.${id}: must be an object`);
         }
-        const streamUrl = decodeStreamUrl(/** @type {{ streamUrl?: string }} */ (props).streamUrl, id);
-        out.push({ ...props, id, streamUrl });
+        const { recognitionBlacklist: _legacyRecognitionBlacklist, ...rest } =
+            /** @type {Record<string, unknown>} */ (props);
+        const streamUrl = decodeStreamUrl(
+            /** @type {{ streamUrl?: string }} */ (rest).streamUrl,
+            id,
+        );
+        out.push({ ...rest, id, streamUrl });
     }
     return out;
+}
+
+/**
+ * Global substring phrases: if any match artist+title (case-insensitive), recognition is not written.
+ * Optional file: missing path yields `[]`. Override path with `RECOGNITION_BLACKLIST_CONFIG`.
+ * @returns {string[]}
+ */
+export function loadRecognitionBlacklist() {
+    const path =
+        process.env.RECOGNITION_BLACKLIST_CONFIG ||
+        join(__dirname, '..', 'config', 'recognition-blacklist.json');
+    if (!existsSync(path)) {
+        return [];
+    }
+    const raw = readFileSync(path, 'utf8');
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+        throw new Error('recognition blacklist config must be a JSON array of strings');
+    }
+    for (const x of parsed) {
+        if (typeof x !== 'string') {
+            throw new Error('recognition blacklist must contain only strings');
+        }
+    }
+    return /** @type {string[]} */ (parsed);
 }
 
 export function envInt(name, fallback) {

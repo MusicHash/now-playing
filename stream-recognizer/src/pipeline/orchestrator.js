@@ -36,13 +36,13 @@ export function normalizeTrackKey(artist, title) {
 }
 
 /**
- * @param {import('../types.js').StationConfig} station
+ * @param {string[]|undefined|null} phrases global list from {@link ../config.js#loadRecognitionBlacklist}
  * @param {string} artist
  * @param {string} title
  * @returns {string | null} first matching blacklist phrase (trimmed), or null
  */
-export function recognitionBlacklistMatch(station, artist, title) {
-    const list = station.recognitionBlacklist;
+export function recognitionBlacklistMatch(phrases, artist, title) {
+    const list = phrases;
     if (!Array.isArray(list) || list.length === 0) {
         return null;
     }
@@ -188,7 +188,7 @@ async function copyDebugWavIfEnabled(
  * @param {import('../types.js').StationConfig} station
  * @param {import('../lib/redis_store.js').RedisStore} store
  * @param {import('pino').Logger} logger
- * @param {{ tickId?: string }} [options]  Pass `tickId` to correlate with an external request or test.
+ * @param {{ tickId?: string, recognitionBlacklist?: string[] }} [options] `recognitionBlacklist` from {@link ../config.js#loadRecognitionBlacklist}; omit to skip blacklist checks in tests.
  */
 export async function runStationTick(station, store, logger, options = {}) {
     if (station.enabled === false) {
@@ -199,6 +199,7 @@ export async function runStationTick(station, store, logger, options = {}) {
         typeof options.tickId === 'string' && options.tickId.trim() !== ''
             ? options.tickId.trim()
             : randomUUID();
+    const recognitionBlacklistPhrases = options.recognitionBlacklist;
     const log = logger.child({ tickId });
     log.info(
         { station: station.id },
@@ -383,7 +384,7 @@ export async function runStationTick(station, store, logger, options = {}) {
 
         const key = normalizeTrackKey(match.artist, match.title);
         const blacklistHit = recognitionBlacklistMatch(
-            station,
+            recognitionBlacklistPhrases,
             match.artist,
             match.title,
         );
@@ -401,7 +402,7 @@ export async function runStationTick(station, store, logger, options = {}) {
                     title: match.title,
                     displayName,
                 },
-                'recognition matched station blacklist phrase; not updating recognition',
+                'recognition matched global blacklist phrase; not updating recognition',
             );
             await store.setLastRun(
                 station.id,
