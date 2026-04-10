@@ -25,7 +25,7 @@
 -- ---------------------------------------------------------------------------
 -- Tunables (edit before running)
 -- ---------------------------------------------------------------------------
-SET @dry_run = 0;                  -- 1 = preview only (no DELETE). 0 = execute DELETE below.
+SET @dry_run = 1;                  -- 1 = preview only (no DELETE). 0 = execute DELETE below.
 SET @commit_after_delete = 1;      -- only when @dry_run = 0: 1 = COMMIT, 0 = ROLLBACK (test path)
 
 SET @repeat_window_seconds = 600;  -- e.g. 600 = 10 minutes; 7200 = 2 hours
