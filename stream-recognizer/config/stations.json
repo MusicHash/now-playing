@@ -76,8 +76,7 @@
     "vadAggressive": 2,
     "rmsSilenceDb": null,
     "recognitionBlacklist": [
-      "Network Music Ensemble",
-      "Defending Champions"
+      "Network Music Ensemble"
     ]
   },
   "101fm-jerusalem": {
