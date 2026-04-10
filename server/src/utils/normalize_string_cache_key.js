@@ -29,10 +29,11 @@ const OUTER_QUOTES = /^['"`\u2018\u2019\u201C\u201D]+|['"`\u2018\u2019\u201C\u20
 /**
  * Collaboration / credits: feat / ft / featuring / w/, or × + | • vs / versus.
  * Normalized to ` feat ` so “w/” and “feat” share the same cache key.
+ * Text tokens use \\b so “ft” does not match inside words (e.g. “Swift”).
  * Two branches: flexible spacing around tokens, or spaced punctuation between names.
  */
 const COLLAB =
-    /(?:\s*(?:featuring|feat\.?|ft\.?|w\/)\s*|\s+(?:×|\+|\||•|versus|vs\.?)\s+)/gi;
+    /(?:\s*(?:\bfeaturing\b|\bfeat\.?\b|\bft\.?\b|w\/)\s*|\s+(?:×|\+|\||•|versus|vs\.?)\s+)/giu;
 
 /** Apostrophes are not \\p{L}; strip so “don’t” → “dont”, not “don t”. */
 const APOSTROPHE_LIKE = /[''`\u2018\u2019\u201B]/g;
@@ -56,7 +57,8 @@ export function normalizeStringForCacheKey(value) {
         .replace(/&/g, ' and ')
         .replace(COLLAB, ' feat ')
         // Alias typography: “a.k.a.” / “a. k. a.”
-        .replace(/\ba\s*\.\s*k\s*\.\s*a\s*\./gi, ' aka ').trim();
+        .replace(/\ba\s*\.\s*k\s*\.\s*a\s*\./gi, ' aka ')
+        .trim();
 
     s = foldLatinAccents(s);
 
