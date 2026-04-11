@@ -3,16 +3,33 @@ import logger from '../../utils/logger.js';
 
 const TABLE = 'nowplaying_chart_log';
 
+const MS_PER_DAY = 86400000;
+
 /**
- * Returns the ISO year+week string for the given date (or now).
- * Format: "YYYYWW", e.g. "202614" for ISO week 14 of 2026.
+ * UTC calendar day (y-m-d) at local midnight → ms for Tuesday 00:00 UTC that starts the Tue–Mon block containing that day.
+ */
+function utcAnchorTuesdayMidnightMs(y, monthIndex, day) {
+    const midnight = Date.UTC(y, monthIndex, day, 0, 0, 0, 0);
+    const dow = new Date(midnight).getUTCDay();
+    const daysBack = (dow - 2 + 7) % 7;
+    return midnight - daysBack * MS_PER_DAY;
+}
+
+/**
+ * Chart period id: weeks start Tuesday 00:00 UTC. Encoded as YYYYWW (e.g. 202603).
+ * Chart year is the UTC calendar year of Thursday of the block (anchor Tuesday + 2 days).
+ * Week 1 is the Tue–Mon block that contains Jan 1 UTC.
+ *
+ * @param {Date} [date=new Date()]
+ * @returns {number}
  */
 function getYearWeek(date = new Date()) {
-    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    const weekNo = Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
-    return d.getUTCFullYear() * 100 + weekNo;
+    const anchorMs = utcAnchorTuesdayMidnightMs(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+    const thursdayMs = anchorMs + 2 * MS_PER_DAY;
+    const chartYear = new Date(thursdayMs).getUTCFullYear();
+    const week1AnchorMs = utcAnchorTuesdayMidnightMs(chartYear, 0, 1);
+    const weekNo = 1 + Math.floor((anchorMs - week1AnchorMs) / MS_PER_DAY / 7);
+    return chartYear * 100 + weekNo;
 }
 
 async function doesChartWeekExist(chartId, yearWeek) {

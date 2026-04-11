@@ -1,7 +1,7 @@
 CREATE TABLE `nowplaying_chart_log` (
     `chart_entry_id` INT NOT NULL AUTO_INCREMENT,
     `chart_id` VARCHAR(50) NOT NULL COMMENT 'e.g. shzm-top200-uk, billboard-hot100',
-    `chart_year_week` INT NOT NULL COMMENT 'e.g. 202614 = year 2026, ISO week 14',
+    `chart_year_week` INT NOT NULL COMMENT 'e.g. 202614 = year 2026, Tuesday-week 14 (UTC, week 1 contains Jan 1)',
     `chart_position` SMALLINT NOT NULL COMMENT '1-based position in chart',
     `spotify_id` INT DEFAULT NULL COMMENT 'FK to nowplaying_spotify_tracks, NULL if not found on Spotify',
     `entry_artist` VARCHAR(300) NOT NULL,
