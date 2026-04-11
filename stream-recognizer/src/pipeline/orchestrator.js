@@ -218,7 +218,7 @@ export async function runStationTick(station, store, logger, options = {}) {
     const vadEnabled = envBool('VAD_ENABLED', true);
     const vadAggressive = station.vadAggressive ?? 2;
 
-    /** Same proxy for ffmpeg capture and Shazam for this tick (HTTP_PROXY pool is round-robin per tick). */
+    /** Proxy for ffmpeg capture + first Shazam discovery attempt; further Shazam attempts rotate the HTTP_PROXY pool. */
     const tickHttpProxy = pickNextHttpProxy();
 
     const state = await store.getState(station.id);

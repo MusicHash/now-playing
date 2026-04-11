@@ -8,7 +8,11 @@ import { randomInt, randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { ProxyAgent, fetch as undiciFetch } from 'undici';
 
-import { pickNextHttpProxy, proxyHostForLog } from '../lib/http_proxy.js';
+import {
+    pickNextHttpProxy,
+    proxyHostForLog,
+    parseHttpProxyList,
+} from '../lib/http_proxy.js';
 import { SHAZAM_USER_AGENTS } from './shazam_user_agents.js';
 
 const require = createRequire(import.meta.url);
@@ -55,6 +59,104 @@ function envInt(name, fallback) {
     }
     const n = Number.parseInt(v, 10);
     return Number.isFinite(n) ? n : fallback;
+}
+
+/**
+ * @param {number} ms
+ * @returns {Promise<void>}
+ */
+function sleep(ms) {
+    return new Promise((r) => setTimeout(r, ms));
+}
+
+/**
+ * @param {unknown} err
+ * @returns {{ type: string; message: string; code?: string }}
+ */
+function discoveryErrSummary(err) {
+    if (!err || typeof err !== 'object') {
+        return { type: typeof err, message: String(err) };
+    }
+    const e = /** @type {Error & { cause?: unknown; code?: string }} */ (err);
+    const cause = e.cause;
+    const causeObj =
+        cause && typeof cause === 'object'
+            ? /** @type {Error & { code?: string }} */ (cause)
+            : null;
+    return {
+        type: e.name || 'Error',
+        message: e.message || String(err),
+        code: (causeObj && causeObj.code) || e.code || undefined,
+    };
+}
+
+/**
+ * Network / transient failures worth retrying (and often fixed by another proxy).
+ *
+ * @param {unknown} err
+ * @returns {boolean}
+ */
+function isRetryableDiscoveryError(err) {
+    if (!err || typeof err !== 'object') {
+        return false;
+    }
+    const any = /** @type {{ name?: string; message?: string; cause?: unknown; code?: string; shazamHttpStatus?: number }} */ (
+        err
+    );
+    if (typeof any.shazamHttpStatus === 'number') {
+        return [429, 502, 503, 504].includes(any.shazamHttpStatus);
+    }
+    if (any.name === 'AbortError') {
+        return true;
+    }
+    const msg = String(any.message || '').toLowerCase();
+    if (msg.includes('fetch failed')) {
+        return true;
+    }
+    const code = any.code;
+    if (
+        code === 'ECONNRESET' ||
+        code === 'ETIMEDOUT' ||
+        code === 'EPIPE' ||
+        code === 'ECONNREFUSED' ||
+        code === 'UND_ERR_SOCKET' ||
+        code === 'UND_ERR_CONNECT_TIMEOUT' ||
+        code === 'UND_ERR_HEADERS_TIMEOUT' ||
+        code === 'UND_ERR_BODY_TIMEOUT'
+    ) {
+        return true;
+    }
+    const c = any.cause;
+    if (c && typeof c === 'object') {
+        const co = /** @type {{ message?: string; code?: string; name?: string }} */ (c);
+        const cm = String(co.message || '').toLowerCase();
+        if (
+            cm.includes('other side closed') ||
+            cm.includes('econnreset') ||
+            cm.includes('socket') ||
+            co.name === 'SocketError'
+        ) {
+            return true;
+        }
+        if (
+            co.code === 'ECONNRESET' ||
+            co.code === 'ETIMEDOUT' ||
+            co.code === 'UND_ERR_SOCKET'
+        ) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * @param {unknown} err
+ * @param {object} meta
+ */
+function attachDiscoveryMeta(err, meta) {
+    if (err && typeof err === 'object') {
+        Object.assign(/** @type {object} */ (err), { discoveryMeta: meta });
+    }
 }
 
 /** @type {Map<string, import('undici').ProxyAgent>} */
@@ -170,14 +272,26 @@ function logNoMatch(logger, body, reason) {
 }
 
 /**
+ * @typedef {{ attempt: number; max: number }} DiscoveryAttemptInfo
+ */
+
+/**
  * @param {string} url
  * @param {object} json
  * @param {import('pino').Logger} logger
  * @param {string | undefined} proxyUrl
  * @param {number} segmentIndex
+ * @param {DiscoveryAttemptInfo | undefined} attemptInfo
  * @returns {Promise<Response>}
  */
-async function fetchDiscoveryOnce(url, json, logger, proxyUrl, segmentIndex) {
+async function fetchDiscoveryOnce(
+    url,
+    json,
+    logger,
+    proxyUrl,
+    segmentIndex,
+    attemptInfo,
+) {
     const timeoutMs = envInt('SHAZAM_FETCH_TIMEOUT_MS', 28_000);
     const ac = new AbortController();
     const t = setTimeout(() => ac.abort(), timeoutMs);
@@ -190,6 +304,12 @@ async function fetchDiscoveryOnce(url, json, logger, proxyUrl, segmentIndex) {
         {
             proxy: proxyHostForLog(proxyUrl),
             segmentIndex,
+            ...(attemptInfo
+                ? {
+                      discoveryAttempt: attemptInfo.attempt,
+                      discoveryMaxAttempts: attemptInfo.max,
+                  }
+                : {}),
             shazamUrl: redactDiscoveryUrl(url),
             language,
             endpointCountry,
@@ -224,26 +344,142 @@ async function fetchDiscoveryOnce(url, json, logger, proxyUrl, segmentIndex) {
  * @param {string} url
  * @param {object} json
  * @param {import('pino').Logger} logger
- * @param {string | undefined} proxyUrl
+ * @param {string | undefined} initialProxyUrl Same proxy as stream capture for attempt 1; later attempts advance HTTP_PROXY round-robin when a pool is configured.
  * @param {number} segmentIndex
  * @returns {Promise<unknown>}
  */
-async function postDiscovery(url, json, logger, proxyUrl, segmentIndex) {
-    let res = await fetchDiscoveryOnce(url, json, logger, proxyUrl, segmentIndex);
-    if (res.status === 429) {
-        const retryAfter = envInt('SHAZAM_429_RETRY_MS', 2500);
-        logger.warn(
-            { status: res.status, retryAfterMs: retryAfter },
-            'shazam: rate limited; backing off once',
-        );
-        await new Promise((r) => setTimeout(r, retryAfter));
-        res = await fetchDiscoveryOnce(url, json, logger, proxyUrl, segmentIndex);
+async function postDiscovery(url, json, logger, initialProxyUrl, segmentIndex) {
+    const maxAttempts = Math.max(1, envInt('SHAZAM_DISCOVERY_MAX_ATTEMPTS', 3));
+    const retryDelayMs = envInt('SHAZAM_DISCOVERY_RETRY_MS', 500);
+    const proxyList = parseHttpProxyList();
+    /** @type {string[]} */
+    const proxiesTriedHosts = [];
+    /** @type {unknown} */
+    let lastErr;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        const proxyUrl =
+            attempt === 0
+                ? initialProxyUrl
+                : proxyList.length > 0 ? pickNextHttpProxy()
+                  : initialProxyUrl;
+        proxiesTriedHosts.push(proxyHostForLog(proxyUrl));
+        const attemptInfo = { attempt: attempt + 1, max: maxAttempts };
+        const metaBase = {
+            segmentIndex,
+            discoveryMaxAttempts: maxAttempts,
+            discoveryAttemptsUsed: attempt + 1,
+            proxiesTried: [...proxiesTriedHosts],
+        };
+
+        try {
+            let res = await fetchDiscoveryOnce(
+                url,
+                json,
+                logger,
+                proxyUrl,
+                segmentIndex,
+                attemptInfo,
+            );
+            if (res.status === 429) {
+                const retryAfter = envInt('SHAZAM_429_RETRY_MS', 2500);
+                logger.warn(
+                    {
+                        status: res.status,
+                        retryAfterMs: retryAfter,
+                        segmentIndex,
+                        discoveryAttempt: attemptInfo.attempt,
+                        proxy: proxyHostForLog(proxyUrl),
+                    },
+                    'shazam: rate limited (429); backing off once on same proxy',
+                );
+                await sleep(retryAfter);
+                res = await fetchDiscoveryOnce(
+                    url,
+                    json,
+                    logger,
+                    proxyUrl,
+                    segmentIndex,
+                    attemptInfo,
+                );
+            }
+            if (!res.ok) {
+                const text = await res.text();
+                /** @type {Error & { shazamHttpStatus?: number }} */
+                const httpErr = new Error(
+                    `shazam HTTP ${res.status}: ${text.slice(0, 200)}`,
+                );
+                httpErr.shazamHttpStatus = res.status;
+                lastErr = httpErr;
+                const canRetry =
+                    isRetryableDiscoveryError(httpErr) && attempt < maxAttempts - 1;
+                if (canRetry) {
+                    logger.warn(
+                        {
+                            segmentIndex,
+                            discoveryAttempt: attemptInfo.attempt,
+                            discoveryMaxAttempts: maxAttempts,
+                            httpStatus: res.status,
+                            proxy: proxyHostForLog(proxyUrl),
+                            proxiesTried: proxiesTriedHosts,
+                            errSummary: discoveryErrSummary(httpErr),
+                        },
+                        `shazam: discovery HTTP error; will retry (${attempt + 1}/${maxAttempts})`,
+                    );
+                    await sleep(Math.min(retryDelayMs * (attempt + 1), 8000));
+                    continue;
+                }
+                attachDiscoveryMeta(httpErr, { ...metaBase, exhaustedRetries: true });
+                throw httpErr;
+            }
+            if (attempt > 0) {
+                logger.info(
+                    {
+                        segmentIndex,
+                        discoveryAttempt: attemptInfo.attempt,
+                        proxy: proxyHostForLog(proxyUrl),
+                        proxiesTried: proxiesTriedHosts,
+                    },
+                    'shazam: discovery succeeded after retry',
+                );
+            }
+            return res.json();
+        } catch (e) {
+            lastErr = e;
+            const summary = discoveryErrSummary(e);
+            const canRetry =
+                isRetryableDiscoveryError(e) && attempt < maxAttempts - 1;
+            if (!canRetry) {
+                attachDiscoveryMeta(e, { ...metaBase, exhaustedRetries: true });
+                throw e;
+            }
+            logger.warn(
+                {
+                    err: e,
+                    segmentIndex,
+                    discoveryAttempt: attemptInfo.attempt,
+                    discoveryMaxAttempts: maxAttempts,
+                    proxy: proxyHostForLog(proxyUrl),
+                    proxiesTried: proxiesTriedHosts,
+                    errSummary: summary,
+                },
+                `shazam: discovery transport error; will retry (${attempt + 1}/${maxAttempts})`,
+            );
+            await sleep(Math.min(retryDelayMs * (attempt + 1), 8000));
+        }
     }
-    if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`shazam HTTP ${res.status}: ${text.slice(0, 200)}`);
-    }
-    return res.json();
+    const fin =
+        lastErr instanceof Error
+            ? lastErr
+            : new Error('shazam: discovery exhausted attempts');
+    attachDiscoveryMeta(fin, {
+        segmentIndex,
+        discoveryMaxAttempts: maxAttempts,
+        discoveryAttemptsUsed: maxAttempts,
+        proxiesTried: proxiesTriedHosts,
+        exhaustedRetries: true,
+    });
+    throw fin;
 }
 
 /**
@@ -287,7 +523,7 @@ function buildSearchBody(uri, samplems) {
  *
  * @param {string} wavPath
  * @param {import('pino').Logger} logger
- * @param {{ httpProxy?: string }} [options] If `httpProxy` is present (including `undefined`), use it; otherwise pick from `HTTP_PROXY` pool (round-robin). Pass the same value as ffmpeg for a given tick.
+ * @param {{ httpProxy?: string }} [options] If `httpProxy` is present (including `undefined`), use it as the first discovery attempt; otherwise pick from `HTTP_PROXY`. Further attempts use `SHAZAM_DISCOVERY_MAX_ATTEMPTS` / `SHAZAM_DISCOVERY_RETRY_MS` and rotate the proxy pool. Pass the same value as ffmpeg for a given tick.
  * @returns {Promise<ShazamOk | ShazamFail>}
  */
 export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
@@ -347,6 +583,7 @@ export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
         }
     };
 
+    let discoveryRequestFailures = 0;
     for (let i = 0; i < signatures.length; i++) {
         const sig = signatures[i];
         if (i > 0 && gapMs > 0) {
@@ -372,7 +609,22 @@ export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
         try {
             data = await postDiscovery(url, body, logger, proxyUrl, i);
         } catch (e) {
-            logger.error({ err: e, segmentIndex: i }, 'shazam: discovery request failed');
+            discoveryRequestFailures += 1;
+            const meta =
+                e && typeof e === 'object' && 'discoveryMeta' in e
+                    ? /** @type {{ discoveryMeta?: Record<string, unknown> }} */ (e)
+                          .discoveryMeta
+                    : undefined;
+            logger.error(
+                {
+                    err: e,
+                    segmentIndex: i,
+                    discoveryMeta: meta,
+                },
+                meta?.exhaustedRetries
+                    ? 'shazam: discovery failed after retries (see discoveryMeta.proxiesTried and prior warn logs)'
+                    : 'shazam: discovery request failed',
+            );
             continue;
         }
 
@@ -392,9 +644,17 @@ export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
         logNoMatch(logger, data, `segment_${i}_unparsed`);
     }
 
+    const allSegmentsDiscoveryFailed =
+        discoveryRequestFailures > 0 &&
+        discoveryRequestFailures === signatures.length;
     return {
         ok: false,
-        reason: 'no_usable_track_any_segment',
-        detail: { segmentCount: signatures.length },
+        reason: allSegmentsDiscoveryFailed
+            ? 'all_segments_discovery_failed'
+            : 'no_usable_track_any_segment',
+        detail: {
+            segmentCount: signatures.length,
+            discoveryRequestFailures,
+        },
     };
 }
