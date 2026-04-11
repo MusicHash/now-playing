@@ -3,6 +3,7 @@ import { copyFile, mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
     captureStreamToWav,
+    isRetryableFfmpegStreamError,
     chromaprintFingerprintFromPcm,
     analyzePcmGates,
     fileToPcm16kMono,
@@ -16,8 +17,20 @@ import {
     defaultPollIntervalMs,
     getAudioRecognitionOrder,
 } from '../config.js';
-import { pickNextHttpProxy, proxyHostForLog } from '../lib/http_proxy.js';
+import {
+    pickNextHttpProxy,
+    proxyHostForLog,
+    parseHttpProxyList,
+} from '../lib/http_proxy.js';
 import { nowLocalDebugFileStamp } from '../lib/local_time.js';
+
+/**
+ * @param {number} ms
+ * @returns {Promise<void>}
+ */
+function sleepMs(ms) {
+    return new Promise((r) => setTimeout(r, ms));
+}
 
 /**
  * @param {string} artist
@@ -218,8 +231,11 @@ export async function runStationTick(station, store, logger, options = {}) {
     const vadEnabled = envBool('VAD_ENABLED', true);
     const vadAggressive = station.vadAggressive ?? 2;
 
-    /** Proxy for ffmpeg capture + first Shazam discovery attempt; further Shazam attempts rotate the HTTP_PROXY pool. */
-    const tickHttpProxy = pickNextHttpProxy();
+    const captureMaxAttempts = Math.max(1, envInt('FFMPEG_CAPTURE_MAX_ATTEMPTS', 3));
+    const captureRetryMs = envInt('FFMPEG_CAPTURE_RETRY_MS', 500);
+    const proxyList = parseHttpProxyList();
+    /** Proxy used for successful capture; same value passed to Shazam first attempt. */
+    let captureHttpProxy = pickNextHttpProxy();
 
     const state = await store.getState(station.id);
     const previous = state?.recognition ?? null;
@@ -230,20 +246,86 @@ export async function runStationTick(station, store, logger, options = {}) {
 
     let wavPath = null;
     try {
-        log.info(
-            {
-                station: station.id,
-                captureSec,
-                httpProxy: proxyHostForLog(tickHttpProxy),
-            },
-            'Station Tick: FFMPEG Capture Started',
-        );
-        wavPath = await captureStreamToWav(
-            ffmpegBin,
-            station.streamUrl,
-            captureSec,
-            { httpProxy: tickHttpProxy },
-        );
+        /** @type {string[]} */
+        const captureProxiesTried = [];
+        /** @type {unknown} */
+        let lastCaptureErr;
+        for (let cAttempt = 0; cAttempt < captureMaxAttempts; cAttempt++) {
+            const httpProxy =
+                cAttempt === 0
+                    ? captureHttpProxy
+                    : proxyList.length > 0
+                      ? pickNextHttpProxy()
+                      : captureHttpProxy;
+            captureProxiesTried.push(proxyHostForLog(httpProxy));
+            try {
+                log.info(
+                    {
+                        station: station.id,
+                        captureSec,
+                        captureAttempt: cAttempt + 1,
+                        captureMaxAttempts,
+                        httpProxy: proxyHostForLog(httpProxy),
+                    },
+                    'Station Tick: FFMPEG Capture Started',
+                );
+                wavPath = await captureStreamToWav(
+                    ffmpegBin,
+                    station.streamUrl,
+                    captureSec,
+                    { httpProxy },
+                );
+                captureHttpProxy = httpProxy;
+                if (cAttempt > 0) {
+                    log.info(
+                        {
+                            station: station.id,
+                            captureAttempt: cAttempt + 1,
+                            httpProxy: proxyHostForLog(httpProxy),
+                            captureProxiesTried,
+                        },
+                        'ffmpeg capture succeeded after retry',
+                    );
+                }
+                break;
+            } catch (e) {
+                lastCaptureErr = e;
+                const retryable = isRetryableFfmpegStreamError(e);
+                if (!retryable || cAttempt === captureMaxAttempts - 1) {
+                    log.error(
+                        {
+                            err: e,
+                            station: station.id,
+                            captureAttempt: cAttempt + 1,
+                            captureMaxAttempts,
+                            captureProxiesTried,
+                            retryable,
+                        },
+                        'ffmpeg capture failed',
+                    );
+                    throw e;
+                }
+                log.warn(
+                    {
+                        err: e,
+                        station: station.id,
+                        captureAttempt: cAttempt + 1,
+                        captureMaxAttempts,
+                        httpProxy: proxyHostForLog(httpProxy),
+                        captureProxiesTried,
+                    },
+                    'ffmpeg capture failed (retryable); retrying with next proxy',
+                );
+                await sleepMs(
+                    Math.min(captureRetryMs * (cAttempt + 1), 8000),
+                );
+            }
+        }
+        if (!wavPath) {
+            throw lastCaptureErr instanceof Error
+                ? lastCaptureErr
+                : new Error('ffmpeg capture exhausted attempts');
+        }
 
         const pcm = await fileToPcm16kMono(ffmpegBin, wavPath);
         const gates = analyzePcmGates(pcm, {
@@ -319,7 +401,7 @@ export async function runStationTick(station, store, logger, options = {}) {
                     continue;
                 }
                 const sh = await shazamIdentifyFromFile(wavPath, log, {
-                    httpProxy: tickHttpProxy,
+                    httpProxy: captureHttpProxy,
                 });
                 if (sh.ok && (sh.artist || sh.title)) {
                     match = {

@@ -5,6 +5,41 @@ import { join } from 'node:path';
 import { enrichSpawnError } from './binaries.js';
 
 /**
+ * Whether an ffmpeg capture failure is worth retrying (often another HTTP proxy fixes 403/401 from the origin).
+ *
+ * @param {unknown} err
+ * @returns {boolean}
+ */
+export function isRetryableFfmpegStreamError(err) {
+    const raw = err instanceof Error ? err.message : String(err ?? '');
+    const msg = raw.toLowerCase();
+    if (
+        msg.includes('403') ||
+        msg.includes('401') ||
+        msg.includes('407') ||
+        msg.includes('forbidden') ||
+        msg.includes('access denied') ||
+        msg.includes('unauthorized') ||
+        msg.includes('proxy authentication')
+    ) {
+        return true;
+    }
+    if (msg.includes('502') || msg.includes('503') || msg.includes('504')) {
+        return true;
+    }
+    if (
+        msg.includes('timed out') ||
+        msg.includes('timeout') ||
+        msg.includes('connection refused') ||
+        msg.includes('connection reset') ||
+        msg.includes('econnreset')
+    ) {
+        return true;
+    }
+    return false;
+}
+
+/**
  * Max wall-clock time for stream capture: segment length + network/ffmpeg overhead.
  * Override with FFMPEG_CAPTURE_TIMEOUT_MS (milliseconds).
  */
