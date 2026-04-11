@@ -10,6 +10,7 @@ import {
 } from '../lib/fetch_sources.js';
 import { addSpotifyHyperLinks } from '../utils/spotify_link_generator.js';
 import { DEFAULT_STATS_DAYS } from '../lib/query_log/stats_queries.js';
+import { getYearWeek } from '../lib/query_log/chart_log.js';
 import { stations, charts, historyCharts } from '../../config/sources.js';
 import redisWrapper from '../utils/redis_wrapper.js';
 
@@ -93,12 +94,15 @@ export default function debugRoutes(logger) {
     });
 
     router.get('/actions', async (req, res) => {
+        const chartYearWeek = getYearWeek();
+        const chartYear = Math.floor(chartYearWeek / 100);
+        const chartWeekNum = chartYearWeek % 100;
         let links = {
             '/api/spotify/login': 'Re-Login',
             '/api/crawl_playlists_manually': 'Crawl Stations (all)',
             '/api/update_playlists_manually': 'Update Stations Manually (all)',
             '/api/playlist/refresh_charts/all': 'Refresh Charts - in batches (all)',
-            '/api/playlist/collect_charts/all': 'Collect Charts to DB (all, skips if week exists)',
+            '/api/playlist/collect_charts/all': `Collect Charts to DB (all, skips if week exists) — ${chartYear}+${chartWeekNum}`,
             '/api/playlist/sync_charts/all': 'Sync Charts to Spotify from DB (all)',
             '/api/playlist/slice/all': 'Shorten the playlist to limit (all)',
             '/api/debug_channels': 'Debug Channels',
