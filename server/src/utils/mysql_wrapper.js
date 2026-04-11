@@ -43,8 +43,6 @@ class MySQLWrapper {
             queueLimit: 0,
             enableKeepAlive: true,
             keepAliveInitialDelay: 3 * 1000, // 3 seconds,
-            acquireTimeout: 60000, // 60 seconds timeout for getting connection
-            timeout: 60000, // 60 seconds query timeout
         });
 
         // Add error handlers
