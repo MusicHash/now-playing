@@ -690,7 +690,7 @@ const virginStations = {
 };
 
 const glzStations = {
-    '98.1fm_galgalatz': {
+    '91.8fm_galgalatz': {
         spotify: {
             playlist: 'https://spoti.fi/',
         },
@@ -701,7 +701,7 @@ const glzStations = {
         },
 
         now_playing: {
-            title: '98.1FM - Galgalatz - Latest Tracks (#Music)',
+            title: '91.8FM - Galgalatz - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: 35 * 1000,
         },
@@ -733,7 +733,7 @@ const glzStations = {
         },
 
         now_playing: {
-            title: '96.6FM - GLZ - Latest Tracks (#Music)',
+            title: '96.6FM - Galei Zahal - Latest Tracks (#Music)',
             description: 'Last 200 Tracks. LAST UPDATE: {now}',
             refresh_rate_ms: 35 * 1000,
         },
