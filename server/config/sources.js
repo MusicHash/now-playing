@@ -697,7 +697,7 @@ const glzStations = {
 
         scraper: {
             type: 'get',
-            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzk4LjFmbV9nYWxnYWxhdHo=',
+            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zLzkxLjhmbV9nYWxnYWxhdHo=',
         },
 
         now_playing: {

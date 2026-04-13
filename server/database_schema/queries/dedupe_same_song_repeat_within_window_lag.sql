@@ -57,7 +57,7 @@ INSERT INTO tmp_dedupe_stations (station_id) VALUES
     ('96.6fm_glz'),
     ('97.5fm_gimel'),
     ('97fm_darom'),
-    ('98.1fm_galgalatz'),
+    ('91.8fm_galgalatz'),
     ('99fm_eco'),
     ('997fm_mow'),
     ('xm-hits1'),
