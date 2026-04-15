@@ -69,10 +69,10 @@ Stations file: array of `{ "id", "streamUrl", "enabled", "intervalMs", "vadAggre
 ## HTTP API
 
 - `GET /health` — process up; Redis status (`up`/`down`).
-- `GET /stations` — `{ stations: { [key]: { ... } } }`: keys are derived from each station `id` by dropping the substring from the first `-` onward, removing `.`, then replacing any remaining non‑`[a-zA-Z0-9_]` with `_`. Each value still includes the real `id` plus config (`enabled`, `intervalMs`, `streamUrl`), **`recognition`**, and **`lastRun`**.
-- `GET /stations/:id` — `{ id, recognition, lastRun }` for one station (`404` if the Redis key was never written).
+- `GET /stations` — `{ stations: { [key]: { ... } } }`: keys are derived from each station `id` by dropping the substring from the first `-` onward, removing `.`, then replacing any remaining non‑`[a-zA-Z0-9_]` with `_`. Each value includes the real `id` plus config (`enabled`, `intervalMs`, `streamUrl`) and **`recognition`** when a track has been cached.
+- `GET /stations/:id` — `{ id, recognition }` for one station (`404` if nothing is cached yet).
 
-Per station, Redis stores `{ recognition, lastRun }`. **`recognition`** holds the track fields: `artist`, `title`, `source`, `provider`, `updatedAt` (ISO), Chromaprint `fingerprint`, and optional `shazamKey`. Older rows may still include legacy fields (`acrid`, other `source` values, `metadata` / `icy` / `rawTitle`) until rewritten. **`lastRun`** is updated every tick (e.g. `saved_audio`, `no_match`, `skipped_silence`, `error`).
+Per station, Redis stores **flat recognition JSON**: `artist`, `title`, `source`, `provider`, `updatedAt` (ISO), Chromaprint `fingerprint`, and optional `shazamKey`. Older values may still include legacy fields (`acrid`, other `source` values, `metadata` / `icy` / `rawTitle`) until rewritten. The key is only updated when recognition changes (successful ID and not skipped as duplicate).
 
 ## Behaviour
 

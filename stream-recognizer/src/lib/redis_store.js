@@ -40,11 +40,6 @@ export function initRedisStore(logger, prefix) {
     RedisWrapper.init(logger, redisURI);
     const p = prefix || 'stream-recognizer:v1';
 
-    /** @param {string} stationId */
-    function legacyLastRunKey(stationId) {
-        return `${p}:${stationId}:lastRun`;
-    }
-
     return {
         prefix: p,
 
@@ -54,8 +49,8 @@ export function initRedisStore(logger, prefix) {
         },
 
         /**
-         * Cached recognition only (flat JSON in Redis). Legacy `{ recognition, lastRun }`
-         * blobs are read for `recognition` only. Returns `null` if there is no recognition yet.
+         * Cached recognition (flat JSON in Redis). If the value is a wrapper
+         * `{ recognition: { ... } }`, the inner object is used. Returns `null` if missing.
          *
          * @param {string} stationId
          */
@@ -84,7 +79,6 @@ export function initRedisStore(logger, prefix) {
                 this.key(stationId),
                 JSON.stringify(payload),
             );
-            await RedisWrapper.del(legacyLastRunKey(stationId));
         },
 
         /**
