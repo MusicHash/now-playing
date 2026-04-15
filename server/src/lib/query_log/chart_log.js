@@ -118,6 +118,8 @@ async function getLatestChartEntries(chartId) {
  * Returns chart entries for a given chart and optional week.
  * If yearWeek is falsy, returns the latest available week.
  * Joined with spotify tracks for spotify_track_id.
+ * Each row includes `previous_position` (null if new entry) and
+ * `position_change` (positive = moved up, negative = moved down, null if new).
  */
 async function getChartEntries(chartId, yearWeek) {
     const weekClause = yearWeek
@@ -127,7 +129,7 @@ async function getChartEntries(chartId, yearWeek) {
 
     const [rows] = await MySQLWrapper.queryWithCache(
         `SELECT c.chart_position, c.chart_year_week, c.entry_artist, c.entry_title, c.entry_extra, ` +
-        `t.spotify_track_id ` +
+        `c.spotify_id, t.spotify_track_id ` +
         `FROM \`${TABLE}\` c ` +
         `LEFT JOIN \`nowplaying_spotify_tracks\` t ON c.spotify_id = t.spotify_id ` +
         `WHERE c.chart_id = ? AND ${weekClause} ` +
@@ -136,7 +138,40 @@ async function getChartEntries(chartId, yearWeek) {
         300,
     );
 
-    return rows;
+    if (rows.length === 0) return rows;
+
+    const resolvedWeek = rows[0].chart_year_week;
+
+    const [prevRows] = await MySQLWrapper.queryWithCache(
+        `SELECT c.chart_position, c.spotify_id, c.entry_artist, c.entry_title ` +
+        `FROM \`${TABLE}\` c ` +
+        `WHERE c.chart_id = ? AND c.chart_year_week = ` +
+        `(SELECT MAX(chart_year_week) FROM \`${TABLE}\` WHERE chart_id = ? AND chart_year_week < ?) ` +
+        `ORDER BY c.chart_position ASC`,
+        [chartId, chartId, resolvedWeek],
+        300,
+    );
+
+    const prevBySpotifyId = new Map();
+    const prevByArtistTitle = new Map();
+    for (const r of prevRows) {
+        if (r.spotify_id != null) {
+            prevBySpotifyId.set(r.spotify_id, r.chart_position);
+        }
+        prevByArtistTitle.set(`${r.entry_artist}|||${r.entry_title}`, r.chart_position);
+    }
+
+    return rows.map(({ spotify_id, ...row }) => {
+        let previous_position = null;
+        if (spotify_id != null && prevBySpotifyId.has(spotify_id)) {
+            previous_position = prevBySpotifyId.get(spotify_id);
+        } else {
+            const key = `${row.entry_artist}|||${row.entry_title}`;
+            previous_position = prevByArtistTitle.get(key) ?? null;
+        }
+        const position_change = previous_position != null ? previous_position - row.chart_position : null;
+        return { ...row, previous_position, position_change };
+    });
 }
 
 /**

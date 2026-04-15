@@ -322,6 +322,8 @@ export default function GeneratePlaylistPage() {
                             spotify_track_title: r.entry_title,
                             spotify_artist_title: r.entry_artist,
                             chart_position: r.chart_position,
+                            previous_position: r.previous_position ?? null,
+                            position_change: r.position_change ?? null,
                         })),
                     );
                     setAvailableWeeks(Array.isArray(body.available_weeks) ? body.available_weeks : []);
@@ -831,6 +833,81 @@ export default function GeneratePlaylistPage() {
                             row.last_played_at != null
                                 ? ` \u00b7 last ${String(row.last_played_at).slice(0, 19)}`
                                 : '';
+                        const change = row.position_change;
+                        const isChartRow = row.chart_position != null;
+                        let changeBadge = null;
+                        if (isChartRow) {
+                            if (change == null) {
+                                changeBadge = (
+                                    <span
+                                        title="New entry"
+                                        style={{
+                                            flexShrink: 0,
+                                            fontSize: '0.6rem',
+                                            fontWeight: 700,
+                                            letterSpacing: '0.03em',
+                                            color: '#7c3aed',
+                                            background: '#ede9fe',
+                                            borderRadius: '3px',
+                                            padding: '1px 4px',
+                                            lineHeight: 1.4,
+                                        }}
+                                    >
+                                        NEW
+                                    </span>
+                                );
+                            } else if (change > 0) {
+                                changeBadge = (
+                                    <span
+                                        title={`Up ${change} from #${row.previous_position}`}
+                                        style={{
+                                            flexShrink: 0,
+                                            fontSize: '0.68rem',
+                                            fontWeight: 600,
+                                            color: '#16a34a',
+                                            lineHeight: 1,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '1px',
+                                        }}
+                                    >
+                                        ▲<span style={{ fontVariantNumeric: 'tabular-nums' }}>{change}</span>
+                                    </span>
+                                );
+                            } else if (change < 0) {
+                                changeBadge = (
+                                    <span
+                                        title={`Down ${Math.abs(change)} from #${row.previous_position}`}
+                                        style={{
+                                            flexShrink: 0,
+                                            fontSize: '0.68rem',
+                                            fontWeight: 600,
+                                            color: '#dc2626',
+                                            lineHeight: 1,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '1px',
+                                        }}
+                                    >
+                                        ▼<span style={{ fontVariantNumeric: 'tabular-nums' }}>{Math.abs(change)}</span>
+                                    </span>
+                                );
+                            } else {
+                                changeBadge = (
+                                    <span
+                                        title="Unchanged"
+                                        style={{
+                                            flexShrink: 0,
+                                            fontSize: '0.68rem',
+                                            color: '#94a3b8',
+                                            lineHeight: 1,
+                                        }}
+                                    >
+                                        ▬
+                                    </span>
+                                );
+                            }
+                        }
                         return (
                             <li
                                 key={`${row.spotify_track_id}-${i}`}
@@ -859,6 +936,7 @@ export default function GeneratePlaylistPage() {
                                 >
                                     {i + 1}.
                                 </span>
+                                {changeBadge}
                                 <button
                                     type="button"
                                     onClick={() => seekToPlaylistIndex(i)}
