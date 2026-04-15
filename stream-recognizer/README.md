@@ -50,7 +50,7 @@ Logs include `capturePath`, `fingerprintPrefix`, and **`order`** (provider list)
 | `REDIS_URI` | Redis connection string |
 | `HTTP_PORT` | API port (default `3847`) |
 | `HTTP_HOST` | Optional bind address (e.g. `192.168.1.10`). If unset, listens on all interfaces. |
-| `REDIS_KEY_PREFIX` | Key prefix (default `stream-recognizer:v1`) |
+| `REDIS_KEY_PREFIX` | Key prefix (default `stream-recognizer:v2`) |
 | `POLL_INTERVAL_SEC` | Default poll interval in seconds when station omits `intervalMs` (default `120`) |
 | `AUDIO_RECOGNITION_ORDER` | Comma-separated provider ids (default **`shazam`**). Allowed ids are defined in `getAudioRecognitionOrder()` in `src/config.js`. |
 | `CAPTURE_SECONDS` | Recording length (default `10`) |
@@ -69,17 +69,17 @@ Stations file: array of `{ "id", "streamUrl", "enabled", "intervalMs", "vadAggre
 ## HTTP API
 
 - `GET /health` — process up; Redis status (`up`/`down`).
-- `GET /stations` — `{ stations: { [key]: { ... } } }`: keys are derived from each station `id` by dropping the substring from the first `-` onward, removing `.`, then replacing any remaining non‑`[a-zA-Z0-9_]` with `_`. Each value includes the real `id` plus config (`enabled`, `intervalMs`, `streamUrl`) and **`recognition`** when a track has been cached.
-- `GET /stations/:id` — `{ id, recognition }` for one station (`404` if nothing is cached yet).
+- `GET /stations` — `{ stations: { [key]: { ... } } }`: keys are derived from each station `id` by dropping the substring from the first `-` onward, removing `.`, then replacing any remaining non‑`[a-zA-Z0-9_]` with `_`. Each value includes the real `id` plus config (`enabled`, `intervalMs`, `streamUrl`), **`recognition`** (last identified track, if any), and **`lastRun`** (most recent tick outcome for observability).
+- `GET /stations/:id` — `{ id, recognition, lastRun }` (`404` if the station id is unknown; `404` with `no data yet` if neither recognition nor last-run has been written to Redis).
 
-Per station, Redis stores **flat recognition JSON**: `artist`, `title`, `source`, `provider`, `updatedAt` (ISO), Chromaprint `fingerprint`, and optional `shazamKey`. Older values may still include legacy fields (`acrid`, other `source` values, `metadata` / `icy` / `rawTitle`) until rewritten. The key is only updated when recognition changes (successful ID and not skipped as duplicate).
+Per station, Redis stores one **HASH** at **`{prefix}:{stationId}`** (e.g. `stream-recognizer:v2:103fm`) with fields **`recognition`** (flat track JSON: `artist`, `title`, `provider`, `updatedAt`, `fingerprint`, optional `shazamKey`, …) and **`lastRun`** (latest tick: `outcome`, `at`, `tickId`, …). Writes use **`HSET`** via `RedisWrapper.addHash`. The `recognition` field is updated only when the identified track changes; **`lastRun`** updates every tick. Track change / duplicate detection uses **recognition only**, not `lastRun`.
 
 ## Behaviour
 
 1. **Audio** — capture (default 10s), decode to 16 kHz mono PCM, apply **RMS silence** and **speech-heavy** heuristics; skip recognition if likely silence or talk.
-2. **Chromaprint** — if fingerprint equals the last stored fingerprint, skip recognition APIs and Redis.
+2. **Chromaprint** — if fingerprint equals the last stored fingerprint, skip recognition APIs and leave the **`recognition`** hash field unchanged; **`lastRun`** still records the outcome.
 3. **Recognition providers** — in **`AUDIO_RECOGNITION_ORDER`**; first match wins.
-4. If normalized artist/title matches Redis, skip write (preserves original `updatedAt`).
+4. If normalized artist/title matches the cached recognition, skip writing the **`recognition`** field (preserves original `updatedAt`); **`lastRun`** still updates.
 
 ## Adding another recognition provider
 

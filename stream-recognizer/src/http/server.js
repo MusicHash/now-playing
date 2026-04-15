@@ -20,6 +20,23 @@ function recognitionWithLocalTime(recognition) {
 }
 
 /**
+ * Adds `atLocal` next to `at` when serializing (not altering stored Redis shape).
+ * @param {object|null} lastRun
+ */
+function lastRunWithLocalTime(lastRun) {
+    if (!lastRun || typeof lastRun !== 'object') {
+        return lastRun;
+    }
+    const local = isoUtcToLocalOffsetIso(
+        /** @type {{ at?: unknown }} */ (lastRun).at,
+    );
+    if (local === undefined) {
+        return lastRun;
+    }
+    return { ...lastRun, atLocal: local };
+}
+
+/**
  * Safe object key for `GET /stations` payload: no `.`, truncated before first `-`,
  * then only `[a-zA-Z0-9_]` (other chars become `_`).
  * @param {string} id
@@ -78,6 +95,7 @@ export function createHttpServer({ logger, store, stations }) {
                     recognition: recognitionWithLocalTime(
                         state?.recognition ?? null,
                     ),
+                    lastRun: lastRunWithLocalTime(state?.lastRun ?? null),
                 };
                 return [stationResponseKey(s.id), payload];
             }),
@@ -102,6 +120,7 @@ export function createHttpServer({ logger, store, stations }) {
         res.json({
             id,
             recognition: recognitionWithLocalTime(state.recognition),
+            lastRun: lastRunWithLocalTime(state.lastRun),
         });
     });
 

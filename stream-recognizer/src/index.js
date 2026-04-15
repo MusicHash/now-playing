@@ -11,7 +11,7 @@ import {
 import { runStationTick } from './pipeline/orchestrator.js';
 import { probeBinary, missingBinaryHint } from './lib/binaries.js';
 
-const prefix = process.env.REDIS_KEY_PREFIX || 'stream-recognizer:v1';
+const prefix = process.env.REDIS_KEY_PREFIX || 'stream-recognizer:v2';
 const store = initRedisStore(logger, prefix);
 
 const stations = loadStations();
