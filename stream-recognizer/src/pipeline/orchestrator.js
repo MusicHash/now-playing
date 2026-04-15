@@ -111,20 +111,6 @@ function providerDisplayName(id) {
 }
 
 /**
- * @param {string} tickId
- * @param {string} outcome
- * @param {Record<string, unknown>} [extra]
- */
-function lastRunRecord(tickId, outcome, extra = {}) {
-    return {
-        at: new Date().toISOString(),
-        tickId,
-        outcome,
-        ...extra,
-    };
-}
-
-/**
  * When DEBUG_CAPTURE_DIR is set and DEBUG_CAPTURE_ENABLED, copy WAV for offline analysis.
  * Filename: `{timestamp}-{stationId}-{tickId}-{label}.wav` (tickId and label sanitized for the filesystem).
  *
@@ -337,22 +323,12 @@ export async function runStationTick(station, store, logger, options = {}) {
 
         if (gates.silence) {
             log.debug({ station: station.id, meanDb: gates.meanDb }, 'skip: silence');
-            await store.setLastRun(
-                station.id,
-                lastRunRecord(tickId, 'skipped_silence', { meanDb: gates.meanDb }),
-            );
             return;
         }
         if (gates.speechHeavy) {
             log.debug(
                 { station: station.id, speechFrameRatio: gates.speechFrameRatio },
                 'skip: speech-heavy',
-            );
-            await store.setLastRun(
-                station.id,
-                lastRunRecord(tickId, 'skipped_speech_heavy', {
-                    speechFrameRatio: gates.speechFrameRatio,
-                }),
             );
             return;
         }
@@ -367,10 +343,6 @@ export async function runStationTick(station, store, logger, options = {}) {
             log.debug(
                 { station: station.id },
                 'fingerprint unchanged; skip audio recognition APIs and Redis',
-            );
-            await store.setLastRun(
-                station.id,
-                lastRunRecord(tickId, 'skipped_fingerprint_unchanged'),
             );
             return;
         }
@@ -454,13 +426,6 @@ export async function runStationTick(station, store, logger, options = {}) {
                     ? `audio recognition: no provider identified a track. Steps: ${priorSteps.join(' ')}`
                     : 'audio recognition: no provider identified a track (nothing in AUDIO_RECOGNITION_ORDER was runnable).',
             );
-            await store.setLastRun(
-                station.id,
-                lastRunRecord(tickId, 'no_match', {
-                    priorSteps,
-                    order,
-                }),
-            );
             return;
         }
 
@@ -486,25 +451,11 @@ export async function runStationTick(station, store, logger, options = {}) {
                 },
                 'recognition matched global blacklist phrase; not updating recognition',
             );
-            await store.setLastRun(
-                station.id,
-                lastRunRecord(tickId, 'blacklisted_skipped', {
-                    provider: matchSource,
-                    artist: match.artist,
-                    title: match.title,
-                    blacklistMatch: blacklistHit,
-                    priorSteps,
-                }),
-            );
             return;
         }
 
         if (prevKey === key) {
             log.debug({ station: station.id }, 'same track key as Redis; skip write');
-            await store.setLastRun(
-                station.id,
-                lastRunRecord(tickId, 'skipped_same_track_as_cache'),
-            );
             return;
         }
 
@@ -518,13 +469,7 @@ export async function runStationTick(station, store, logger, options = {}) {
         if (matchSource === 'shazam' && match.key) {
             payload.shazamKey = match.key;
         }
-        await store.mergeState(station.id, {
-            recognition: payload,
-            lastRun: lastRunRecord(tickId, 'saved_audio', {
-                provider: matchSource,
-                priorSteps,
-            }),
-        });
+        await store.setResult(station.id, payload);
 
         const copyDebugAfterShazamFallback =
             shazamAttemptedNoMatch && matchSource !== 'shazam';
@@ -558,16 +503,6 @@ export async function runStationTick(station, store, logger, options = {}) {
         });
     } catch (e) {
         log.error({ err: e, station: station.id }, 'station tick failed');
-        try {
-            await store.setLastRun(
-                station.id,
-                lastRunRecord(tickId, 'error', {
-                    error: String(e?.message || e),
-                }),
-            );
-        } catch {
-            /* ignore redis errors */
-        }
     } finally {
         if (wavPath) {
             await cleanupCapturePath(wavPath);
