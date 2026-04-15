@@ -106,7 +106,7 @@
   },
   "24music-tv": {
     "streamUrl": "b64:aHR0cHM6Ly9tYWtvLXN0cmVhbWluZy5ha2FtYWl6ZWQubmV0L2RpcmVjdC9obHMvbGl2ZS8yMDM1MzQwL2NoMjRsaXZlL2luZGV4Lm0zdTg=",
-    "enabled": true,
+    "enabled": false,
     "intervalMs": null,
     "vadAggressive": 2,
     "rmsSilenceDb": null
