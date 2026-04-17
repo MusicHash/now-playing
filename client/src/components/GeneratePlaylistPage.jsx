@@ -39,6 +39,9 @@ import {
     PLAYLIST_SORT_RECENT,
 } from '../lib/statsApi.js';
 
+/** Plays-over-time chart always uses this window; not tied to ?days (playlist controls). */
+const PLAYLIST_TRACK_PLAYS_DAYS = 90;
+
 const panelStyle = {
     width: '320px',
     flexShrink: 0,
@@ -226,7 +229,7 @@ export default function GeneratePlaylistPage() {
         let cancelled = false;
         setTrackPlaysLoading(true);
         setTrackPlaysError(null);
-        const d = clampInt(days, DEFAULT_STATS_DAYS, MAX_STATS_DAYS);
+        const d = clampInt(PLAYLIST_TRACK_PLAYS_DAYS, DEFAULT_STATS_DAYS, MAX_STATS_DAYS);
         const res = clampBucketMinutes(DEFAULT_BUCKET_MINUTES);
         const base = {
             days: d,
@@ -268,7 +271,7 @@ export default function GeneratePlaylistPage() {
         return () => {
             cancelled = true;
         };
-    }, [activeSpotifyTrackId, days, station, isChartMode]);
+    }, [activeSpotifyTrackId, station, isChartMode]);
 
     // --- Play-log mode: load playlist ---
     const loadPlaylist = useCallback(() => {
@@ -779,7 +782,7 @@ export default function GeneratePlaylistPage() {
                         Plays over time
                     </p>
                     <p style={{ margin: '0 0 0.4rem', fontSize: '0.7rem', color: '#94a3b8' }}>
-                        {playsLabel} &middot; {days} day{days === 1 ? '' : 's'} &middot; daily buckets
+                        {playsLabel} &middot; {PLAYLIST_TRACK_PLAYS_DAYS} days &middot; daily buckets
                     </p>
                     {!activeSpotifyTrackId && tracks.length === 0 && (
                         <p style={{ margin: 0, fontSize: '0.8rem', color: '#94a3b8' }}>
