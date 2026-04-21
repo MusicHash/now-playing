@@ -2,6 +2,7 @@ CREATE TABLE `nowplaying_spotify_tracks`(
     `spotify_id` INT NOT NULL AUTO_INCREMENT,
     `spotify_track_id` VARCHAR(60) NOT NULL COMMENT '3SkVJ7vpdmLSWPgnGTPqsW',
 	`spotify_artist_id` VARCHAR(60) NOT NULL COMMENT '72Nhcx7prNk2ZCxhx0Y5es',
+    `spotify_isrc` VARCHAR(15) NULL DEFAULT NULL COMMENT 'From Spotify Track external_ids.isrc',
 	`spotify_artist_title` VARCHAR(150) NOT NULL,
     `spotify_track_title` VARCHAR(150) NOT NULL,
 	`spotify_duration_ms` INT NOT NULL,
