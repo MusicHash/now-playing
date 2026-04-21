@@ -49,6 +49,7 @@ class StationLoggerActor {
         'SpyderHarrison',
         'WeekendCountdown',
         'Mack & Jen',
+        'לייב בגלגלצ',
         '4871'
     ];
 
