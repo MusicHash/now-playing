@@ -72,6 +72,11 @@ class RedisWrapper {
         return Boolean(this.redisURI);
     }
 
+    /** @returns {boolean} Whether Redis was configured (URI set at init). */
+    isEnabled() {
+        return this._isEnabled();
+    }
+
 
     async addSet(ids) {
         if (!this._isEnabled()) {
@@ -239,6 +244,54 @@ class RedisWrapper {
         }
 
         return { deleted };
+    }
+
+    /**
+     * Iterate keys matching a Redis glob using SCAN (non-blocking). Refuses pattern "*".
+     *
+     * @param {string} pattern e.g. `SONG:*`
+     * @param {(key: string) => Promise<boolean|void>} onKey — return `false` to stop scanning
+     * @returns {Promise<number>} keys visited
+     */
+    async forEachKeyMatching(pattern, onKey) {
+        if (!this._isEnabled()) {
+            return 0;
+        }
+        if (typeof pattern !== 'string' || pattern.trim() === '') {
+            throw new Error('forEachKeyMatching: pattern must be a non-empty string');
+        }
+        if (pattern === '*') {
+            throw new Error('forEachKeyMatching: refusing pattern "*"');
+        }
+
+        await this.connect();
+
+        const redis = this._redisInstance;
+        let cursor = '0';
+        let visited = 0;
+        const countHint = 500;
+
+        do {
+            const [nextCursor, keys] = await redis.scan(
+                cursor,
+                'MATCH',
+                pattern,
+                'COUNT',
+                countHint,
+            );
+            cursor = String(nextCursor);
+
+            for (let i = 0; i < keys.length; i += 1) {
+                const key = keys[i];
+                visited += 1;
+                const cont = await onKey(key);
+                if (cont === false) {
+                    return visited;
+                }
+            }
+        } while (cursor !== '0');
+
+        return visited;
     }
 }
 

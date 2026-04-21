@@ -5,6 +5,7 @@ import logger from '../../utils/logger.js';
 import redisWrapper from '../../utils/redis_wrapper.js';
 import { normalizeStringForCacheKey } from '../../utils/normalize_string_cache_key.js';
 import metricsWrapper from '../../utils/metrics_wrapper.js';
+import { indexTrackIsrcFromSearchBody } from '../spotify_isrc_redis.js';
 
 const scopes = ['playlist-read-private', 'playlist-modify-private', 'playlist-modify-public'];
 
@@ -290,6 +291,8 @@ class Spotify {
                         searchTracks,
                     },
                 });
+
+                await indexTrackIsrcFromSearchBody(searchTracks);
             } else {
                 logger.debug({
                     method: 'searchTracksWithCache',
@@ -301,6 +304,7 @@ class Spotify {
                 });
 
                 searchTracks = await this.searchTracks(query, limit);
+                await indexTrackIsrcFromSearchBody(searchTracks);
                 await redisWrapper.set(cacheKey, JSON.stringify(searchTracks), DURATION.OF_1_YEAR);
             }
         } catch (error) {
@@ -351,6 +355,42 @@ class Spotify {
                 metadata: {
                     args: [...arguments],
                 },
+            });
+
+            throw error;
+        }
+    }
+
+    /**
+     * Full track objects for up to 50 ids (Spotify API limit per request).
+     * @param {string[]} trackIds
+     * @returns {Promise<Array<Record<string, unknown> | null>>}
+     */
+    async getTracksByIds(trackIds) {
+        const ids = (trackIds || []).filter(Boolean).map(String);
+        if (ids.length === 0) {
+            return [];
+        }
+
+        await this.connect();
+
+        try {
+            const res = await this.api.getTracks(ids);
+            const tracks = res.body?.tracks ?? [];
+
+            logger.debug({
+                method: 'getTracksByIds',
+                message: 'getTracks API called successfully',
+                metadata: { count: ids.length },
+            });
+
+            return tracks;
+        } catch (error) {
+            logger.error({
+                method: 'getTracksByIds',
+                message: 'getTracks API failed',
+                error,
+                metadata: { count: ids.length },
             });
 
             throw error;

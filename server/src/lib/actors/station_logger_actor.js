@@ -4,6 +4,7 @@ import eventEmitterWrapper from '../../utils/event_emitter_wrapper.js';
 import { existsInArray } from '../../utils/array.js';
 import { SYSTEM_EVENTS } from '../../constants/events.js';
 import Spotify from '../providers/spotify.js';
+import { isrcFromSpotifyTrack } from '../spotify_track_isrc.js';
 
 
 /**
@@ -123,22 +124,22 @@ class StationLoggerActor {
                 return false;
             }
 
-            // insert of find an existing spotifyID ref
             const spotifyID = await MySQLWrapper.checkAndInsert(
                 'nowplaying_spotify_tracks',
                 'spotify_id',
                 {
-                    'spotify_track_id': track.id
+                    spotify_track_id: track.id,
                 },
                 {
-                    'spotify_track_id': track.id,
-                    'spotify_artist_id': track?.artists[0]?.id,
-                    'spotify_artist_title': track?.artists[0]?.name,
-                    'spotify_track_title': track.name,
-                    'spotify_duration_ms': track.duration_ms,
-                    'spotify_popularity': track.popularity,
-                    'spotify_timestamp_added': Math.floor(new Date().getTime() / 1000),
-                }
+                    spotify_track_id: track.id,
+                    spotify_artist_id: track?.artists[0]?.id,
+                    spotify_isrc: isrcFromSpotifyTrack(track) ?? null,
+                    spotify_artist_title: track?.artists[0]?.name,
+                    spotify_track_title: track.name,
+                    spotify_duration_ms: track.duration_ms,
+                    spotify_popularity: track.popularity,
+                    spotify_timestamp_added: Math.floor(new Date().getTime() / 1000),
+                },
             );
 
             // insert new entry to LOG
