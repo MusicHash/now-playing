@@ -1,5 +1,6 @@
 import pino from 'pino';
 
+import { isPlainObject, sanitizeLogValue } from './log_sanitize.js';
 
 /**
  * Logger
@@ -115,17 +116,26 @@ class Logger {
      * @param {*} log description.
      * @return {Logger} this.
      */
-    _log(severity, log) {
+    _log(severity, logArgs) {
         if (!this.isConsoleEnabled(severity)) {
             return;
         }
 
-        if (typeof log === 'object' && log !== null) {
-            log.severity = severity.toUpperCase();
-        }
+        const processed = logArgs.map((arg) => {
+            if (arg !== null && typeof arg === 'object' && !(arg instanceof Error)) {
+                if (Array.isArray(arg)) {
+                    return sanitizeLogValue(arg);
+                }
+                if (isPlainObject(arg)) {
+                    const sanitized = sanitizeLogValue(arg);
+                    sanitized.severity = severity.toUpperCase();
+                    return sanitized;
+                }
+            }
+            return arg;
+        });
 
-        this._loggerInstance[severity](log);
-        // console[severity]([severity, log.join(', ')]); // eslint-disable-line no-console
+        this._loggerInstance[severity](...processed);
 
         return this;
     }
