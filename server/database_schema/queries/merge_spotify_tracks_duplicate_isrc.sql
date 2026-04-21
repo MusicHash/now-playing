@@ -8,7 +8,7 @@
 --     3) DELETE non-canonical duplicate rows from nowplaying_spotify_tracks.
 --
 --   Canonical row rule (change ORDER BY if you want a different policy):
---     highest spotify_popularity, then lowest spotify_id (stable tie-break).
+--     highest spotify_id DESC (newest AUTO_INCREMENT row wins). Popularity is not used.
 --
 --   Scope:
 --     Only rows with spotify_isrc IS NOT NULL participate. Tracks with NULL ISRC
@@ -39,7 +39,7 @@ INNER JOIN (
         spotify_id,
         FIRST_VALUE(spotify_id) OVER (
             PARTITION BY spotify_isrc
-            ORDER BY spotify_popularity DESC, spotify_id ASC
+            ORDER BY spotify_id DESC
         ) AS canon_spotify_id
     FROM nowplaying_spotify_tracks
     WHERE spotify_isrc IS NOT NULL
@@ -61,7 +61,7 @@ INNER JOIN (
         spotify_id,
         FIRST_VALUE(spotify_id) OVER (
             PARTITION BY spotify_isrc
-            ORDER BY spotify_popularity DESC, spotify_id ASC
+            ORDER BY spotify_id DESC
         ) AS canon_spotify_id
     FROM nowplaying_spotify_tracks
     WHERE spotify_isrc IS NOT NULL
@@ -85,7 +85,7 @@ INNER JOIN (
         spotify_id,
         FIRST_VALUE(spotify_id) OVER (
             PARTITION BY spotify_isrc
-            ORDER BY spotify_popularity DESC, spotify_id ASC
+            ORDER BY spotify_id DESC
         ) AS canon_spotify_id
     FROM nowplaying_spotify_tracks
     WHERE spotify_isrc IS NOT NULL
@@ -104,7 +104,7 @@ INNER JOIN (
         spotify_id,
         FIRST_VALUE(spotify_id) OVER (
             PARTITION BY spotify_isrc
-            ORDER BY spotify_popularity DESC, spotify_id ASC
+            ORDER BY spotify_id DESC
         ) AS canon_spotify_id
     FROM nowplaying_spotify_tracks
     WHERE spotify_isrc IS NOT NULL
@@ -118,7 +118,7 @@ INNER JOIN (
         spotify_id,
         FIRST_VALUE(spotify_id) OVER (
             PARTITION BY spotify_isrc
-            ORDER BY spotify_popularity DESC, spotify_id ASC
+            ORDER BY spotify_id DESC
         ) AS canon_spotify_id
     FROM nowplaying_spotify_tracks
     WHERE spotify_isrc IS NOT NULL
@@ -133,7 +133,7 @@ INNER JOIN (
         spotify_id,
         FIRST_VALUE(spotify_id) OVER (
             PARTITION BY spotify_isrc
-            ORDER BY spotify_popularity DESC, spotify_id ASC
+            ORDER BY spotify_id DESC
         ) AS canon_spotify_id
     FROM nowplaying_spotify_tracks
     WHERE spotify_isrc IS NOT NULL
@@ -143,50 +143,46 @@ WHERE t.spotify_id <> r.canon_spotify_id;
 -- ---------------------------------------------------------------------------
 -- APPLY MERGE (uncomment and run as a single transaction)
 -- ---------------------------------------------------------------------------
--- START TRANSACTION;
---
--- UPDATE nowplaying_station_log sl
--- INNER JOIN (
---     SELECT
---         spotify_id,
---         FIRST_VALUE(spotify_id) OVER (
---             PARTITION BY spotify_isrc
---             ORDER BY spotify_popularity DESC, spotify_id ASC
---         ) AS canon_spotify_id
---     FROM nowplaying_spotify_tracks
---     WHERE spotify_isrc IS NOT NULL
--- ) r ON r.spotify_id = sl.spotify_id
--- SET sl.spotify_id = r.canon_spotify_id
--- WHERE sl.spotify_id <> r.canon_spotify_id;
---
--- UPDATE nowplaying_chart_log c
--- INNER JOIN (
---     SELECT
---         spotify_id,
---         FIRST_VALUE(spotify_id) OVER (
---             PARTITION BY spotify_isrc
---             ORDER BY spotify_popularity DESC, spotify_id ASC
---         ) AS canon_spotify_id
---     FROM nowplaying_spotify_tracks
---     WHERE spotify_isrc IS NOT NULL
--- ) r ON r.spotify_id = c.spotify_id
--- SET c.spotify_id = r.canon_spotify_id
--- WHERE c.spotify_id IS NOT NULL
---   AND c.spotify_id <> r.canon_spotify_id;
---
--- DELETE t
--- FROM nowplaying_spotify_tracks t
--- INNER JOIN (
---     SELECT
---         spotify_id,
---         FIRST_VALUE(spotify_id) OVER (
---             PARTITION BY spotify_isrc
---             ORDER BY spotify_popularity DESC, spotify_id ASC
---         ) AS canon_spotify_id
---     FROM nowplaying_spotify_tracks
---     WHERE spotify_isrc IS NOT NULL
--- ) r ON r.spotify_id = t.spotify_id
--- WHERE t.spotify_id <> r.canon_spotify_id;
---
--- COMMIT;
--- -- ROLLBACK;
+START TRANSACTION;
+UPDATE nowplaying_station_log sl
+INNER JOIN (
+    SELECT
+        spotify_id,
+        FIRST_VALUE(spotify_id) OVER (
+            PARTITION BY spotify_isrc
+            ORDER BY spotify_id DESC
+        ) AS canon_spotify_id
+    FROM nowplaying_spotify_tracks
+    WHERE spotify_isrc IS NOT NULL
+) r ON r.spotify_id = sl.spotify_id
+SET sl.spotify_id = r.canon_spotify_id
+WHERE sl.spotify_id <> r.canon_spotify_id;
+UPDATE nowplaying_chart_log c
+INNER JOIN (
+    SELECT
+        spotify_id,
+        FIRST_VALUE(spotify_id) OVER (
+            PARTITION BY spotify_isrc
+            ORDER BY spotify_id DESC
+        ) AS canon_spotify_id
+    FROM nowplaying_spotify_tracks
+    WHERE spotify_isrc IS NOT NULL
+) r ON r.spotify_id = c.spotify_id
+SET c.spotify_id = r.canon_spotify_id
+WHERE c.spotify_id IS NOT NULL
+  AND c.spotify_id <> r.canon_spotify_id;
+DELETE t
+FROM nowplaying_spotify_tracks t
+INNER JOIN (
+    SELECT
+        spotify_id,
+        FIRST_VALUE(spotify_id) OVER (
+            PARTITION BY spotify_isrc
+            ORDER BY spotify_id DESC
+        ) AS canon_spotify_id
+    FROM nowplaying_spotify_tracks
+    WHERE spotify_isrc IS NOT NULL
+) r ON r.spotify_id = t.spotify_id
+WHERE t.spotify_id <> r.canon_spotify_id;
+COMMIT;
+-- ROLLBACK;
