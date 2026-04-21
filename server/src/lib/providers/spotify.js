@@ -4,6 +4,7 @@ import { DURATION } from '../../constants/numbers.js';
 import logger from '../../utils/logger.js';
 import redisWrapper from '../../utils/redis_wrapper.js';
 import { normalizeStringForCacheKey } from '../../utils/normalize_string_cache_key.js';
+import { cleanNames } from '../../utils/strings.js';
 import metricsWrapper from '../../utils/metrics_wrapper.js';
 
 const scopes = ['playlist-read-private', 'playlist-modify-private', 'playlist-modify-public'];
@@ -273,7 +274,8 @@ class Spotify {
 
     async searchTracksWithCache(query, limit = 1) {
         const KEY_PREFIX = 'SONG';
-        const cacheKey = `${KEY_PREFIX}:${normalizeStringForCacheKey(query)}`;
+        const normalizedQuery = cleanNames(String(query ?? ''));
+        const cacheKey = `${KEY_PREFIX}:${normalizeStringForCacheKey(normalizedQuery)}`;
         let searchTracks = null;
 
         try {
@@ -300,7 +302,7 @@ class Spotify {
                     },
                 });
 
-                searchTracks = await this.searchTracks(query, limit);
+                searchTracks = await this.searchTracks(normalizedQuery, limit);
                 await redisWrapper.set(cacheKey, JSON.stringify(searchTracks), DURATION.OF_1_YEAR);
             }
         } catch (error) {
@@ -311,6 +313,7 @@ class Spotify {
                 metadata: {
                     args: [...arguments],
                     query,
+                    normalizedQuery,
                     searchTracks,
                 },
             });
@@ -328,8 +331,9 @@ class Spotify {
      * @returns
      */
     async searchTracks(query, limit = 1) {
+        const q = cleanNames(String(query ?? ''));
         try {
-            const searchTracks = await this.api.searchTracks(query, {
+            const searchTracks = await this.api.searchTracks(q, {
                 limit,
             });
 

@@ -19,10 +19,14 @@ const decodeHTMLEntities = function(text) {
     return text;
 };
 
+/** Comma-like characters (ASCII + common Unicode) — Spotify search treats these poorly; use spaces so tokens stay separate. */
+const COMMA_LIKE = /[\u002C\uFF0C\u201A\u060C\u3001]/g;
+
 const cleanNames = function(text) {
     return decodeHTMLEntities(text)
-        .replace(/( עם |feat\.|Ft\.|Featuring|)/g, '')
-        .replace(/(&|,)/g, '')
+        .replace(/( עם |feat\.|Ft\.|Featuring)/g, '')
+        .replace(/&/g, ' ')
+        .replace(COMMA_LIKE, ' ')
         .replace(/( x |-|–)/g, ' ')
         .replace(/(\/)/g, ' ')
         .replace(/\s+/g, ' ')
