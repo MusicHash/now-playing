@@ -45,6 +45,8 @@ export async function backfillSpotifyIsrcFromSongRedisCache(options = {}) {
     let mysqlUpdated = 0;
     let mysqlSkippedNoIsrc = 0;
     let mysqlSkippedAlready = 0;
+    /** Rows in DB missing for this `spotify_track_id` (cache has ISRC but no matching row). */
+    let mysqlNoRow = 0;
 
     await redisWrapper.forEachKeyMatching(SONG_CACHE_REDIS_PATTERN, async (key) => {
         if (maxKeys > 0 && keysVisited >= maxKeys) {
@@ -109,32 +111,56 @@ export async function backfillSpotifyIsrcFromSongRedisCache(options = {}) {
                 continue;
             }
 
-            const [rows] = await MySQLWrapper.query(
-                `SELECT spotify_isrc FROM nowplaying_spotify_tracks WHERE spotify_track_id = ? LIMIT 1`,
-                [String(tid)],
-            );
-            if (!rows?.length) {
-                continue;
-            }
-            const prev = rows[0].spotify_isrc;
-            const missing =
-                prev === null ||
-                prev === undefined ||
-                (typeof prev === 'string' && prev.trim() === '');
-            if (!missing) {
-                mysqlSkippedAlready += 1;
+            const tidStr = String(tid);
+
+            if (dryRun) {
+                const [rows] = await MySQLWrapper.query(
+                    `SELECT spotify_isrc FROM nowplaying_spotify_tracks WHERE spotify_track_id = ? LIMIT 1`,
+                    [tidStr],
+                );
+                if (!rows?.length) {
+                    mysqlNoRow += 1;
+                    continue;
+                }
+                const prev = rows[0].spotify_isrc;
+                const missing =
+                    prev === null ||
+                    prev === undefined ||
+                    (typeof prev === 'string' && prev.trim() === '');
+                if (!missing) {
+                    mysqlSkippedAlready += 1;
+                    continue;
+                }
+                mysqlUpdated += 1;
                 continue;
             }
 
-            if (dryRun) {
-                mysqlUpdated += 1;
+            /**
+             * Update every row for this track id that still needs ISRC. `SELECT … LIMIT 1` was wrong when
+             * duplicate `spotify_track_id` rows exist (no UNIQUE): we could read the row that already had
+             * ISRC and skip while another row for the same id stayed NULL.
+             */
+            const [updResult] = await MySQLWrapper.query(
+                `UPDATE nowplaying_spotify_tracks
+                 SET spotify_isrc = ?
+                 WHERE spotify_track_id = ?
+                   AND (spotify_isrc IS NULL OR spotify_isrc = '')`,
+                [isrc, tidStr],
+            );
+            const affected = Number(updResult?.affectedRows ?? 0);
+            if (affected > 0) {
+                mysqlUpdated += affected;
+                continue;
+            }
+
+            const [[exists]] = await MySQLWrapper.query(
+                `SELECT COUNT(*) AS c FROM nowplaying_spotify_tracks WHERE spotify_track_id = ?`,
+                [tidStr],
+            );
+            if (Number(exists?.c ?? 0) === 0) {
+                mysqlNoRow += 1;
             } else {
-                await MySQLWrapper.update(
-                    'nowplaying_spotify_tracks',
-                    { spotify_isrc: isrc },
-                    { spotify_track_id: String(tid) },
-                );
-                mysqlUpdated += 1;
+                mysqlSkippedAlready += 1;
             }
         }
     });
@@ -149,6 +175,7 @@ export async function backfillSpotifyIsrcFromSongRedisCache(options = {}) {
         mysql_updated: mysqlUpdated,
         mysql_skipped_no_isrc: mysqlSkippedNoIsrc,
         mysql_skipped_already_set: mysqlSkippedAlready,
+        mysql_no_matching_row: mysqlNoRow,
         stopped_early: Boolean(maxKeys > 0 && keysVisited >= maxKeys),
     };
 }

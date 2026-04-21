@@ -58,7 +58,7 @@ export async function backfillSpotifyIsrcBatch(options = {}) {
         [limit],
     );
 
-    const trackIds = rows.map((r) => String(r.spotify_track_id));
+    const trackIds = [...new Set(rows.map((r) => String(r.spotify_track_id)))];
     let redisHits = 0;
     let redisMisses = 0;
     let filledIsrc = 0;
@@ -101,11 +101,17 @@ export async function backfillSpotifyIsrcBatch(options = {}) {
         const isrc = typeof cached === 'string' && cached.trim() ? cached.trim() : null;
         const stored = isrc ?? '';
 
-        await MySQLWrapper.update(
-            'nowplaying_spotify_tracks',
-            { spotify_isrc: stored },
-            { spotify_track_id: tid },
+        const [updHeader] = await MySQLWrapper.query(
+            `UPDATE nowplaying_spotify_tracks
+             SET spotify_isrc = ?
+             WHERE spotify_track_id = ?
+               AND (spotify_isrc IS NULL OR spotify_isrc = '')`,
+            [stored, tid],
         );
+        const affected = Number(updHeader?.affectedRows ?? 0);
+        if (affected === 0) {
+            continue;
+        }
 
         if (isrc) {
             filledIsrc += 1;

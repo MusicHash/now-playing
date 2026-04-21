@@ -27,10 +27,12 @@ describe('spotify ISRC backfill', () => {
                 if (String(sql).includes('SELECT spotify_track_id')) {
                     return [[{ spotify_track_id: trackId }]];
                 }
+                if (String(sql).includes('UPDATE') && String(sql).includes('spotify_isrc')) {
+                    expect(params).toEqual([isrc, trackId]);
+                    return [{ affectedRows: 1 }];
+                }
                 throw new Error(`unexpected query: ${sql}`);
             });
-
-            const update = jest.spyOn(MySQLWrapper, 'update').mockResolvedValue({ affectedRows: 1 });
 
             const get = jest.spyOn(redisWrapper, 'get').mockImplementation(async (key) => {
                 if (key === spotifyTrackIsrcRedisKey(trackId)) {
@@ -44,14 +46,8 @@ describe('spotify ISRC backfill', () => {
             expect(result.rows_selected).toBe(1);
             expect(result.redis_hits).toBe(1);
             expect(result.filled_isrc).toBe(1);
-            expect(update).toHaveBeenCalledWith(
-                'nowplaying_spotify_tracks',
-                { spotify_isrc: isrc },
-                { spotify_track_id: trackId },
-            );
 
             query.mockRestore();
-            update.mockRestore();
             get.mockRestore();
         });
     });
@@ -77,14 +73,12 @@ describe('spotify ISRC backfill', () => {
             };
 
             const query = jest.spyOn(MySQLWrapper, 'query').mockImplementation(async (sql, params) => {
-                if (String(sql).includes('spotify_isrc')) {
-                    expect(params).toEqual([trackId]);
-                    return [[{ spotify_isrc: null }]];
+                if (String(sql).includes('UPDATE') && String(sql).includes('spotify_isrc')) {
+                    expect(params).toEqual([isrc, trackId]);
+                    return [{ affectedRows: 1 }];
                 }
                 throw new Error(`unexpected query: ${sql}`);
             });
-
-            const update = jest.spyOn(MySQLWrapper, 'update').mockResolvedValue({ affectedRows: 1 });
 
             let forEachCalls = 0;
             jest.spyOn(redisWrapper, 'forEachKeyMatching').mockImplementation(async (pattern, onKey) => {
@@ -102,14 +96,8 @@ describe('spotify ISRC backfill', () => {
             expect(result.keys_visited).toBe(1);
             expect(result.mysql_updated).toBe(1);
             expect(forEachCalls).toBe(1);
-            expect(update).toHaveBeenCalledWith(
-                'nowplaying_spotify_tracks',
-                { spotify_isrc: isrc },
-                { spotify_track_id: trackId },
-            );
 
             query.mockRestore();
-            update.mockRestore();
             get.mockRestore();
             set.mockRestore();
         });
