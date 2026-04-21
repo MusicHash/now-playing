@@ -1,6 +1,8 @@
 import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 import { backfillSpotifyIsrcBatch } from '../../src/lib/spotify_isrc_backfill.js';
 import { backfillSpotifyIsrcFromSongRedisCache } from '../../src/lib/spotify_isrc_backfill_song_cache.js';
+import { backfillSpotifyIsrcFromApi } from '../../src/lib/spotify_isrc_backfill_api.js';
+import Spotify from '../../src/lib/providers/spotify.js';
 import MySQLWrapper from '../../src/utils/mysql_wrapper.js';
 import redisWrapper from '../../src/utils/redis_wrapper.js';
 import { spotifyTrackIsrcRedisKey } from '../../src/lib/spotify_isrc_redis.js';
@@ -132,6 +134,50 @@ describe('spotify ISRC backfill', () => {
             expect(update).not.toHaveBeenCalled();
 
             update.mockRestore();
+        });
+    });
+
+    describe('backfillSpotifyIsrcFromApi', () => {
+        it('fetches tracks from Spotify and updates rows missing ISRC', async () => {
+            const trackId = '6sLvGL7JsXb6iE2on6t6qI';
+            const isrc = 'GBBBY0200033';
+
+            jest.spyOn(Spotify, 'getTracksByIds').mockResolvedValue([
+                {
+                    id: trackId,
+                    external_ids: { isrc },
+                    name: 'The Riddle',
+                    artists: [{ id: 'a', name: 'Nik Kershaw' }],
+                    duration_ms: 200000,
+                    popularity: 50,
+                },
+            ]);
+
+            const query = jest.spyOn(MySQLWrapper, 'query').mockImplementation(async (sql, params) => {
+                if (String(sql).includes('COUNT(*)')) {
+                    return [[{ cnt: 1 }]];
+                }
+                if (String(sql).includes('SELECT spotify_track_id')) {
+                    return [[{ spotify_track_id: trackId }]];
+                }
+                if (String(sql).includes('UPDATE') && String(sql).includes('spotify_isrc')) {
+                    expect(params?.[0]).toBe(isrc);
+                    expect(params?.[1]).toBe(trackId);
+                    return [{ affectedRows: 1 }];
+                }
+                throw new Error(`unexpected query: ${sql}`);
+            });
+
+            const set = jest.spyOn(redisWrapper, 'set').mockResolvedValue('OK');
+
+            const result = await backfillSpotifyIsrcFromApi({ limit: 10 });
+
+            expect(result.spotify_api_calls).toBe(1);
+            expect(result.mysql_rows_filled_isrc).toBe(1);
+            expect(Spotify.getTracksByIds).toHaveBeenCalledWith([trackId]);
+
+            query.mockRestore();
+            set.mockRestore();
         });
     });
 });

@@ -15,6 +15,10 @@ import { stations, charts, historyCharts } from '../../config/sources.js';
 import redisWrapper from '../utils/redis_wrapper.js';
 import { backfillSpotifyIsrcBatch, DEFAULT_ISRC_BACKFILL_DB_BATCH } from '../lib/spotify_isrc_backfill.js';
 import { backfillSpotifyIsrcFromSongRedisCache } from '../lib/spotify_isrc_backfill_song_cache.js';
+import {
+    backfillSpotifyIsrcFromApi,
+    DEFAULT_ISRC_API_BACKFILL_ROWS,
+} from '../lib/spotify_isrc_backfill_api.js';
 
 function requireMysqlForDebug(_req, res, next) {
     if (!MySQLWrapper.isEnabled()) {
@@ -117,6 +121,28 @@ export default function debugRoutes(logger) {
         }
     };
 
+    const runBackfillSpotifyIsrcFromApi = async (req, res) => {
+        try {
+            const q = req.method === 'GET' ? req.query : { ...req.query, ...req.body };
+            const result = await backfillSpotifyIsrcFromApi({
+                limit: q?.limit,
+                sleepMs: q?.sleepMs ?? q?.sleep_ms,
+            });
+            res.json({ ok: true, ...result });
+        } catch (error) {
+            if (error?.code === 'MYSQL_DISABLED') {
+                res.status(503).json({ ok: false, error: 'MySQL is not configured' });
+                return;
+            }
+            logger.error({
+                method: 'actions.backfill_spotify_isrc_from_api',
+                message: 'Spotify get-tracks ISRC backfill failed',
+                error,
+            });
+            res.status(500).json({ ok: false, error: String(error?.message || error) });
+        }
+    };
+
     const runPurgeSqlCache = async (req, res) => {
         try {
             const { deleted } = await redisWrapper.purgeKeyPattern(SQL_CACHE_REDIS_PATTERN);
@@ -149,7 +175,8 @@ export default function debugRoutes(logger) {
     <li><a href="/api/debug/purge_sql_cache">Purge Redis SQL query cache</a> (<code>sql_cache:*</code>)</li>
     <li><a href="/api/debug/magical-moment">Magical moment</a> (JSON: plays per station in a time window — same as <code>/api/data/stats/magical-moment</code>)</li>
     <li><a href="/api/actions/backfill_spotify_isrc">Backfill Spotify ISRC</a> (JSON: Redis-only from <code>SPOTIFY_TRACK_ISRC:*</code> keys)</li>
-    <li><a href="/api/actions/backfill_spotify_isrc_from_song_cache">ONE-TIME: Backfill ISRC from Redis <code>SONG:*</code> cached search JSON</a> (<code>?dryRun=1</code>, <code>?maxKeys=</code>)</li>
+    <li><a href="/api/actions/backfill_spotify_isrc_from_song_cache">Backfill ISRC from Redis <code>SONG:*</code> (search cache only; top hit per query)</a> (<code>?dryRun=1</code> <code>?maxKeys=</code>)</li>
+    <li><a href="/api/actions/backfill_spotify_isrc_from_api">Backfill ISRC via Spotify Get Tracks API</a> (for ids never in <code>SONG:*</code>; <code>?limit=</code> default ${DEFAULT_ISRC_API_BACKFILL_ROWS}; <code>?sleepMs=</code>)</li>
     <li><a href="/api/actions">All API actions</a></li>
   </ul>
 </body>
@@ -176,7 +203,8 @@ export default function debugRoutes(logger) {
             '/api/debug/magical-moment': 'Magical moment (JSON: window of plays per station)',
             '/api/actions/backfill_spotify_isrc': `Backfill Spotify ISRC from Redis cache only (batch ${DEFAULT_ISRC_BACKFILL_DB_BATCH}; ?limit=)`,
             '/api/actions/backfill_spotify_isrc_from_song_cache':
-                'ONE-TIME: Backfill ISRC from Redis SONG:* cached Spotify search JSON (?dryRun=1 ?maxKeys=)',
+                'Backfill ISRC from Redis SONG:* (top search hit per key only; ?dryRun=1 ?maxKeys=)',
+            '/api/actions/backfill_spotify_isrc_from_api': `Backfill ISRC via Spotify get-tracks (missing rows; ?limit= default ${DEFAULT_ISRC_API_BACKFILL_ROWS}; ?sleepMs=)`,
         };
 
         let html = Object.keys(links)
@@ -261,6 +289,9 @@ export default function debugRoutes(logger) {
 
     router.get('/actions/backfill_spotify_isrc_from_song_cache', requireMysqlForDebug, runBackfillSpotifyIsrcFromSongCache);
     router.post('/actions/backfill_spotify_isrc_from_song_cache', requireMysqlForDebug, runBackfillSpotifyIsrcFromSongCache);
+
+    router.get('/actions/backfill_spotify_isrc_from_api', requireMysqlForDebug, runBackfillSpotifyIsrcFromApi);
+    router.post('/actions/backfill_spotify_isrc_from_api', requireMysqlForDebug, runBackfillSpotifyIsrcFromApi);
 
     router.get('/debug/fetch/:chartID', async (req, res) => {
         let chartID = req.params.chartID;
