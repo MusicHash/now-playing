@@ -13,12 +13,6 @@ import { DEFAULT_STATS_DAYS } from '../lib/query_log/stats_queries.js';
 import { getYearWeek } from '../lib/query_log/chart_log.js';
 import { stations, charts, historyCharts } from '../../config/sources.js';
 import redisWrapper from '../utils/redis_wrapper.js';
-import { backfillSpotifyIsrcBatch, DEFAULT_ISRC_BACKFILL_DB_BATCH } from '../lib/spotify_isrc_backfill.js';
-import { backfillSpotifyIsrcFromSongRedisCache } from '../lib/spotify_isrc_backfill_song_cache.js';
-import {
-    backfillSpotifyIsrcFromApi,
-    DEFAULT_ISRC_API_BACKFILL_ROWS,
-} from '../lib/spotify_isrc_backfill_api.js';
 
 function requireMysqlForDebug(_req, res, next) {
     if (!MySQLWrapper.isEnabled()) {
@@ -62,87 +56,6 @@ export default function debugRoutes(logger) {
         }
     };
 
-    const runBackfillSpotifyIsrc = async (req, res) => {
-        try {
-            const raw =
-                req.query?.limit ??
-                (typeof req.body === 'object' && req.body !== null ? req.body.limit : undefined);
-            const result = await backfillSpotifyIsrcBatch({ limit: raw });
-            res.json({ ok: true, ...result });
-        } catch (error) {
-            if (error?.code === 'REDIS_DISABLED') {
-                res.status(503).json({ ok: false, error: 'Redis is not configured' });
-                return;
-            }
-            if (error?.code === 'MYSQL_DISABLED') {
-                res.status(503).json({ ok: false, error: 'MySQL is not configured' });
-                return;
-            }
-            logger.error({
-                method: 'actions.backfill_spotify_isrc',
-                message: 'ISRC backfill batch failed',
-                error,
-            });
-            res.status(500).json({ ok: false, error: String(error?.message || error) });
-        }
-    };
-
-    /** ONE-TIME: delete handler + `spotify_isrc_backfill_song_cache.js` when done. */
-    const runBackfillSpotifyIsrcFromSongCache = async (req, res) => {
-        try {
-            const q = req.method === 'GET' ? req.query : { ...req.query, ...req.body };
-            const maxKeys = q?.maxKeys ?? q?.limit;
-            const dryRaw = q?.dryRun ?? q?.dry_run;
-            const dryRun =
-                dryRaw === true ||
-                dryRaw === '1' ||
-                dryRaw === 'true' ||
-                dryRaw === 'yes';
-            const result = await backfillSpotifyIsrcFromSongRedisCache({
-                maxKeys,
-                dryRun,
-            });
-            res.json({ ok: true, ...result });
-        } catch (error) {
-            if (error?.code === 'REDIS_DISABLED') {
-                res.status(503).json({ ok: false, error: 'Redis is not configured' });
-                return;
-            }
-            if (error?.code === 'MYSQL_DISABLED') {
-                res.status(503).json({ ok: false, error: 'MySQL is not configured' });
-                return;
-            }
-            logger.error({
-                method: 'actions.backfill_spotify_isrc_from_song_cache',
-                message: 'SONG:* ISRC backfill failed',
-                error,
-            });
-            res.status(500).json({ ok: false, error: String(error?.message || error) });
-        }
-    };
-
-    const runBackfillSpotifyIsrcFromApi = async (req, res) => {
-        try {
-            const q = req.method === 'GET' ? req.query : { ...req.query, ...req.body };
-            const result = await backfillSpotifyIsrcFromApi({
-                limit: q?.limit,
-                sleepMs: q?.sleepMs ?? q?.sleep_ms,
-            });
-            res.json({ ok: true, ...result });
-        } catch (error) {
-            if (error?.code === 'MYSQL_DISABLED') {
-                res.status(503).json({ ok: false, error: 'MySQL is not configured' });
-                return;
-            }
-            logger.error({
-                method: 'actions.backfill_spotify_isrc_from_api',
-                message: 'Spotify get-tracks ISRC backfill failed',
-                error,
-            });
-            res.status(500).json({ ok: false, error: String(error?.message || error) });
-        }
-    };
-
     const runPurgeSqlCache = async (req, res) => {
         try {
             const { deleted } = await redisWrapper.purgeKeyPattern(SQL_CACHE_REDIS_PATTERN);
@@ -174,9 +87,6 @@ export default function debugRoutes(logger) {
     <li><a href="/api/debug/update_playlists">Update station playlists now</a> (same as scheduler 24h job — queues per-station updates)</li>
     <li><a href="/api/debug/purge_sql_cache">Purge Redis SQL query cache</a> (<code>sql_cache:*</code>)</li>
     <li><a href="/api/debug/magical-moment">Magical moment</a> (JSON: plays per station in a time window — same as <code>/api/data/stats/magical-moment</code>)</li>
-    <li><a href="/api/actions/backfill_spotify_isrc">Backfill Spotify ISRC</a> (JSON: Redis-only from <code>SPOTIFY_TRACK_ISRC:*</code> keys)</li>
-    <li><a href="/api/actions/backfill_spotify_isrc_from_song_cache">Backfill ISRC from Redis <code>SONG:*</code> (search cache only; top hit per query)</a> (<code>?dryRun=1</code> <code>?maxKeys=</code>)</li>
-    <li><a href="/api/actions/backfill_spotify_isrc_from_api">Backfill ISRC via Spotify Get Tracks API</a> (for ids never in <code>SONG:*</code>; <code>?limit=</code> default ${DEFAULT_ISRC_API_BACKFILL_ROWS}; <code>?sleepMs=</code>)</li>
     <li><a href="/api/actions">All API actions</a></li>
   </ul>
 </body>
@@ -201,10 +111,6 @@ export default function debugRoutes(logger) {
             '/api/debug/update_playlists': 'Update Station Playlists (24h job, run now)',
             '/api/debug/purge_sql_cache': 'Purge Redis SQL query cache (sql_cache:*)',
             '/api/debug/magical-moment': 'Magical moment (JSON: window of plays per station)',
-            '/api/actions/backfill_spotify_isrc': `Backfill Spotify ISRC from Redis cache only (batch ${DEFAULT_ISRC_BACKFILL_DB_BATCH}; ?limit=)`,
-            '/api/actions/backfill_spotify_isrc_from_song_cache':
-                'Backfill ISRC from Redis SONG:* (top search hit per key only; ?dryRun=1 ?maxKeys=)',
-            '/api/actions/backfill_spotify_isrc_from_api': `Backfill ISRC via Spotify get-tracks (missing rows; ?limit= default ${DEFAULT_ISRC_API_BACKFILL_ROWS}; ?sleepMs=)`,
         };
 
         let html = Object.keys(links)
@@ -283,15 +189,6 @@ export default function debugRoutes(logger) {
 
     router.get('/debug/magical-moment', requireMysqlForDebug, handleMagicalMoment);
     router.post('/debug/magical-moment', requireMysqlForDebug, handleMagicalMoment);
-
-    router.get('/actions/backfill_spotify_isrc', requireMysqlForDebug, runBackfillSpotifyIsrc);
-    router.post('/actions/backfill_spotify_isrc', requireMysqlForDebug, runBackfillSpotifyIsrc);
-
-    router.get('/actions/backfill_spotify_isrc_from_song_cache', requireMysqlForDebug, runBackfillSpotifyIsrcFromSongCache);
-    router.post('/actions/backfill_spotify_isrc_from_song_cache', requireMysqlForDebug, runBackfillSpotifyIsrcFromSongCache);
-
-    router.get('/actions/backfill_spotify_isrc_from_api', requireMysqlForDebug, runBackfillSpotifyIsrcFromApi);
-    router.post('/actions/backfill_spotify_isrc_from_api', requireMysqlForDebug, runBackfillSpotifyIsrcFromApi);
 
     router.get('/debug/fetch/:chartID', async (req, res) => {
         let chartID = req.params.chartID;

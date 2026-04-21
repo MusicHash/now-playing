@@ -5,7 +5,6 @@ import logger from '../../utils/logger.js';
 import redisWrapper from '../../utils/redis_wrapper.js';
 import { normalizeStringForCacheKey } from '../../utils/normalize_string_cache_key.js';
 import metricsWrapper from '../../utils/metrics_wrapper.js';
-import { indexTrackIsrcFromSearchBody } from '../spotify_isrc_redis.js';
 
 const scopes = ['playlist-read-private', 'playlist-modify-private', 'playlist-modify-public'];
 
@@ -291,8 +290,6 @@ class Spotify {
                         searchTracks,
                     },
                 });
-
-                await indexTrackIsrcFromSearchBody(searchTracks);
             } else {
                 logger.debug({
                     method: 'searchTracksWithCache',
@@ -304,7 +301,6 @@ class Spotify {
                 });
 
                 searchTracks = await this.searchTracks(query, limit);
-                await indexTrackIsrcFromSearchBody(searchTracks);
                 await redisWrapper.set(cacheKey, JSON.stringify(searchTracks), DURATION.OF_1_YEAR);
             }
         } catch (error) {
