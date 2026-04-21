@@ -18,6 +18,7 @@ import { getMostPlayedSongsByStation } from './query_log/most_played_songs.js';
 import { getYearWeek, doesChartWeekExist, insertChartEntries, getLatestChartEntries } from './query_log/chart_log.js';
 import Spotify from './providers/spotify.js';
 import { isrcFromSpotifyTrack } from './spotify_track_isrc.js';
+import { resolveCanonicalSpotifyId, spotifyTrackDuplicateCheckParams } from './spotify_track_canonical.js';
 import MySQLWrapper from '../utils/mysql_wrapper.js';
 import { cleanNames } from '../utils/strings.js';
 
@@ -262,14 +263,16 @@ const _resolveSpotifyId = async function (artist, title) {
             return null;
         }
 
-        const spotifyId = await MySQLWrapper.checkAndInsert(
+        const isrc = isrcFromSpotifyTrack(track) ?? null;
+
+        const spotifyIdRow = await MySQLWrapper.checkAndInsert(
             'nowplaying_spotify_tracks',
             'spotify_id',
-            { spotify_track_id: track.id },
+            spotifyTrackDuplicateCheckParams(track.id, isrc),
             {
                 spotify_track_id: track.id,
                 spotify_artist_id: track?.artists[0]?.id || '',
-                spotify_isrc: isrcFromSpotifyTrack(track) ?? null,
+                spotify_isrc: isrc,
                 spotify_artist_title: track?.artists[0]?.name || '',
                 spotify_track_title: track.name,
                 spotify_duration_ms: track.duration_ms,
@@ -278,7 +281,7 @@ const _resolveSpotifyId = async function (artist, title) {
             },
         );
 
-        return spotifyId;
+        return await resolveCanonicalSpotifyId(MySQLWrapper, spotifyIdRow, isrc);
     } catch (error) {
         logger.warn({
             method: '_resolveSpotifyId',

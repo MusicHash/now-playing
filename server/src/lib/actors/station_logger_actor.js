@@ -5,6 +5,7 @@ import { existsInArray } from '../../utils/array.js';
 import { SYSTEM_EVENTS } from '../../constants/events.js';
 import Spotify from '../providers/spotify.js';
 import { isrcFromSpotifyTrack } from '../spotify_track_isrc.js';
+import { resolveCanonicalSpotifyId, spotifyTrackDuplicateCheckParams } from '../spotify_track_canonical.js';
 
 
 /**
@@ -124,16 +125,16 @@ class StationLoggerActor {
                 return false;
             }
 
-            const spotifyID = await MySQLWrapper.checkAndInsert(
+            const isrc = isrcFromSpotifyTrack(track) ?? null;
+
+            const spotifyIdRow = await MySQLWrapper.checkAndInsert(
                 'nowplaying_spotify_tracks',
                 'spotify_id',
-                {
-                    spotify_track_id: track.id,
-                },
+                spotifyTrackDuplicateCheckParams(track.id, isrc),
                 {
                     spotify_track_id: track.id,
                     spotify_artist_id: track?.artists[0]?.id,
-                    spotify_isrc: isrcFromSpotifyTrack(track) ?? null,
+                    spotify_isrc: isrc,
                     spotify_artist_title: track?.artists[0]?.name,
                     spotify_track_title: track.name,
                     spotify_duration_ms: track.duration_ms,
@@ -141,6 +142,8 @@ class StationLoggerActor {
                     spotify_timestamp_added: Math.floor(new Date().getTime() / 1000),
                 },
             );
+
+            const spotifyID = await resolveCanonicalSpotifyId(MySQLWrapper, spotifyIdRow, isrc);
 
             // insert new entry to LOG
             const logID = await MySQLWrapper.insert('nowplaying_station_log', {
