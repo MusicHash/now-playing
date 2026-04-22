@@ -44,7 +44,15 @@ npm start
 | `npm run dev:client` | Vite dev server for the UI      |
 | `npm run build:client` | Production build of the client |
 | `npm start`        | Production server               |
+| `npm run backfill:spotify-release-dates -- --mode=all` | On-demand Spotify release-date backfill via Python |
+| `npm run backfill:spotify-audio-features -- --limit=100 --run-until-empty` | On-demand Spotify audio-features backfill via Python |
 | `npm test`         | Server tests (Jest)             |
+
+Install Python deps for the backfill command once with:
+
+```bash
+python3 -m pip install -r scripts/spotify_audio_features_backfill/requirements.txt
+```
 
 ## License
 
