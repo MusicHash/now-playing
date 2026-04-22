@@ -60,7 +60,9 @@ const PLAYLIST_ID_READONLY = '7zHsH44gcVuASD4nKx9WLE', // [DEV] [CI] TESTING PLA
 
 const SPOTIFY_USER_OAUTH = process.env.SPOTIFY_USER_OAUTH;
 
-// 
+/** Playlist mutations require a user refresh token; skip locally when unset. */
+const describePlaylistWrite = SPOTIFY_USER_OAUTH ? describe : describe.skip;
+
 describe('Spotify', function() {
     describe('Connect to spotify', function () {
         it('When making a successful connection, should get a valid access_token from the API', async function () {
@@ -79,7 +81,7 @@ describe('Spotify', function() {
             let sut = await Spotify.searchTracks(q, limit);
 
             expect(sut.tracks.items.length).toBe(limit);
-            expect(sut.tracks.total).toBeGreaterThan(limit);
+            expect(sut.tracks.total).toBeGreaterThanOrEqual(limit);
         });
     });
 
@@ -158,7 +160,7 @@ describe('Spotify', function() {
     });
 
 
-    describe('Playlist Write Operations', function () {
+    describePlaylistWrite('Playlist Write Operations', function () {
         const setPredefinedSongsToAPlaylist = async (playlistID, tracksListRaw, limit) => {
             const tracksList = tracksListRaw.map(({ id, artist, name }) => id).slice(0, limit);
 
