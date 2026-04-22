@@ -30,6 +30,15 @@ ON DUPLICATE KEY UPDATE
   \`valence\` = VALUES(\`valence\`)
 `.trim();
 
+const INSERT_404_SQL = `
+INSERT INTO \`tmp_nowplaying_spotify_track_audio_features_404\`
+(\`spotify_id\`, \`spotify_track_id\`, \`notfound_timestamp\`)
+VALUES (?, ?, ?)
+ON DUPLICATE KEY UPDATE
+  \`spotify_track_id\` = VALUES(\`spotify_track_id\`),
+  \`notfound_timestamp\` = VALUES(\`notfound_timestamp\`)
+`.trim();
+
 const REQUIRED_API_FIELDS = [
     'popularity',
     'null_response',
@@ -168,8 +177,8 @@ async function fetchAudioFeaturesJson(baseUrl, spotifyTrackId, logger) {
  */
 
 /**
- * Tracks without a row in `nowplaying_spotify_track_audio_features`: LEFT JOIN + `a.spotify_id IS NULL`.
- * Processes rows sequentially (one HTTP request per track).
+ * Tracks needing backfill: no row in `nowplaying_spotify_track_audio_features`, and not listed in
+ * `tmp_nowplaying_spotify_track_audio_features_404` (previous sidecar 404s). Processes sequentially.
  *
  * @param {object} options
  * @param {number} [options.limit] batch size (default 25, max 500)
@@ -197,7 +206,8 @@ export async function backfillSpotifyAudioFeaturesBatch(logger, options = {}) {
 SELECT t.\`spotify_id\`, t.\`spotify_track_id\`, t.\`spotify_artist_title\`, t.\`spotify_track_title\`
 FROM \`nowplaying_spotify_tracks\` t
 LEFT JOIN \`nowplaying_spotify_track_audio_features\` a ON a.\`spotify_id\` = t.\`spotify_id\`
-WHERE a.\`spotify_id\` IS NULL
+LEFT JOIN \`tmp_nowplaying_spotify_track_audio_features_404\` n ON n.\`spotify_id\` = t.\`spotify_id\`
+WHERE a.\`spotify_id\` IS NULL AND n.\`spotify_id\` IS NULL
 ORDER BY t.\`spotify_id\`
 LIMIT ?
 `.trim();
@@ -267,9 +277,11 @@ LIMIT ?
 
         if (res.status === 404) {
             summary.skipped_not_found += 1;
+            const ts = Math.floor(Date.now() / 1000);
+            await MySQLWrapper.query(INSERT_404_SQL, [spotifyId, spotifyTrackId, ts]);
             logger.info({
                 method: 'spotify_audio_features_backfill.track',
-                message: 'Audio features not found (404), skip insert',
+                message: 'Audio features not found (404), recorded in tmp 404 table, skip insert',
                 spotify_id: spotifyId,
                 spotify_track_id: spotifyTrackId,
                 elapsed_ms: elapsedMs,

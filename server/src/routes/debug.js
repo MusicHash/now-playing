@@ -276,7 +276,7 @@ export default function debugRoutes(logger) {
 
         try {
             writeLine(
-                'Tracks: nowplaying_spotify_tracks with no row in nowplaying_spotify_track_audio_features (LEFT JOIN, one HTTP call per track).',
+                'Tracks: no row in nowplaying_spotify_track_audio_features, and not in tmp_nowplaying_spotify_track_audio_features_404 (prior sidecar 404s). One HTTP call per track.',
             );
 
             const summary = await backfillSpotifyAudioFeaturesBatch(logger, {
