@@ -13,12 +13,36 @@ import { DEFAULT_STATS_DAYS } from '../lib/query_log/stats_queries.js';
 import { getYearWeek } from '../lib/query_log/chart_log.js';
 import { stations, charts, historyCharts } from '../../config/sources.js';
 import redisWrapper from '../utils/redis_wrapper.js';
+import {
+    backfillSpotifyAudioFeaturesBatch,
+    isAudioFeaturesApiConfigured,
+} from '../lib/spotify_audio_features_backfill.js';
+
+function escapeHtml(s) {
+    return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
 
 function requireMysqlForDebug(_req, res, next) {
     if (!MySQLWrapper.isEnabled()) {
         res.status(503).json({
             error: 'MySQL is not configured',
             enabled: false,
+        });
+        return;
+    }
+    next();
+}
+
+function requireAudioFeaturesApiForBackfill(_req, res, next) {
+    if (!isAudioFeaturesApiConfigured()) {
+        res.status(503).json({
+            error: 'SPOTIFY_AUDIO_FEATURES_API_URL is not set in the server process',
+            enabled: false,
+            hint: 'The API server reads repo-root .env (npm run start/debug: --env-file ../.env from server/). Env files for other packages in this repo are not loaded.',
         });
         return;
     }
@@ -73,6 +97,9 @@ export default function debugRoutes(logger) {
     };
 
     router.get('/debug', (req, res) => {
+        const backfillAudioFeaturesLi = isAudioFeaturesApiConfigured()
+            ? `<li><a href="/api/debug/backfill_spotify_audio_features?limit=25&amp;autoreload=1&amp;autoreload_sec=30">Backfill Spotify track audio features</a> (streaming log; optional countdown reload — add <code>autoreload=0</code> for plain text)</li>`
+            : '';
         res.type('html').send(`<!doctype html>
 <html lang="en">
 <head>
@@ -88,6 +115,7 @@ export default function debugRoutes(logger) {
     <li><a href="/api/debug/purge_sql_cache">Purge Redis SQL query cache</a> (<code>sql_cache:*</code>)</li>
     <li><a href="/api/debug/magical-moment">Magical moment</a> (JSON: plays per station in a time window — same as <code>/api/data/stats/magical-moment</code>)</li>
     <li><a href="/api/actions">All API actions</a></li>
+    ${backfillAudioFeaturesLi}
   </ul>
 </body>
 </html>`);
@@ -110,6 +138,8 @@ export default function debugRoutes(logger) {
             '/api/debug/crawl_history_charts': 'Crawl History Charts (5 min schedule, run now)',
             '/api/debug/update_playlists': 'Update Station Playlists (24h job, run now)',
             '/api/debug/purge_sql_cache': 'Purge Redis SQL query cache (sql_cache:*)',
+            '/api/debug/backfill_spotify_audio_features?limit=25&autoreload=1&autoreload_sec=30':
+                'Backfill Spotify track audio features (streaming + auto next batch unless you stop countdown)',
             '/api/debug/magical-moment': 'Magical moment (JSON: window of plays per station)',
         };
 
@@ -189,6 +219,156 @@ export default function debugRoutes(logger) {
 
     router.get('/debug/magical-moment', requireMysqlForDebug, handleMagicalMoment);
     router.post('/debug/magical-moment', requireMysqlForDebug, handleMagicalMoment);
+
+    const runBackfillAudioFeatures = async (req, res) => {
+        const ar = req.query.autoreload;
+        const htmlMode = ar === '1' || ar === 'true';
+
+        let autoreloadSec = Number.parseInt(String(req.query.autoreload_sec ?? '30'), 10);
+        if (!Number.isFinite(autoreloadSec)) {
+            autoreloadSec = 30;
+        }
+        autoreloadSec = Math.min(600, Math.max(5, autoreloadSec));
+
+        res.setHeader('Cache-Control', 'no-cache, no-transform');
+        res.setHeader('X-Accel-Buffering', 'no');
+
+        if (htmlMode) {
+            res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        } else {
+            res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        }
+
+        let clientClosed = false;
+        req.on('close', () => {
+            clientClosed = true;
+        });
+
+        const writeLine = (line) => {
+            if (!clientClosed && !res.writableEnded) {
+                const chunk = htmlMode ? `${escapeHtml(line)}\n` : `${line}\n`;
+                res.write(chunk);
+            }
+        };
+
+        if (typeof res.flushHeaders === 'function') {
+            res.flushHeaders();
+        }
+
+        if (htmlMode) {
+            res.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Spotify audio features backfill</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 1rem; line-height: 1.45; background: #f4f4f5; color: #1a1a1a; }
+    pre#log { white-space: pre-wrap; word-break: break-word; background: #1a1a1a; color: #e8e8e8; padding: 1rem; border-radius: 8px; font-size: 13px; max-height: 65vh; overflow: auto; margin: 0; }
+    #countdown-wrap { margin-top: 1rem; padding: 1rem; background: #fff; border: 1px solid #ccc; border-radius: 8px; }
+    button { font: inherit; padding: 0.4rem 0.85rem; cursor: pointer; border-radius: 6px; border: 1px solid #888; background: #fff; margin-left: 0.5rem; }
+    button:hover { background: #eee; }
+  </style>
+</head>
+<body>
+<pre id="log">`);
+        }
+
+        try {
+            writeLine(
+                'Tracks: nowplaying_spotify_tracks with no row in nowplaying_spotify_track_audio_features (LEFT JOIN, one HTTP call per track).',
+            );
+
+            const summary = await backfillSpotifyAudioFeaturesBatch(logger, {
+                limit: req.query.limit,
+                isAborted: () => clientClosed || res.writableEnded,
+                onBatchStart: ({ requested_limit, candidates_selected }) => {
+                    writeLine(
+                        `Progress: batch_limit=${requested_limit}, selected=${candidates_selected} (processing sequentially).`,
+                    );
+                },
+                onProgress: (p) => {
+                    const song = `${p.spotify_artist_title} - ${p.spotify_track_title}`;
+                    const rt =
+                        p.response_time_ms != null ? ` api_response_ms=${p.response_time_ms}` : '';
+                    const http = p.http_status != null ? ` http=${p.http_status}` : '';
+                    writeLine(
+                        `[${p.index}/${p.total}] ${song} | track_id=${p.spotify_track_id} | ${p.outcome} | request_ms=${p.elapsed_ms}${rt}${http}`,
+                    );
+                },
+            });
+
+            writeLine('--- summary ---');
+            for (const [k, v] of Object.entries(summary)) {
+                writeLine(`${k}: ${v}`);
+            }
+
+            if (htmlMode) {
+                res.write(`</pre>
+<div id="countdown-wrap">
+  <p id="cd-msg">Next batch in <strong id="cd-n"></strong>s — same URL reloads (limit and options preserved). <button type="button" id="cd-stop">Stop countdown</button></p>
+</div>
+<script>
+(function () {
+  var sec = ${autoreloadSec};
+  var n = document.getElementById('cd-n');
+  var msg = document.getElementById('cd-msg');
+  var btn = document.getElementById('cd-stop');
+  var left = sec;
+  if (n) n.textContent = String(left);
+  var t = setInterval(function () {
+    left -= 1;
+    if (left <= 0) {
+      clearInterval(t);
+      location.reload();
+      return;
+    }
+    if (n) n.textContent = String(left);
+  }, 1000);
+  if (btn) {
+    btn.addEventListener('click', function () {
+      clearInterval(t);
+      msg.textContent = 'Autoreload cancelled. Run another batch from the link or refresh when ready.';
+      btn.remove();
+    });
+  }
+})();
+</script>
+</body>
+</html>`);
+            }
+            res.end();
+        } catch (error) {
+            logger.error({
+                method: 'debug.backfill_spotify_audio_features',
+                message: 'Audio features backfill failed',
+                error,
+            });
+            if (!res.headersSent) {
+                res.status(500);
+            }
+            writeLine(`ERROR: ${error?.message || error}`);
+            if (htmlMode && !res.writableEnded) {
+                res.write(
+                    '</pre><p style="color:#b00020;font-weight:600">Batch failed — autoreload skipped.</p></body></html>',
+                );
+            }
+            res.end();
+        }
+    };
+
+    router.get(
+        '/debug/backfill_spotify_audio_features',
+        requireMysqlForDebug,
+        requireAudioFeaturesApiForBackfill,
+        runBackfillAudioFeatures,
+    );
+    router.post(
+        '/debug/backfill_spotify_audio_features',
+        requireMysqlForDebug,
+        requireAudioFeaturesApiForBackfill,
+        runBackfillAudioFeatures,
+    );
 
     router.get('/debug/fetch/:chartID', async (req, res) => {
         let chartID = req.params.chartID;
