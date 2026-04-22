@@ -5,6 +5,7 @@ import { existsInArray } from '../../utils/array.js';
 import { SYSTEM_EVENTS } from '../../constants/events.js';
 import Spotify from '../providers/spotify.js';
 import { isrcFromSpotifyTrack } from '../spotify_track_isrc.js';
+import { releaseDateYmdFromSpotifyTrack } from '../spotify_track_release_date.js';
 import { resolveCanonicalSpotifyId, spotifyTrackDuplicateCheckParams } from '../spotify_track_canonical.js';
 
 
@@ -127,6 +128,7 @@ class StationLoggerActor {
             }
 
             const isrc = isrcFromSpotifyTrack(track) ?? null;
+            const releaseDateYmd = releaseDateYmdFromSpotifyTrack(track) ?? null;
 
             const spotifyIdRow = await MySQLWrapper.checkAndInsert(
                 'nowplaying_spotify_tracks',
@@ -136,6 +138,7 @@ class StationLoggerActor {
                     spotify_track_id: track.id,
                     spotify_artist_id: track?.artists[0]?.id,
                     spotify_isrc: isrc,
+                    spotify_release_date: releaseDateYmd,
                     spotify_artist_title: track?.artists[0]?.name,
                     spotify_track_title: track.name,
                     spotify_duration_ms: track.duration_ms,

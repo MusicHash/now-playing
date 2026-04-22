@@ -18,6 +18,7 @@ import { getMostPlayedSongsByStation } from './query_log/most_played_songs.js';
 import { getYearWeek, doesChartWeekExist, insertChartEntries, getLatestChartEntries } from './query_log/chart_log.js';
 import Spotify from './providers/spotify.js';
 import { isrcFromSpotifyTrack } from './spotify_track_isrc.js';
+import { releaseDateYmdFromSpotifyTrack } from './spotify_track_release_date.js';
 import { resolveCanonicalSpotifyId, spotifyTrackDuplicateCheckParams } from './spotify_track_canonical.js';
 import MySQLWrapper from '../utils/mysql_wrapper.js';
 import { cleanNames } from '../utils/strings.js';
@@ -264,6 +265,7 @@ const _resolveSpotifyId = async function (artist, title) {
         }
 
         const isrc = isrcFromSpotifyTrack(track) ?? null;
+        const releaseDateYmd = releaseDateYmdFromSpotifyTrack(track) ?? null;
 
         const spotifyIdRow = await MySQLWrapper.checkAndInsert(
             'nowplaying_spotify_tracks',
@@ -273,6 +275,7 @@ const _resolveSpotifyId = async function (artist, title) {
                 spotify_track_id: track.id,
                 spotify_artist_id: track?.artists[0]?.id || '',
                 spotify_isrc: isrc,
+                spotify_release_date: releaseDateYmd,
                 spotify_artist_title: track?.artists[0]?.name || '',
                 spotify_track_title: track.name,
                 spotify_duration_ms: track.duration_ms,
