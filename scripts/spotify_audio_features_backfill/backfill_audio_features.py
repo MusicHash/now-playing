@@ -7,7 +7,7 @@ import json
 import os
 import time
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Iterator, Optional
 from urllib.parse import parse_qs, unquote, urlparse
 
 import pymysql
@@ -235,13 +235,12 @@ def fetch_audio_features_json(
         }
 
 
-def fetch_batch_results(
+def iter_fetch_results(
     rows: list[Dict[str, Any]],
     base_url: str,
     timeout_seconds: int,
     concurrency: int,
-) -> list[Dict[str, Any]]:
-    results: list[Optional[Dict[str, Any]]] = [None] * len(rows)
+) -> Iterator[tuple[int, Dict[str, Any]]]:
 
     def fetch_one(index: int, row: Dict[str, Any]) -> tuple[int, Dict[str, Any]]:
         spotify_track_id = str(row["spotify_track_id"] or "").strip()
@@ -255,19 +254,15 @@ def fetch_batch_results(
     worker_count = max(1, min(MAX_CONCURRENCY, int(concurrency)))
     if worker_count == 1:
         for index, row in enumerate(rows):
-            _, result = fetch_one(index, row)
-            results[index] = result
-        return [result for result in results if result is not None]
+            yield fetch_one(index, row)
+        return
 
     for start in range(0, len(rows), worker_count):
         row_window = rows[start : start + worker_count]
         with ThreadPoolExecutor(max_workers=worker_count) as executor:
             futures = [executor.submit(fetch_one, start + offset, row) for offset, row in enumerate(row_window)]
             for future in as_completed(futures):
-                index, result = future.result()
-                results[index] = result
-
-    return [result for result in results if result is not None]
+                yield future.result()
 
 
 def persist_upsert(conn, params: list[float]) -> None:
@@ -394,14 +389,14 @@ def main() -> int:
                 f"(limit={limit}, concurrency={concurrency}, start_after_spotify_id={int(rows[0]['spotify_id']) - 1})"
             )
 
-            fetched_results = fetch_batch_results(
+            for raw_index, result in iter_fetch_results(
                 rows=rows,
                 base_url=api_base_url,
                 timeout_seconds=timeout_seconds,
                 concurrency=concurrency,
-            )
-
-            for index, (row, result) in enumerate(zip(rows, fetched_results), start=1):
+            ):
+                index = raw_index + 1
+                row = rows[raw_index]
                 spotify_id = int(row["spotify_id"])
                 spotify_track_id = str(row["spotify_track_id"] or "").strip()
                 artist_title = str(row.get("spotify_artist_title") or "").strip()
