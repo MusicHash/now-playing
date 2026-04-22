@@ -259,11 +259,13 @@ def fetch_batch_results(
             results[index] = result
         return [result for result in results if result is not None]
 
-    with ThreadPoolExecutor(max_workers=worker_count) as executor:
-        futures = [executor.submit(fetch_one, index, row) for index, row in enumerate(rows)]
-        for future in as_completed(futures):
-            index, result = future.result()
-            results[index] = result
+    for start in range(0, len(rows), worker_count):
+        row_window = rows[start : start + worker_count]
+        with ThreadPoolExecutor(max_workers=worker_count) as executor:
+            futures = [executor.submit(fetch_one, start + offset, row) for offset, row in enumerate(row_window)]
+            for future in as_completed(futures):
+                index, result = future.result()
+                results[index] = result
 
     return [result for result in results if result is not None]
 
