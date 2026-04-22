@@ -111,3 +111,12 @@ dist
 
 # SSL proxy — generated certificates (never commit private keys)
 server/proxies/ssl/certs/
+
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
