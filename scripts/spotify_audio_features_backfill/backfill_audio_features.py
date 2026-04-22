@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 import os
 import time
@@ -16,6 +17,8 @@ DEFAULT_LIMIT = 25
 MAX_LIMIT = 500
 DEFAULT_MAX_BATCHES = 1
 DEFAULT_HTTP_TIMEOUT_SECONDS = 120
+DEFAULT_CONCURRENCY = 1
+MAX_CONCURRENCY = 32
 
 SELECT_MISSING_ROWS_SQL = """
 SELECT
@@ -197,7 +200,6 @@ def upsert_params_from_api_body(body: Any, spotify_id: int, spotify_track_id: st
 
 
 def fetch_audio_features_json(
-    session: requests.Session,
     base_url: str,
     spotify_track_id: str,
     timeout_seconds: int,
@@ -206,7 +208,7 @@ def fetch_audio_features_json(
     started_at = time.perf_counter()
 
     try:
-        response = session.get(
+        response = requests.get(
             url,
             headers={"Accept": "application/json"},
             timeout=timeout_seconds,
@@ -231,6 +233,39 @@ def fetch_audio_features_json(
             "elapsed_ms": elapsed_ms,
             "error": str(exc),
         }
+
+
+def fetch_batch_results(
+    rows: list[Dict[str, Any]],
+    base_url: str,
+    timeout_seconds: int,
+    concurrency: int,
+) -> list[Dict[str, Any]]:
+    results: list[Optional[Dict[str, Any]]] = [None] * len(rows)
+
+    def fetch_one(index: int, row: Dict[str, Any]) -> tuple[int, Dict[str, Any]]:
+        spotify_track_id = str(row["spotify_track_id"] or "").strip()
+        result = fetch_audio_features_json(
+            base_url=base_url,
+            spotify_track_id=spotify_track_id,
+            timeout_seconds=timeout_seconds,
+        )
+        return index, result
+
+    worker_count = max(1, min(MAX_CONCURRENCY, int(concurrency)))
+    if worker_count == 1:
+        for index, row in enumerate(rows):
+            _, result = fetch_one(index, row)
+            results[index] = result
+        return [result for result in results if result is not None]
+
+    with ThreadPoolExecutor(max_workers=worker_count) as executor:
+        futures = [executor.submit(fetch_one, index, row) for index, row in enumerate(rows)]
+        for future in as_completed(futures):
+            index, result = future.result()
+            results[index] = result
+
+    return [result for result in results if result is not None]
 
 
 def persist_upsert(conn, params: list[float]) -> None:
@@ -289,6 +324,15 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_HTTP_TIMEOUT_SECONDS,
         help=f"Timeout for each audio-features HTTP request (default {DEFAULT_HTTP_TIMEOUT_SECONDS}s).",
     )
+    parser.add_argument(
+        "--concurrency",
+        type=int,
+        default=DEFAULT_CONCURRENCY,
+        help=(
+            f"How many audio-features HTTP requests to run in parallel per batch "
+            f"(default {DEFAULT_CONCURRENCY}, max {MAX_CONCURRENCY})."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -304,12 +348,13 @@ def main() -> int:
     limit = max(1, min(MAX_LIMIT, int(args.limit)))
     max_batches = max(1, int(args.max_batches))
     timeout_seconds = max(1, int(args.http_timeout_seconds))
+    concurrency = max(1, min(MAX_CONCURRENCY, int(args.concurrency)))
 
     conn = mysql_connect(mysql_uri)
-    session = requests.Session()
 
     summary: Dict[str, Any] = {
         "requested_limit": limit,
+        "concurrency": concurrency,
         "batches_attempted": 0,
         "batches_with_candidates": 0,
         "candidates_selected": 0,
@@ -344,22 +389,22 @@ def main() -> int:
 
             log(
                 f"Batch {summary['batches_attempted']}: selected={len(rows)} "
-                f"(limit={limit}, start_after_spotify_id={int(rows[0]['spotify_id']) - 1})"
+                f"(limit={limit}, concurrency={concurrency}, start_after_spotify_id={int(rows[0]['spotify_id']) - 1})"
             )
 
-            for index, row in enumerate(rows, start=1):
+            fetched_results = fetch_batch_results(
+                rows=rows,
+                base_url=api_base_url,
+                timeout_seconds=timeout_seconds,
+                concurrency=concurrency,
+            )
+
+            for index, (row, result) in enumerate(zip(rows, fetched_results), start=1):
                 spotify_id = int(row["spotify_id"])
                 spotify_track_id = str(row["spotify_track_id"] or "").strip()
                 artist_title = str(row.get("spotify_artist_title") or "").strip()
                 track_title = str(row.get("spotify_track_title") or "").strip()
                 display_song = f"{artist_title} - {track_title}".strip(" -")
-
-                result = fetch_audio_features_json(
-                    session=session,
-                    base_url=api_base_url,
-                    spotify_track_id=spotify_track_id,
-                    timeout_seconds=timeout_seconds,
-                )
 
                 response = result["response"]
                 payload = result["json"]
@@ -431,7 +476,6 @@ def main() -> int:
         log(f"Summary: {json.dumps(summary, sort_keys=True)}")
         return 0
     finally:
-        session.close()
         conn.close()
 
 
