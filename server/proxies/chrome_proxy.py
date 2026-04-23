@@ -18,6 +18,9 @@ Dependencies:
 Environment:
     CHROME_PROXY_USER_DATA_DIR — Chrome profile dir (default: ~/.cache/now-playing/chrome-proxy-profile).
     CHROME_PROXY_CF_MAX_WAIT — Seconds to wait for Cloudflare challenge (default: 45).
+    CHROME_PROXY_SERVER — Upstream proxy for Chrome (outbound IP / geo). Examples:
+        http://proxy.example.com:8080  |  socks5://127.0.0.1:1080  |  http://user:pass@host:3128
+    CHROME_PROXY_BYPASS_LIST — Optional; Chrome --proxy-bypass-list (e.g. <-loopback> to skip proxy for localhost).
 """
 
 import importlib.util
@@ -79,6 +82,8 @@ _DEFAULT_PROFILE = os.path.join(
 )
 CHROME_PROXY_USER_DATA_DIR = os.environ.get("CHROME_PROXY_USER_DATA_DIR", _DEFAULT_PROFILE)
 CHROME_PROXY_CF_MAX_WAIT = float(os.environ.get("CHROME_PROXY_CF_MAX_WAIT", "45"))
+CHROME_PROXY_SERVER = os.environ.get("CHROME_PROXY_SERVER", "").strip()
+CHROME_PROXY_BYPASS_LIST = os.environ.get("CHROME_PROXY_BYPASS_LIST", "").strip()
 
 CACHE_TTL_SECONDS = 15
 PAGE_SETTLE_SECONDS = 2
@@ -149,12 +154,18 @@ async def _get_lock(url: str) -> asyncio.Lock:
 
 def _chrome_kwargs() -> dict:
     pathlib.Path(CHROME_PROXY_USER_DATA_DIR).mkdir(parents=True, exist_ok=True)
+    browser_args = [
+        "--window-size=1920,1080",
+        "--disable-blink-features=AutomationControlled",
+    ]
+    if CHROME_PROXY_SERVER:
+        browser_args.append(f"--proxy-server={CHROME_PROXY_SERVER}")
+        log.info("Chrome will use upstream proxy: %s", CHROME_PROXY_SERVER.split("@")[-1])
+    if CHROME_PROXY_BYPASS_LIST:
+        browser_args.append(f"--proxy-bypass-list={CHROME_PROXY_BYPASS_LIST}")
     kwargs: dict = {
         "user_data_dir": CHROME_PROXY_USER_DATA_DIR,
-        "browser_args": [
-            "--window-size=1920,1080",
-            "--disable-blink-features=AutomationControlled",
-        ],
+        "browser_args": browser_args,
     }
     if CHROME_BINARY and os.path.isfile(CHROME_BINARY):
         kwargs["browser_executable_path"] = CHROME_BINARY
