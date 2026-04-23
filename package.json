@@ -8,7 +8,7 @@
     "dev:client": "npm run dev -w client",
     "build:client": "npm run build -w client",
     "test": "npm test -w server",
-    "backfill:spotify-audio-features": "python3 ./scripts/spotify_audio_features_backfill/backfill_audio_features.py",
+    "backfill:spotify-audio-features": "python3 ./scripts/spotify_audio_features_backfill/backfill_audio_features_huggingface.py",
     "backfill:spotify-release-dates": "python3 ./scripts/spotify_release_dates_backfill/backfill_dates.py"
   }
 }

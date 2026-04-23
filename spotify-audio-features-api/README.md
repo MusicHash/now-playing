@@ -1,6 +1,11 @@
 # Spotify audio features API
 
-Small [FastAPI](https://fastapi.tiangolo.com/) service that looks up Spotify track audio features from the Hugging Face dataset [`kevinanjalo/spotify_audio_features`](https://huggingface.co/datasets/kevinanjalo/spotify_audio_features). Data is read via [PyArrow](https://arrow.apache.org/docs/python/) from cached parquet shards on first request (or optionally prewarmed at startup).
+[FastAPI](https://fastapi.tiangolo.com/) service with **pluggable data providers**. It serves:
+
+- **Hugging Face** — audio features from [`kevinanjalo/spotify_audio_features`](https://huggingface.co/datasets/kevinanjalo/spotify_audio_features) (parquet shards, PyArrow).
+- **Kaggle** — track-level **genres** (and the same per-track audio columns present in the CSV) from [Spotify Tracks Genre Dataset](https://www.kaggle.com/datasets/thedevastator/spotify-tracks-genre-dataset) (`train.csv` via [kagglehub](https://github.com/Kaggle/kagglehub)), plus a **static** sorted list of all genre tags shipped in-repo at `data/kaggle_spotify_genres.json`.
+
+Routes use **`/{provider}/{resource}`** (e.g. `/huggingface/track/{id}`). A legacy `GET /track/{track_id}` handler remains and behaves like the Hugging Face track endpoint for existing clients.
 
 ## Requirements
 
@@ -14,24 +19,36 @@ From this directory:
 # Optional: if the Hub dataset needs authentication
 export HF_TOKEN=hf_...
 
+# Optional: Kaggle (first /kaggle/track request downloads ~8MB; see env below)
+# export KAGGLE_USERNAME=...  export KAGGLE_KEY=...   # if kagglehub requires it
+
 # Background container on http://localhost:8080
 make up
 ```
 
-Check health:
+Check health and discover providers:
 
 ```bash
 curl -s http://localhost:8080/health
 # {"ok":true}
+
+curl -s http://localhost:8080/providers | jq .
 ```
 
-Fetch features for a track (Spotify track IDs are 22 alphanumeric characters):
+**Hugging Face** — audio feature row for a 22-character Spotify track id:
 
 ```bash
-curl -s "http://localhost:8080/track/3n3Ppam7vgaVa1iaRUc9Lp" | jq .
+curl -s "http://localhost:8080/huggingface/track/3n3Ppam7vgaVa1iaRUc9Lp" | jq .
+# Legacy (same body shape):
+# curl -s "http://localhost:8080/track/3n3Ppam7vgaVa1iaRUc9Lp" | jq .
 ```
 
-Example JSON fields include `danceability`, `energy`, `tempo`, `valence`, `loudness`, and `response_time_ms`. A **404** means the id is valid but not present in the dataset.
+**Kaggle** — static genre vocabulary (114 tags, from the dataset) and a track row with `track_genres` (all labels for that id; the CSV may list the same track in multiple rows with different `track_genre` values):
+
+```bash
+curl -s "http://localhost:8080/kaggle/genres" | jq .
+curl -s "http://localhost:8080/kaggle/track/5SuOikwiRyPMVoIQDJUgSV" | jq .
+```
 
 Other useful targets:
 
@@ -60,22 +77,31 @@ make run
 
 | Variable | Purpose |
 |----------|---------|
-| `HF_TOKEN` | Hugging Face token if downloads require auth. |
-| `LOOKUP_CACHE_SIZE` | In-memory LRU size for successful lookups (default `5000`; `0` disables). |
-| `DISABLE_STAT_PRUNING` | Set to `1` / `true` / `yes` to disable stat-based pruning when scanning shards. |
-| `PREWARM_CONCURRENCY` | Thread count for prewarm (default `3`, capped 1–4). |
-| `PREWARM_SHARDS` | Set to `1` / `true` / `yes` to download shards in a background thread at startup. |
+| `HF_TOKEN` | Hugging Face token if Hub downloads require auth. |
+| `LOOKUP_CACHE_SIZE` | In-memory LRU size for successful Hugging Face lookups (default `5000`; `0` disables). |
+| `DISABLE_STAT_PRUNING` | Set to `1` / `true` / `yes` to disable stat-based shard pruning. |
+| `PREWARM_CONCURRENCY` | Thread count for HF prewarm (default `3`, capped 1–4). |
+| `PREWARM_SHARDS` | Set to `1` / `true` / `yes` to download Hugging Face parquet shards in a background thread at startup. |
+| `PREWARM_KAGGLE` | Set to `1` / `true` / `yes` to download and index the Kaggle `train.csv` in a background thread at startup. |
+| `KAGGLE_DATASET` | Kaggle dataset slug (default `thedevastator/spotify-tracks-genre-dataset`). |
+| `KAGGLE_GENRE_CSV` | If set, path to a local `train.csv` instead of downloading via kagglehub. |
+| `LOG_LEVEL` | Python log level (default `INFO`). |
 
-Inside the image, `HF_HOME` is `/root/.cache/huggingface` (persist that path with a volume if you want to avoid re-downloading shards).
+Kaggle’s client cache defaults under `~/.cache/kagglehub` (mount that path in Docker to persist downloads). Inside the image, `HF_HOME` is `/root/.cache/huggingface` (same idea for Hub shards).
 
 ## API
 
 | Method | Path | Description |
 |--------|------|-------------|
+| `GET` | `/` | Service pointer (`docs`, `providers`). |
 | `GET` | `/health` | Liveness: `{"ok": true}`. |
-| `GET` | `/track/{track_id}` | Audio feature row for a 22-character Spotify track id. |
+| `GET` | `/providers` | JSON describing each provider and route pattern. |
+| `GET` | `/huggingface/track/{track_id}` | Audio feature row; `response_time_ms` on success. **404** if id is valid but missing from the dataset. |
+| `GET` | `/kaggle/track/{track_id}` | Track metadata, audio columns from the CSV, and `track_genres` (string array). **404** if not in the Kaggle set. **503** if the CSV could not be loaded. |
+| `GET` | `/kaggle/genres` | `{"count", "genres"}` from the static JSON file. |
+| `GET` | `/track/{track_id}` | **Legacy** — same as `/huggingface/track/{track_id}`. |
 
-OpenAPI docs are available at `/docs` when the server is running.
+OpenAPI docs are at `/docs` when the server is running.
 
 ## Local development (no Docker)
 

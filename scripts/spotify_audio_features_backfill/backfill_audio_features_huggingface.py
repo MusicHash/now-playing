@@ -248,7 +248,7 @@ def fetch_audio_features_json(
     spotify_track_id: str,
     timeout_seconds: int,
 ) -> Dict[str, Any]:
-    url = f"{base_url.rstrip('/')}/track/{spotify_track_id}"
+    url = f"{base_url.rstrip('/')}/huggingface/track/{spotify_track_id}"
     started_at = time.perf_counter()
 
     try:
