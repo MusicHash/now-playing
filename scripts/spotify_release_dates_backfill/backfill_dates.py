@@ -21,6 +21,7 @@ DEFAULT_REDIS_SCAN_COUNT = 1000
 DEFAULT_REDIS_READ_BATCH = 200
 DEFAULT_DB_WRITE_BATCH = 500
 DEFAULT_HTTP_TIMEOUT_SECONDS = 30
+MYSQL_RETRYABLE_ERROR_CODES = {2006, 2013, 2055}
 
 UPDATE_RELEASE_DATE_SQL = """
 UPDATE `nowplaying_spotify_tracks`
@@ -139,6 +140,53 @@ def mysql_connect(mysql_uri: str):
     )
 
 
+def is_retryable_mysql_error(exc: BaseException) -> bool:
+    if not isinstance(exc, pymysql.MySQLError):
+        return False
+    if not exc.args:
+        return False
+    code = exc.args[0]
+    return isinstance(code, int) and code in MYSQL_RETRYABLE_ERROR_CODES
+
+
+def rollback_quietly(conn) -> None:
+    try:
+        conn.rollback()
+    except pymysql.MySQLError:
+        return
+
+
+def ensure_mysql_connection(conn) -> None:
+    conn.ping(reconnect=True)
+
+
+def mysql_execute(conn, sql: str, params: Any, *, fetchall: bool = False, many: bool = False) -> Any:
+    for attempt in range(2):
+        try:
+            ensure_mysql_connection(conn)
+            with conn.cursor() as cursor:
+                if many:
+                    cursor.executemany(sql, params)
+                else:
+                    cursor.execute(sql, params)
+
+                if fetchall:
+                    return list(cursor.fetchall())
+
+                rowcount = int(cursor.rowcount or 0)
+
+            conn.commit()
+            return rowcount
+        except pymysql.MySQLError as exc:
+            rollback_quietly(conn)
+            if attempt == 0 and is_retryable_mysql_error(exc):
+                log(
+                    f"MySQL connection dropped (code={exc.args[0]}), reconnecting and retrying query once"
+                )
+                continue
+            raise
+
+
 def redis_connect(redis_uri: str):
     parsed = urlparse(redis_uri)
     if parsed.scheme not in {"redis", "rediss"}:
@@ -213,12 +261,7 @@ def flush_release_date_updates(
         return
 
     params = [(release_date, track_id) for track_id, release_date in pending_updates.items()]
-
-    with conn.cursor() as cursor:
-        cursor.executemany(UPDATE_RELEASE_DATE_SQL, params)
-        rowcount = int(cursor.rowcount or 0)
-
-    conn.commit()
+    rowcount = int(mysql_execute(conn, UPDATE_RELEASE_DATE_SQL, params, many=True) or 0)
     summary["db_write_batches"] += 1
     summary["track_ids_written"] += len(params)
     summary["db_rows_updated"] += rowcount
@@ -409,10 +452,12 @@ class SpotifyClient:
 
 
 def select_missing_track_ids(conn, last_cursor_id: int, limit: int) -> List[Dict[str, Any]]:
-    with conn.cursor() as cursor:
-        cursor.execute(SELECT_MISSING_TRACK_IDS_SQL, (last_cursor_id, limit))
-        rows = list(cursor.fetchall())
-    return rows
+    return mysql_execute(
+        conn,
+        SELECT_MISSING_TRACK_IDS_SQL,
+        (last_cursor_id, limit),
+        fetchall=True,
+    )
 
 
 def run_spotify_backfill(
