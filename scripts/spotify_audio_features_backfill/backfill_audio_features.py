@@ -2,13 +2,15 @@
 from __future__ import annotations
 
 import argparse
+import base64
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 import os
+import re
 import time
 from pathlib import Path
 from typing import Any, Dict, Iterator, Optional
-from urllib.parse import parse_qs, unquote, urlparse
+from urllib.parse import parse_qs, quote, unquote, urlparse
 
 import pymysql
 import requests
@@ -88,7 +90,17 @@ REQUIRED_API_FIELDS = (
     "valence",
 )
 
-DEFAULT_STAGE_PATHS = ("huggingface", "kaggle")
+# Obfuscated host/path prefix (base64, no scheme in source).
+_SG_HOST_PREFIX_B64 = "c29uZ2RhdGEuaW8vdHJhY2sv"
+SG_STAGE = "sg"
+# Chrome proxy (e.g. server/proxies/chrome_proxy.py) — fetch with ?url= to bypass Cloudflare.
+DEFAULT_CHROME_PROXY_URL = "http://127.0.0.1:50015"
+DEFAULT_STAGE_PATHS = ("huggingface", "kaggle", SG_STAGE)
+
+
+def _sg_track_page_url(spotify_track_id: str) -> str:
+    host_prefix = base64.b64decode(_SG_HOST_PREFIX_B64).decode("ascii")
+    return f"https://{host_prefix}{spotify_track_id}/"
 
 
 def log(message: str) -> None:
@@ -245,6 +257,207 @@ def upsert_params_from_api_body(body: Any, spotify_id: int, spotify_track_id: st
     return params
 
 
+# HTML: <dt>Feature</dt><dd>value</dd> (percent or dB). Loudness appears twice; use the dB row.
+_SG_PERCENT_LABELS = {
+    "Acousticness": "acousticness",
+    "Danceability": "danceability",
+    "Energy": "energy",
+    "Instrumentalness": "instrumentalness",
+    "Liveness": "liveness",
+    "Speechiness": "speechiness",
+    "Valence": "valence",
+}
+_NOTE_LETTER_PC = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
+
+
+def _parse_percent_0_1(text: str) -> Optional[float]:
+    text = text.strip()
+    m = re.search(r"(\d+(?:\.\d+)?)\s*%", text)
+    if not m:
+        return None
+    return max(0.0, min(1.0, float(m.group(1)) / 100.0))
+
+
+def _parse_loudness_db(text: str) -> Optional[float]:
+    m = re.search(r"(-?\d+(?:\.\d+)?)\s*dB", text, re.I)
+    if not m:
+        return None
+    return float(m.group(1))
+
+
+def _sg_loudness_db(html: str) -> Optional[float]:
+    for m in re.finditer(
+        r"<dt[^>]*>\s*Loudness\s*</dt>\s*<dd[^>]*>([^<]+)</dd>", html, re.I | re.DOTALL
+    ):
+        v = _parse_loudness_db(m.group(1))
+        if v is not None:
+            return v
+    return None
+
+
+def _sg_dt_dd_after_label(html: str, label: str) -> Optional[str]:
+    m = re.search(
+        rf"<dt[^>]*>\s*{re.escape(label)}\s*</dt>\s*<dd[^>]*>([^<]+)</dd>",
+        html,
+        re.I | re.DOTALL,
+    )
+    if not m:
+        return None
+    return m.group(1).strip()
+
+
+def _sg_first_mm_ss_ms(html: str) -> Optional[int]:
+    start = html.find('id="track-info-pane"')
+    if start == -1:
+        start = 0
+    end = html.find("recommend_section", start)
+    chunk = html[start:] if end == -1 else html[start:end]
+    m = re.search(r">(\d{1,2}):(\d{2})<", chunk)
+    if not m:
+        m = re.search(
+            r"runs?\s+(\d{1,2}):(\d{2})\s+at",
+            html,
+            re.I,
+        )
+    if not m:
+        m = re.search(r"(\d{1,2}):(\d{2})", chunk)
+    if not m:
+        return None
+    minutes, seconds = int(m.group(1)), int(m.group(2))
+    if minutes > 90 or seconds > 59:
+        return None
+    return (minutes * 60 + seconds) * 1000
+
+
+def _normalize_key_string(key_str: str) -> str:
+    s = key_str.strip()
+    s = s.replace("♯", "#").replace("♭", "b")
+    s = re.sub(r"\s+", " ", s)
+    return s
+
+
+def _sg_parse_key_mode(key_str: str) -> tuple[Optional[int], Optional[int]]:
+    s = _normalize_key_string(key_str)
+    m = re.match(r"^([A-G])([#b]?)\s+([Mm]ajor|[Mm]inor)$", s)
+    if not m:
+        return None, None
+    letter, acc, kind = m.group(1).upper(), m.group(2), m.group(3).lower()
+    if letter not in _NOTE_LETTER_PC:
+        return None, None
+    pitch = _NOTE_LETTER_PC[letter]
+    if acc == "#":
+        pitch = (pitch + 1) % 12
+    elif acc == "b":
+        pitch = (pitch - 1) % 12
+    mode = 1 if kind == "major" else 0
+    return pitch, mode
+
+
+def sg_html_to_api_body(html: str, spotify_track_id: str) -> Optional[Dict[str, Any]]:
+    if not html or "Just a moment" in html or "challenges.cloudflare" in html:
+        return None
+
+    pop = None
+    pm = re.search(
+        r'id="popular_text"[^>]*>\s*(\d+)\s*%',
+        html,
+        re.I,
+    )
+    if pm:
+        pop = int(pm.group(1))
+    if pop is None:
+        raw = _sg_dt_dd_after_label(html, "Popularity")
+        if raw and "%" in raw:
+            p2 = _parse_percent_0_1(raw)
+            if p2 is not None:
+                pop = int(round(p2 * 100.0))
+    if pop is None:
+        return None
+
+    bpm_raw = _sg_dt_dd_after_label(html, "BPM")
+    if not bpm_raw:
+        return None
+    try:
+        tempo = float(re.sub(r"[^\d.]", "", bpm_raw) or 0.0)
+    except ValueError:
+        return None
+    if tempo <= 0.0:
+        return None
+
+    key_s = _sg_dt_dd_after_label(html, "Key")
+    if not key_s:
+        return None
+    key_n, mode_n = _sg_parse_key_mode(key_s)
+    if key_n is None or mode_n is None:
+        return None
+
+    loudness = _sg_loudness_db(html)
+    if loudness is None:
+        return None
+
+    duration_ms = _sg_first_mm_ss_ms(html)
+    if not duration_ms or duration_ms < 1000:
+        return None
+
+    out: Dict[str, Any] = {
+        "id": spotify_track_id,
+        "popularity": pop,
+        "null_response": 0,
+        "duration_ms": duration_ms,
+        "time_signature": 4,
+        "key": key_n,
+        "mode": mode_n,
+        "tempo": tempo,
+        "loudness": loudness,
+    }
+
+    for label, field in _SG_PERCENT_LABELS.items():
+        cell = _sg_dt_dd_after_label(html, label)
+        if not cell:
+            return None
+        p = _parse_percent_0_1(cell)
+        if p is None:
+            return None
+        out[field] = p
+
+    return out
+
+
+def fetch_sg_via_chrome_proxy(
+    chrome_proxy_url: str,
+    spotify_track_id: str,
+    timeout_seconds: int,
+) -> Dict[str, Any]:
+    target = _sg_track_page_url(spotify_track_id)
+    full_url = f"{chrome_proxy_url.rstrip('/')}/?url={quote(target, safe='')}"
+    started_at = time.perf_counter()
+    try:
+        response = requests.get(
+            full_url,
+            headers={"Accept": "text/html,application/json;q=0.9,*/*;q=0.8"},
+            timeout=timeout_seconds,
+        )
+        elapsed_ms = int((time.perf_counter() - started_at) * 1000)
+        text = response.text
+        body = sg_html_to_api_body(text, spotify_track_id) if text else None
+        return {
+            "response": response,
+            "json": body,
+            "elapsed_ms": elapsed_ms,
+            "error": None,
+            "stage": SG_STAGE,
+        }
+    except requests.RequestException as exc:
+        elapsed_ms = int((time.perf_counter() - started_at) * 1000)
+        return {
+            "response": None,
+            "json": None,
+            "elapsed_ms": elapsed_ms,
+            "error": str(exc),
+            "stage": SG_STAGE,
+        }
+
+
 def fetch_audio_features_json(
     base_url: str,
     stage_path: str,
@@ -289,6 +502,7 @@ def iter_fetch_results(
     rows: list[Dict[str, Any]],
     base_url: str,
     stage_paths: list[str],
+    chrome_proxy_url: Optional[str],
     timeout_seconds: int,
     concurrency: int,
 ) -> Iterator[tuple[int, Dict[str, Any]]]:
@@ -298,12 +512,22 @@ def iter_fetch_results(
         stage_results: list[Dict[str, Any]] = []
 
         for stage_path in stage_paths:
-            stage_result = fetch_audio_features_json(
-                base_url=base_url,
-                stage_path=stage_path,
-                spotify_track_id=spotify_track_id,
-                timeout_seconds=timeout_seconds,
-            )
+            stage_name = stage_path.strip().strip("/")
+            if stage_name == SG_STAGE:
+                if not chrome_proxy_url:
+                    raise RuntimeError("sg stage requires --chrome-proxy-url or CHROME_PROXY_URL")
+                stage_result = fetch_sg_via_chrome_proxy(
+                    chrome_proxy_url=chrome_proxy_url,
+                    spotify_track_id=spotify_track_id,
+                    timeout_seconds=timeout_seconds,
+                )
+            else:
+                stage_result = fetch_audio_features_json(
+                    base_url=base_url,
+                    stage_path=stage_path,
+                    spotify_track_id=spotify_track_id,
+                    timeout_seconds=timeout_seconds,
+                )
             stage_results.append(stage_result)
 
             if stage_result["error"]:
@@ -314,6 +538,8 @@ def iter_fetch_results(
                 continue
 
             if response.ok:
+                if stage_name == SG_STAGE and not stage_result.get("json"):
+                    continue
                 return index, {
                     "final_result": stage_result,
                     "stage_results": stage_results,
@@ -409,8 +635,17 @@ def parse_args() -> argparse.Namespace:
         "--stage-paths",
         default=",".join(DEFAULT_STAGE_PATHS),
         help=(
-            "Comma-separated endpoint prefixes to try in order, e.g. "
-            "'huggingface,kaggle' (default huggingface,kaggle)."
+            "Comma-separated sources to try in order: API stages huggingface and kaggle use "
+            "SPOTIFY_AUDIO_FEATURES_API_URL; the sg stage (HTML via chrome proxy / ?url=) is the third "
+            f"default fallback. Example: 'huggingface,kaggle,{SG_STAGE}' (default)."
+        ),
+    )
+    parser.add_argument(
+        "--chrome-proxy-url",
+        default=None,
+        help=(
+            "Base URL of chrome_proxy.py (GET /?url=...). "
+            f"Default env CHROME_PROXY_URL or {DEFAULT_CHROME_PROXY_URL} when the sg stage is enabled."
         ),
     )
     parser.add_argument(
@@ -456,6 +691,14 @@ def main() -> int:
     if not stage_paths:
         raise RuntimeError("--stage-paths must include at least one stage path")
 
+    chrome_proxy_url: Optional[str] = None
+    if SG_STAGE in stage_paths:
+        chrome_proxy_url = (
+            (args.chrome_proxy_url or os.environ.get("CHROME_PROXY_URL") or DEFAULT_CHROME_PROXY_URL)
+        ).strip()
+        if not chrome_proxy_url:
+            raise RuntimeError("sg stage needs a non-empty --chrome-proxy-url or CHROME_PROXY_URL")
+
     conn = mysql_connect(mysql_uri)
 
     summary: Dict[str, Any] = {
@@ -463,6 +706,7 @@ def main() -> int:
         "requested_limit": limit,
         "concurrency": concurrency,
         "stage_paths": stage_paths,
+        "chrome_proxy_url": chrome_proxy_url,
         "stage_attempts": 0,
         "stage_404s": 0,
         "stage_http_errors": 0,
@@ -516,6 +760,7 @@ def main() -> int:
                 rows=rows,
                 base_url=api_base_url,
                 stage_paths=stage_paths,
+                chrome_proxy_url=chrome_proxy_url,
                 timeout_seconds=timeout_seconds,
                 concurrency=concurrency,
             ):
