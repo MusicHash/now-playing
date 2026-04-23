@@ -364,8 +364,12 @@ def replace_track_genre(
     spotify_track_id: str,
     main_genre: str,
     additional_tags: list[str],
+    *,
+    dry_run: bool = False,
 ) -> None:
     payload = json.dumps(additional_tags, ensure_ascii=True) if additional_tags else None
+    if dry_run:
+        return
 
     for attempt in range(2):
         try:
@@ -453,6 +457,13 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_AUTOCORRECT,
         help=f"Pass Last.fm autocorrect=0|1 (default {DEFAULT_AUTOCORRECT}).",
     )
+    parser.add_argument(
+        "--dry-run",
+        type=int,
+        choices=(0, 1),
+        default=0,
+        help="Use 1 to preview DB changes without writing anything (default 0).",
+    )
     return parser.parse_args()
 
 
@@ -470,12 +481,15 @@ def main() -> int:
     max_batches = max(0, int(args.max_batches))
     timeout_seconds = max(1, int(args.http_timeout_seconds))
     last_spotify_id = max(0, int(args.start_after_spotify_id))
+    dry_run = int(args.dry_run) == 1
 
     conn = mysql_connect(mysql_uri)
     summary: dict[str, int] = {
+        "dry_run": int(dry_run),
         "batches_processed": 0,
         "candidates_selected": 0,
         "upserted_tracks": 0,
+        "would_upsert_tracks": 0,
         "track_source_matches": 0,
         "artist_source_matches": 0,
         "unknown_tracks": 0,
@@ -483,6 +497,9 @@ def main() -> int:
     }
 
     try:
+        if dry_run:
+            log("Dry run enabled: DB writes will be skipped")
+
         while True:
             if max_batches and summary["batches_processed"] >= max_batches:
                 break
@@ -539,8 +556,12 @@ def main() -> int:
                     spotify_track_id=spotify_track_id,
                     main_genre=str(details["main_genre"]),
                     additional_tags=list(details["additional_tags"]),
+                    dry_run=dry_run,
                 )
-                summary["upserted_tracks"] += 1
+                if dry_run:
+                    summary["would_upsert_tracks"] += 1
+                else:
+                    summary["upserted_tracks"] += 1
 
                 if details["source"] == "track":
                     summary["track_source_matches"] += 1
@@ -551,7 +572,8 @@ def main() -> int:
 
                 log(
                     f"{progress} {display_song} | track_id={spotify_track_id} | "
-                    f"genre={details['main_genre']} | additional_tags={len(details['additional_tags'])} | "
+                    f"{'would_upsert' if dry_run else 'upserted'} | genre={details['main_genre']} | "
+                    f"additional_tags={len(details['additional_tags'])} | "
                     f"source={details['source']} | request_ms={details['elapsed_ms']}"
                 )
                 last_spotify_id = spotify_id

@@ -256,15 +256,22 @@ def flush_release_date_updates(
     conn,
     pending_updates: Dict[str, str],
     summary: Dict[str, int],
+    *,
+    dry_run: bool = False,
 ) -> None:
     if not pending_updates:
         return
 
     params = [(release_date, track_id) for track_id, release_date in pending_updates.items()]
-    rowcount = int(mysql_execute(conn, UPDATE_RELEASE_DATE_SQL, params, many=True) or 0)
-    summary["db_write_batches"] += 1
-    summary["track_ids_written"] += len(params)
-    summary["db_rows_updated"] += rowcount
+    if dry_run:
+        summary["would_write_batches"] += 1
+        summary["would_track_ids_written"] += len(params)
+        log(f"Dry run: would update release dates for {len(params)} track ids")
+    else:
+        rowcount = int(mysql_execute(conn, UPDATE_RELEASE_DATE_SQL, params, many=True) or 0)
+        summary["db_write_batches"] += 1
+        summary["track_ids_written"] += len(params)
+        summary["db_rows_updated"] += rowcount
     pending_updates.clear()
 
 
@@ -313,6 +320,8 @@ def run_redis_backfill(
     scan_count: int,
     read_batch_size: int,
     db_write_batch_size: int,
+    *,
+    dry_run: bool = False,
 ) -> Dict[str, int]:
     summary = {
         "keys_scanned": 0,
@@ -323,6 +332,8 @@ def run_redis_backfill(
         "track_ids_written": 0,
         "db_rows_updated": 0,
         "db_write_batches": 0,
+        "would_track_ids_written": 0,
+        "would_write_batches": 0,
     }
 
     seen_track_ids = set()
@@ -361,9 +372,14 @@ def run_redis_backfill(
                 summary["unique_track_ids_seen"] += 1
 
                 if len(pending_updates) >= db_write_batch_size:
-                    flush_release_date_updates(conn, pending_updates, summary)
+                    flush_release_date_updates(
+                        conn,
+                        pending_updates,
+                        summary,
+                        dry_run=dry_run,
+                    )
 
-    flush_release_date_updates(conn, pending_updates, summary)
+    flush_release_date_updates(conn, pending_updates, summary, dry_run=dry_run)
     return summary
 
 
@@ -466,6 +482,8 @@ def run_spotify_backfill(
     spotify_batch_size: int,
     db_write_batch_size: int,
     limit_total: Optional[int],
+    *,
+    dry_run: bool = False,
 ) -> Dict[str, int]:
     summary = {
         "candidate_track_ids_selected": 0,
@@ -476,6 +494,8 @@ def run_spotify_backfill(
         "track_ids_written": 0,
         "db_rows_updated": 0,
         "db_write_batches": 0,
+        "would_track_ids_written": 0,
+        "would_write_batches": 0,
     }
 
     last_cursor_id = 0
@@ -538,9 +558,14 @@ def run_spotify_backfill(
 
             pending_updates[track_id] = release_date
             if len(pending_updates) >= db_write_batch_size:
-                flush_release_date_updates(conn, pending_updates, summary)
+                flush_release_date_updates(
+                    conn,
+                    pending_updates,
+                    summary,
+                    dry_run=dry_run,
+                )
 
-    flush_release_date_updates(conn, pending_updates, summary)
+    flush_release_date_updates(conn, pending_updates, summary, dry_run=dry_run)
     return summary
 
 
@@ -615,6 +640,13 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_HTTP_TIMEOUT_SECONDS,
         help="HTTP timeout for Spotify token and tracks requests.",
     )
+    parser.add_argument(
+        "--dry-run",
+        type=int,
+        choices=(0, 1),
+        default=0,
+        help="Use 1 to preview DB changes without writing anything (default 0).",
+    )
     return parser.parse_args()
 
 
@@ -625,9 +657,13 @@ def main() -> int:
         load_env_file(Path(args.env_file))
 
     mysql_uri = require_env("MYSQL_URI", args.mysql_uri)
+    dry_run = int(args.dry_run) == 1
     conn = mysql_connect(mysql_uri)
 
     try:
+        if dry_run:
+            log("Dry run enabled: DB writes will be skipped")
+
         if args.mode in {"redis", "all"}:
             redis_uri = require_env("REDIS_URI", args.redis_uri)
             log("Starting Redis first pass from SONG:* cache")
@@ -638,6 +674,7 @@ def main() -> int:
                 scan_count=max(1, int(args.redis_scan_count)),
                 read_batch_size=max(1, int(args.redis_read_batch)),
                 db_write_batch_size=max(1, int(args.db_write_batch)),
+                dry_run=dry_run,
             )
             log(f"Redis pass summary: {json.dumps(redis_summary, sort_keys=True)}")
 
@@ -659,6 +696,7 @@ def main() -> int:
                 spotify_batch_size=max(1, min(50, int(args.spotify_batch_size))),
                 db_write_batch_size=max(1, int(args.db_write_batch)),
                 limit_total=args.limit_total,
+                dry_run=dry_run,
             )
             log(f"Spotify pass summary: {json.dumps(spotify_summary, sort_keys=True)}")
 

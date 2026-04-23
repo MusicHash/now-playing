@@ -309,11 +309,21 @@ def iter_fetch_results(
                 yield future.result()
 
 
-def persist_upsert(conn, params: list[float]) -> None:
+def persist_upsert(conn, params: list[float], *, dry_run: bool = False) -> None:
+    if dry_run:
+        return
     mysql_execute(conn, UPSERT_SQL, tuple(params))
 
 
-def persist_not_found(conn, spotify_id: int, spotify_track_id: str) -> None:
+def persist_not_found(
+    conn,
+    spotify_id: int,
+    spotify_track_id: str,
+    *,
+    dry_run: bool = False,
+) -> None:
+    if dry_run:
+        return
     timestamp = int(time.time())
     mysql_execute(conn, INSERT_404_SQL, (spotify_id, spotify_track_id, timestamp))
 
@@ -370,6 +380,13 @@ def parse_args() -> argparse.Namespace:
             f"(default {DEFAULT_CONCURRENCY}, max {MAX_CONCURRENCY})."
         ),
     )
+    parser.add_argument(
+        "--dry-run",
+        type=int,
+        choices=(0, 1),
+        default=0,
+        help="Use 1 to preview DB changes without writing anything (default 0).",
+    )
     return parser.parse_args()
 
 
@@ -386,17 +403,22 @@ def main() -> int:
     max_batches = max(1, int(args.max_batches))
     timeout_seconds = max(1, int(args.http_timeout_seconds))
     concurrency = max(1, min(MAX_CONCURRENCY, int(args.concurrency)))
+    dry_run = int(args.dry_run) == 1
 
     conn = mysql_connect(mysql_uri)
 
     summary: Dict[str, Any] = {
+        "dry_run": int(dry_run),
         "requested_limit": limit,
         "concurrency": concurrency,
         "batches_attempted": 0,
         "batches_with_candidates": 0,
         "candidates_selected": 0,
         "upserted": 0,
+        "would_upsert": 0,
         "skipped_not_found": 0,
+        "recorded_not_found": 0,
+        "would_record_not_found": 0,
         "skipped_http_error": 0,
         "skipped_invalid_fields": 0,
         "fetch_errors": 0,
@@ -406,6 +428,9 @@ def main() -> int:
     last_spotify_id = 0
 
     try:
+        if dry_run:
+            log("Dry run enabled: DB writes will be skipped")
+
         while True:
             if not args.run_until_empty and summary["batches_attempted"] >= max_batches:
                 break
@@ -465,11 +490,16 @@ def main() -> int:
                     continue
 
                 if response.status_code == 404:
-                    persist_not_found(conn, spotify_id, spotify_track_id)
                     summary["skipped_not_found"] += 1
+                    persist_not_found(conn, spotify_id, spotify_track_id, dry_run=dry_run)
+                    if dry_run:
+                        summary["would_record_not_found"] += 1
+                    else:
+                        summary["recorded_not_found"] += 1
                     log(
                         f"[{index}/{len(rows)}] {display_song} | track_id={spotify_track_id} | "
-                        f"not_found | request_ms={elapsed_ms} | http=404"
+                        f"{'would_mark_not_found' if dry_run else 'not_found'} | "
+                        f"request_ms={elapsed_ms} | http=404"
                     )
                     continue
 
@@ -490,8 +520,11 @@ def main() -> int:
                     )
                     continue
 
-                persist_upsert(conn, params)
-                summary["upserted"] += 1
+                persist_upsert(conn, params, dry_run=dry_run)
+                if dry_run:
+                    summary["would_upsert"] += 1
+                else:
+                    summary["upserted"] += 1
 
                 api_response_ms = payload.get("response_time_ms") if isinstance(payload, dict) else None
                 extra = (
@@ -501,7 +534,8 @@ def main() -> int:
                 )
                 log(
                     f"[{index}/{len(rows)}] {display_song} | track_id={spotify_track_id} | "
-                    f"upserted | request_ms={elapsed_ms}{extra} | http={response.status_code}"
+                    f"{'would_upsert' if dry_run else 'upserted'} | "
+                    f"request_ms={elapsed_ms}{extra} | http={response.status_code}"
                 )
 
             if args.run_until_empty:

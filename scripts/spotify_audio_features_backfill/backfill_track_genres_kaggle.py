@@ -212,7 +212,17 @@ def extract_genres(body: Any, spotify_track_id: str) -> list[str]:
     return deduped
 
 
-def replace_track_genres(conn, spotify_id: int, spotify_track_id: str, genres: list[str]) -> None:
+def replace_track_genres(
+    conn,
+    spotify_id: int,
+    spotify_track_id: str,
+    genres: list[str],
+    *,
+    dry_run: bool = False,
+) -> None:
+    if dry_run:
+        return
+
     for attempt in range(2):
         try:
             ensure_mysql_connection(conn)
@@ -268,6 +278,13 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_HTTP_TIMEOUT_SECONDS,
         help=f"Timeout for each Kaggle HTTP request (default {DEFAULT_HTTP_TIMEOUT_SECONDS}s).",
     )
+    parser.add_argument(
+        "--dry-run",
+        type=int,
+        choices=(0, 1),
+        default=0,
+        help="Use 1 to preview DB changes without writing anything (default 0).",
+    )
     return parser.parse_args()
 
 
@@ -280,12 +297,16 @@ def main() -> int:
     mysql_uri = require_env("MYSQL_URI", args.mysql_uri)
     api_base_url = require_env("SPOTIFY_AUDIO_FEATURES_API_URL", args.api_base_url)
     timeout_seconds = max(1, int(args.http_timeout_seconds))
+    dry_run = int(args.dry_run) == 1
 
     conn = mysql_connect(mysql_uri)
     summary: dict[str, int] = {
+        "dry_run": int(dry_run),
         "candidates_selected": 0,
         "upserted_tracks": 0,
         "inserted_genres": 0,
+        "would_upsert_tracks": 0,
+        "would_insert_genres": 0,
         "skipped_not_found": 0,
         "skipped_http_error": 0,
         "skipped_invalid_response": 0,
@@ -293,6 +314,9 @@ def main() -> int:
     }
 
     try:
+        if dry_run:
+            log("Dry run enabled: DB writes will be skipped")
+
         rows = select_missing_rows(conn)
         total = len(rows)
         summary["candidates_selected"] = total
@@ -358,13 +382,24 @@ def main() -> int:
                 )
                 continue
 
-            replace_track_genres(conn, spotify_id, spotify_track_id, genres)
-            summary["upserted_tracks"] += 1
-            summary["inserted_genres"] += len(genres)
+            replace_track_genres(
+                conn,
+                spotify_id,
+                spotify_track_id,
+                genres,
+                dry_run=dry_run,
+            )
+            if dry_run:
+                summary["would_upsert_tracks"] += 1
+                summary["would_insert_genres"] += len(genres)
+            else:
+                summary["upserted_tracks"] += 1
+                summary["inserted_genres"] += len(genres)
 
             log(
                 f"{progress} {display_song} | track_id={spotify_track_id} | "
-                f"upserted_genres={len(genres)} | request_ms={elapsed_ms} | http={response.status_code}"
+                f"{'would_upsert_genres' if dry_run else 'upserted_genres'}={len(genres)} | "
+                f"request_ms={elapsed_ms} | http={response.status_code}"
             )
 
         log(f"Summary: {json.dumps(summary, sort_keys=True)}")
