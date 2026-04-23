@@ -3,7 +3,7 @@
 [FastAPI](https://fastapi.tiangolo.com/) service with **pluggable data providers**. It serves:
 
 - **Hugging Face** — audio features from [`kevinanjalo/spotify_audio_features`](https://huggingface.co/datasets/kevinanjalo/spotify_audio_features) (parquet shards, PyArrow).
-- **Kaggle** — track-level **genres** (and the same per-track audio columns present in the CSV) from [Spotify Tracks Genre Dataset](https://www.kaggle.com/datasets/thedevastator/spotify-tracks-genre-dataset) (`train.csv` via [kagglehub](https://github.com/Kaggle/kagglehub)), plus a **static** sorted list of all genre tags shipped in-repo at `data/kaggle_spotify_genres.json`.
+- **Kaggle** — track-level **genres** (and the same per-track audio columns present in the CSV) from [Spotify Tracks Genre Dataset](https://www.kaggle.com/datasets/thedevastator/spotify-tracks-genre-dataset) (`train.csv` via [kagglehub](https://github.com/Kaggle/kagglehub)), plus a **static** sorted list of all genre tags shipped in-repo at `../server/config/spotify_genres.json`.
 
 Routes use **`/{provider}/{resource}`** (e.g. `/huggingface/track/{id}`). A legacy `GET /track/{track_id}` handler remains and behaves like the Hugging Face track endpoint for existing clients.
 

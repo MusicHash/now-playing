@@ -413,7 +413,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--lastfm-api-key", default=None, help="Override LASTFM_API_KEY.")
     parser.add_argument(
         "--valid-genres-file",
-        default=str(repo_root / "spotify-audio-features-api" / "data" / "kaggle_spotify_genres.json"),
+        default=str(repo_root / "server" / "config" / "spotify_genres.json"),
         help="JSON file containing the canonical genre list.",
     )
     parser.add_argument(

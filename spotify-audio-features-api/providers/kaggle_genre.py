@@ -46,16 +46,16 @@ _KAGGLE_RESPONSE_FIELDS = (
 )
 
 
-def _package_data_dir() -> Path:
-    return Path(__file__).resolve().parent.parent / "data"
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[2]
 
 
 def load_static_genre_list() -> list[str]:
-    path = _package_data_dir() / "kaggle_spotify_genres.json"
+    path = _repo_root() / "server" / "config" / "spotify_genres.json"
     with path.open(encoding="utf-8") as f:
         data = json.load(f)
     if not isinstance(data, list):
-        raise TypeError("kaggle_spotify_genres.json must be a JSON array of strings")
+        raise TypeError("spotify_genres.json must be a JSON array of strings")
     return [str(x) for x in data]
 
 

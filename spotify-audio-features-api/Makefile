@@ -6,7 +6,7 @@ IMAGE_TAG ?= latest
 CONTAINER_NAME ?= spotify-audio-features-api
 HOST_PORT ?= 8080
 DOCKERFILE ?= Dockerfile
-CONTEXT ?= .
+CONTEXT ?= ..
 
 IMAGE := $(IMAGE_NAME):$(IMAGE_TAG)
 

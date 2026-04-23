@@ -2,12 +2,13 @@ FROM python:3.14.4-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY spotify-audio-features-api/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app.py .
-COPY providers ./providers
-COPY data ./data
+COPY spotify-audio-features-api/app.py ./app.py
+COPY spotify-audio-features-api/providers ./providers
+COPY spotify-audio-features-api/data ./data
+COPY server/config/spotify_genres.json ./server/config/spotify_genres.json
 
 ENV HF_HOME=/root/.cache/huggingface
 
