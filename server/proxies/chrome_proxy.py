@@ -19,7 +19,9 @@ Environment:
     CHROME_PROXY_USER_DATA_DIR — Chrome profile dir (default: ~/.cache/now-playing/chrome-proxy-profile).
     CHROME_PROXY_CF_MAX_WAIT — Seconds to wait for Cloudflare challenge (default: 45).
     CHROME_PROXY_SERVER — Upstream proxy for Chrome (outbound IP / geo). Examples:
-        http://proxy.example.com:8080  |  socks5://127.0.0.1:1080  |  http://user:pass@host:3128
+        http://proxy.example.com:8080  |  socks5://127.0.0.1:1080
+        For user:pass proxies, put credentials in the URL; Chrome cannot take them on --proxy-server
+        (that causes ERR_NO_SUPPORTED_PROXIES), so this script starts a small local forwarder via nodriver.
     CHROME_PROXY_BYPASS_LIST — Optional; Chrome --proxy-bypass-list (e.g. <-loopback> to skip proxy for localhost).
 """
 
@@ -97,6 +99,8 @@ _locks_mutex = asyncio.Lock()
 # Single persistent Chrome instance shared across all requests
 _browser: uc.Browser | None = None
 _browser_lock = asyncio.Lock()
+# Local forwarder when CHROME_PROXY_SERVER includes credentials (Chrome rejects user:pass on --proxy-server).
+_proxy_forwarder: uc.util.ProxyForwarder | None = None
 
 
 class CloudflareChallengeTimeout(Exception):
@@ -152,15 +156,55 @@ async def _get_lock(url: str) -> asyncio.Lock:
         return _locks[url]
 
 
-def _chrome_kwargs() -> dict:
+def _proxy_url_has_credentials(proxy_url: str) -> bool:
+    try:
+        p = urlparse(proxy_url)
+        return bool(p.username or p.password)
+    except Exception:
+        return False
+
+
+def _proxy_upstream_log_label(proxy_url: str) -> str:
+    """Host:port for logs (no credentials)."""
+    try:
+        p = urlparse(proxy_url)
+        if p.hostname:
+            port = f":{p.port}" if p.port else ""
+            return f"{p.hostname}{port}"
+    except Exception:
+        pass
+    return proxy_url.rsplit("@", 1)[-1]
+
+
+async def _chrome_proxy_server_flag_value() -> str:
+    """Value for --proxy-server= only (never embed user:pass — Chrome returns ERR_NO_SUPPORTED_PROXIES)."""
+    global _proxy_forwarder
+    raw = CHROME_PROXY_SERVER.strip()
+    if not raw:
+        return ""
+    if _proxy_url_has_credentials(raw):
+        if _proxy_forwarder is None:
+            _proxy_forwarder = uc.util.ProxyForwarder(raw)
+            for _ in range(100):
+                await asyncio.sleep(0.02)
+                if getattr(_proxy_forwarder, "server", None) is not None:
+                    break
+        return _proxy_forwarder.proxy_server
+    return raw
+
+
+def _chrome_kwargs(proxy_server_flag: str) -> dict:
     pathlib.Path(CHROME_PROXY_USER_DATA_DIR).mkdir(parents=True, exist_ok=True)
     browser_args = [
         "--window-size=1920,1080",
         "--disable-blink-features=AutomationControlled",
     ]
-    if CHROME_PROXY_SERVER:
-        browser_args.append(f"--proxy-server={CHROME_PROXY_SERVER}")
-        log.info("Chrome will use upstream proxy: %s", CHROME_PROXY_SERVER.split("@")[-1])
+    if proxy_server_flag:
+        browser_args.append(f"--proxy-server={proxy_server_flag}")
+        log.info(
+            "Chrome upstream proxy: %s",
+            _proxy_upstream_log_label(CHROME_PROXY_SERVER),
+        )
     if CHROME_PROXY_BYPASS_LIST:
         browser_args.append(f"--proxy-bypass-list={CHROME_PROXY_BYPASS_LIST}")
     kwargs: dict = {
@@ -178,7 +222,8 @@ async def _get_browser() -> uc.Browser:
     async with _browser_lock:
         if _browser is None:
             log.info("Starting shared Chrome instance")
-            _browser = await uc.start(**_chrome_kwargs())
+            proxy_flag = await _chrome_proxy_server_flag_value()
+            _browser = await uc.start(**_chrome_kwargs(proxy_flag))
             log.info("Chrome instance ready")
         return _browser
 
@@ -300,7 +345,7 @@ async def on_startup(app: web.Application) -> None:
 
 
 async def on_shutdown(app: web.Application) -> None:
-    global _browser
+    global _browser, _proxy_forwarder
     if _browser is not None:
         log.info("Stopping shared Chrome instance")
         try:
@@ -308,6 +353,13 @@ async def on_shutdown(app: web.Application) -> None:
         except Exception:
             pass
         _browser = None
+    fw = _proxy_forwarder
+    _proxy_forwarder = None
+    if fw is not None:
+        srv = getattr(fw, "server", None)
+        if srv is not None:
+            srv.close()
+            await srv.wait_closed()
 
 
 def main() -> None:
