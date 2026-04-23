@@ -14,6 +14,10 @@ Request format:
 
 Dependencies:
     pip install nodriver aiohttp
+
+Environment:
+    CHROME_PROXY_USER_DATA_DIR — Chrome profile dir (default: ~/.cache/now-playing/chrome-proxy-profile).
+    CHROME_PROXY_CF_MAX_WAIT — Seconds to wait for Cloudflare challenge (default: 45).
 """
 
 import importlib.util
@@ -67,8 +71,17 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 log = logging.getLogger(__name__)
 
 CHROME_BINARY = os.path.expanduser("~/.cache/puppeteer/chrome/linux-146.0.7680.153/chrome-linux64/chrome")
+# Persistent profile keeps cf_clearance and other cookies across proxy restarts (env override).
+_DEFAULT_PROFILE = os.path.join(
+    os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache")),
+    "now-playing",
+    "chrome-proxy-profile",
+)
+CHROME_PROXY_USER_DATA_DIR = os.environ.get("CHROME_PROXY_USER_DATA_DIR", _DEFAULT_PROFILE)
+CHROME_PROXY_CF_MAX_WAIT = float(os.environ.get("CHROME_PROXY_CF_MAX_WAIT", "45"))
+
 CACHE_TTL_SECONDS = 15
-PAGE_SETTLE_SECONDS = 3
+PAGE_SETTLE_SECONDS = 2
 
 # Per-URL cache: { url -> {"content": str, "fetched_at": float} }
 _cache: dict[str, dict] = {}
@@ -81,6 +94,52 @@ _browser: uc.Browser | None = None
 _browser_lock = asyncio.Lock()
 
 
+class CloudflareChallengeTimeout(Exception):
+    """Page still looks like a Cloudflare interstitial after max wait."""
+
+
+async def _page_looks_like_cf_challenge(page: uc.Tab) -> bool:
+    try:
+        r = await page.evaluate(
+            """(() => {
+              const t = (document.title || '').toLowerCase();
+              const h = (document.documentElement && document.documentElement.outerHTML)
+                ? document.documentElement.outerHTML.toLowerCase() : '';
+              if (t.includes('just a moment')) return true;
+              if (t.includes('attention required') && h.includes('cloudflare')) return true;
+              if (h.includes('challenges.cloudflare.com')) return true;
+              if (h.includes('cf-challenge-running')) return true;
+              if (h.includes('challenge-running') && h.includes('cf-')) return true;
+              if (h.includes('checking your browser')) return true;
+              return false;
+            })()""",
+            return_by_value=True,
+        )
+    except Exception:
+        return False
+    return r is True
+
+
+async def _wait_out_cloudflare(page: uc.Tab, max_seconds: float) -> None:
+    deadline = time.monotonic() + max_seconds
+    warned = False
+    while time.monotonic() < deadline:
+        if not await _page_looks_like_cf_challenge(page):
+            return
+        if not warned:
+            log.info(
+                "Cloudflare challenge detected — waiting up to %.0fs for it to clear "
+                "(persistent profile helps on repeat visits)",
+                max_seconds,
+            )
+            warned = True
+        await page.sleep(0.5)
+    if await _page_looks_like_cf_challenge(page):
+        raise CloudflareChallengeTimeout(
+            f"Still on a Cloudflare challenge after {max_seconds:.0f}s"
+        )
+
+
 async def _get_lock(url: str) -> asyncio.Lock:
     async with _locks_mutex:
         if url not in _locks:
@@ -89,7 +148,14 @@ async def _get_lock(url: str) -> asyncio.Lock:
 
 
 def _chrome_kwargs() -> dict:
-    kwargs = {}
+    pathlib.Path(CHROME_PROXY_USER_DATA_DIR).mkdir(parents=True, exist_ok=True)
+    kwargs: dict = {
+        "user_data_dir": CHROME_PROXY_USER_DATA_DIR,
+        "browser_args": [
+            "--window-size=1920,1080",
+            "--disable-blink-features=AutomationControlled",
+        ],
+    }
     if CHROME_BINARY and os.path.isfile(CHROME_BINARY):
         kwargs["browser_executable_path"] = CHROME_BINARY
     return kwargs
@@ -113,6 +179,8 @@ async def fetch_via_browser(url: str) -> str:
         browser = await _get_browser()
         page = await browser.get(url)
         await page.sleep(PAGE_SETTLE_SECONDS)
+        await _wait_out_cloudflare(page, CHROME_PROXY_CF_MAX_WAIT)
+        await page.sleep(1)
         # When the response is plain JSON/text, Chrome wraps it in its JSON viewer:
         # <body><pre>...</pre></body>.  Extract the raw text instead of returning
         # the full HTML wrapper.
@@ -122,6 +190,8 @@ async def fetch_via_browser(url: str) -> str:
             "  return pre ? pre.textContent : document.documentElement.outerHTML;"
             "})()"
         )
+    except CloudflareChallengeTimeout:
+        raise
     except Exception:
         # If Chrome crashed or became unresponsive, discard the instance so the
         # next request triggers a fresh start rather than retrying a dead browser.
@@ -191,6 +261,16 @@ async def handle_request(request: web.Request) -> web.Response:
         else:
             ct = "text/plain"
         return web.Response(text=content, content_type=ct)
+    except CloudflareChallengeTimeout as e:
+        log.warning("%s", e)
+        return web.Response(
+            text=(
+                f"Cloudflare challenge did not clear in time: {e}\n"
+                "Try: open the same URL once in a real Chrome profile using this proxy's "
+                f"user-data dir ({CHROME_PROXY_USER_DATA_DIR}), or increase CHROME_PROXY_CF_MAX_WAIT."
+            ),
+            status=503,
+        )
     except Exception:
         log.exception("Failed to fetch %s", url)
         return web.Response(text=f"Error fetching {url}", status=502)
