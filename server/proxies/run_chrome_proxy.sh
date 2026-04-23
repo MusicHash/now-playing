@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Starts chrome_proxy.py under screen on 127.0.0.1:50015.
-# Safe to run repeatedly — if it's already up and healthy, does nothing.
+# Safe to run repeatedly — stops any existing session and starts fresh.
 
 set -euo pipefail
 
@@ -30,17 +30,10 @@ is_healthy() {
     curl -sf "http://${HOST}:${PORT}/health" -o /dev/null --max-time 3
 }
 
-# ── already up? ──────────────────────────────────────────────────────────────
-
-if is_screen_running && is_healthy; then
-    green "✓ chrome_proxy is already running and healthy on ${HOST}:${PORT}"
-    exit 0
-fi
-
-# ── stale screen / zombie? ────────────────────────────────────────────────────
+# ── stop existing session (restart on re-run) ─────────────────────────────────
 
 if is_screen_running; then
-    yellow "⚠ Screen session exists but health check failed — restarting…"
+    yellow "⚠ Restarting chrome_proxy (stopping existing screen session)…"
     screen -S "$SCREEN_NAME" -X quit 2>/dev/null || true
     sleep 1
 fi
