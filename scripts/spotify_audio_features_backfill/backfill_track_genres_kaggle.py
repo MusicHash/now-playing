@@ -28,23 +28,22 @@ WHERE t.`spotify_track_id` IS NOT NULL
         SELECT 1
         FROM `nowplaying_spotify_track_genres` g
         WHERE g.`spotify_id` = t.`spotify_id`
-          AND g.`genre` IS NOT NULL
-          AND TRIM(g.`genre`) <> ''
+           OR g.`spotify_track_id` = t.`spotify_track_id`
   )
 ORDER BY t.`spotify_id`
 """.strip()
 
-DELETE_TRACK_GENRES_SQL = """
-DELETE FROM `nowplaying_spotify_track_genres`
-WHERE `spotify_id` = %s
-""".strip()
-
-INSERT_TRACK_GENRES_SQL = """
+INSERT_TRACK_GENRE_IF_MISSING_SQL = """
 INSERT INTO `nowplaying_spotify_track_genres`
-(`spotify_id`, `spotify_track_id`, `genre`)
-VALUES (%s, %s, %s)
-ON DUPLICATE KEY UPDATE
-  `spotify_track_id` = VALUES(`spotify_track_id`)
+(`spotify_id`, `spotify_track_id`, `genre`, `additional_tags`)
+SELECT %s, %s, %s, %s
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM `nowplaying_spotify_track_genres`
+    WHERE `spotify_id` = %s
+       OR `spotify_track_id` = %s
+)
 """.strip()
 
 
@@ -212,29 +211,37 @@ def extract_genres(body: Any, spotify_track_id: str) -> list[str]:
     return deduped
 
 
-def replace_track_genres(
+def insert_track_genre_if_missing(
     conn,
     spotify_id: int,
     spotify_track_id: str,
-    genres: list[str],
+    main_genre: str,
+    additional_tags: list[str],
     *,
     dry_run: bool = False,
-) -> None:
+) -> bool:
+    payload = json.dumps(additional_tags, ensure_ascii=True) if additional_tags else None
     if dry_run:
-        return
+        return True
 
     for attempt in range(2):
         try:
             ensure_mysql_connection(conn)
             with conn.cursor() as cursor:
-                cursor.execute(DELETE_TRACK_GENRES_SQL, (spotify_id,))
-                for genre in genres:
-                    cursor.execute(
-                        INSERT_TRACK_GENRES_SQL,
-                        (spotify_id, spotify_track_id, genre),
-                    )
+                cursor.execute(
+                    INSERT_TRACK_GENRE_IF_MISSING_SQL,
+                    (
+                        spotify_id,
+                        spotify_track_id,
+                        main_genre,
+                        payload,
+                        spotify_id,
+                        spotify_track_id,
+                    ),
+                )
+                inserted = cursor.rowcount > 0
             conn.commit()
-            return
+            return inserted
         except pymysql.MySQLError as exc:
             rollback_quietly(conn)
             if attempt == 0 and is_retryable_mysql_error(exc):
@@ -303,10 +310,9 @@ def main() -> int:
     summary: dict[str, int] = {
         "dry_run": int(dry_run),
         "candidates_selected": 0,
-        "upserted_tracks": 0,
-        "inserted_genres": 0,
-        "would_upsert_tracks": 0,
-        "would_insert_genres": 0,
+        "inserted_tracks": 0,
+        "would_insert_tracks": 0,
+        "skipped_existing": 0,
         "skipped_not_found": 0,
         "skipped_http_error": 0,
         "skipped_invalid_response": 0,
@@ -382,23 +388,31 @@ def main() -> int:
                 )
                 continue
 
-            replace_track_genres(
+            inserted = insert_track_genre_if_missing(
                 conn,
                 spotify_id,
                 spotify_track_id,
-                genres,
+                genres[0],
+                genres[1:],
                 dry_run=dry_run,
             )
+            if not inserted:
+                summary["skipped_existing"] += 1
+                log(
+                    f"{progress} {display_song} | track_id={spotify_track_id} | "
+                    f"skipped_existing | request_ms={elapsed_ms} | http={response.status_code}"
+                )
+                continue
+
             if dry_run:
-                summary["would_upsert_tracks"] += 1
-                summary["would_insert_genres"] += len(genres)
+                summary["would_insert_tracks"] += 1
             else:
-                summary["upserted_tracks"] += 1
-                summary["inserted_genres"] += len(genres)
+                summary["inserted_tracks"] += 1
 
             log(
                 f"{progress} {display_song} | track_id={spotify_track_id} | "
-                f"{'would_upsert_genres' if dry_run else 'upserted_genres'}={len(genres)} | "
+                f"{'would_insert' if dry_run else 'inserted'} | genre={genres[0]} | "
+                f"additional_tags={len(genres[1:])} | "
                 f"request_ms={elapsed_ms} | http={response.status_code}"
             )
 
