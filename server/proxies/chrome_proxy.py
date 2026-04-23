@@ -4,8 +4,9 @@ Headless-browser HTTP proxy.  Fetches any URL through a real Chrome instance
 to bypass Cloudflare / JS-challenge bot protection.
 
 Usage:
-    xvfb-run python3 chrome_proxy.py [--port PORT] [--host HOST]
-    screen -dmS chrome_proxy xvfb-run python3 chrome_proxy.py
+    python3 chrome_proxy.py [--port PORT] [--host HOST]    # when DISPLAY is set (desktop / WSLg)
+    xvfb-run -a python3 chrome_proxy.py                    # headless; -a avoids busy :99
+    ./run_chrome_proxy.sh                                   # picks xvfb vs display automatically
 
 Request format:
     GET /?url=https://example.com/api/endpoint?foo=bar&baz=1
@@ -14,6 +15,43 @@ Request format:
 Dependencies:
     pip install nodriver aiohttp
 """
+
+import importlib.util
+import pathlib
+import sys
+
+
+def _patch_nodriver_network_py_if_needed() -> None:
+    """nodriver<=0.48.1 ships cdp/network.py with Latin-1 ± (0xB1) in a comment.
+
+    Python 3.14+ treats source as UTF-8 and raises SyntaxError on import.
+    Rewrite that sequence to ASCII before importing nodriver.
+    """
+    try:
+        spec = importlib.util.find_spec("nodriver")
+    except (ImportError, ValueError):
+        return
+    if not spec or not spec.submodule_search_locations:
+        return
+    root = pathlib.Path(next(iter(spec.submodule_search_locations)))
+    network_py = root / "cdp" / "network.py"
+    if not network_py.is_file():
+        return
+    data = network_py.read_bytes()
+    bad, good = b"(\xb1Inf)", b"(+/-Inf)"
+    if bad not in data:
+        return
+    network_py.write_bytes(data.replace(bad, good, 1))
+    pycache = network_py.parent / "__pycache__"
+    if pycache.is_dir():
+        for p in pycache.glob("network.*.pyc"):
+            try:
+                p.unlink()
+            except OSError:
+                pass
+
+
+_patch_nodriver_network_py_if_needed()
 
 import argparse
 import asyncio

@@ -59,10 +59,21 @@ if [[ ! -x "$VENV_PYTHON" ]]; then
 fi
 
 # ── launch ────────────────────────────────────────────────────────────────────
+# With a real display (e.g. WSLg sets DISPLAY=:0), xvfb is unnecessary and often
+# breaks here (_XSERVTransSocketCreateListener) if /tmp/.X11-unix is not mode 1777.
+# Headless: xvfb-run -a picks a free server number.
 
-echo "Starting chrome_proxy on ${HOST}:${PORT}…"
-screen -dmS "$SCREEN_NAME" bash -c \
-    "xvfb-run $VENV_PYTHON $PROXY_SCRIPT --host $HOST --port $PORT 2>&1 | tee $LOG_FILE"
+if [[ -n "${DISPLAY:-}" ]]; then
+    PROXY_EXEC=( "$VENV_PYTHON" "$PROXY_SCRIPT" --host "$HOST" --port "$PORT" )
+    echo "Starting chrome_proxy on ${HOST}:${PORT} (DISPLAY=${DISPLAY})…"
+else
+    PROXY_EXEC=( xvfb-run -a "$VENV_PYTHON" "$PROXY_SCRIPT" --host "$HOST" --port "$PORT" )
+    echo "Starting chrome_proxy on ${HOST}:${PORT} (xvfb-run -a)…"
+fi
+
+cmd_q=$(printf '%q ' "${PROXY_EXEC[@]}")
+log_q=$(printf '%q' "$LOG_FILE")
+screen -dmS "$SCREEN_NAME" bash -c "${cmd_q} 2>&1 | tee ${log_q}"
 
 # ── wait for healthy ──────────────────────────────────────────────────────────
 
