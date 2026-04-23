@@ -62,6 +62,7 @@ GENRE_ALIASES = {
     "hip hop": "hip-hop",
     "hiphop": "hip-hop",
     "r-n-b": "r&b",
+    "israel": "israeli",
     "rhythm and blues": "r&b",
     "rock and roll": "rock-n-roll",
     "synthpop": "synth-pop",
