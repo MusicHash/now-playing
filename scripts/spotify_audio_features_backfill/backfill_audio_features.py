@@ -19,6 +19,7 @@ DEFAULT_MAX_BATCHES = 1
 DEFAULT_HTTP_TIMEOUT_SECONDS = 120
 DEFAULT_CONCURRENCY = 1
 MAX_CONCURRENCY = 32
+MYSQL_RETRYABLE_ERROR_CODES = {2006, 2013, 2055}
 
 SELECT_MISSING_ROWS_SQL = """
 SELECT
@@ -149,10 +150,53 @@ def mysql_connect(mysql_uri: str):
     )
 
 
+def is_retryable_mysql_error(exc: BaseException) -> bool:
+    if not isinstance(exc, pymysql.MySQLError):
+        return False
+    if not exc.args:
+        return False
+    code = exc.args[0]
+    return isinstance(code, int) and code in MYSQL_RETRYABLE_ERROR_CODES
+
+
+def rollback_quietly(conn) -> None:
+    try:
+        conn.rollback()
+    except pymysql.MySQLError:
+        return
+
+
+def ensure_mysql_connection(conn) -> None:
+    conn.ping(reconnect=True)
+
+
+def mysql_execute(conn, sql: str, params: tuple[Any, ...], *, fetchall: bool = False) -> Any:
+    for attempt in range(2):
+        try:
+            ensure_mysql_connection(conn)
+            with conn.cursor() as cursor:
+                cursor.execute(sql, params)
+                if fetchall:
+                    return list(cursor.fetchall())
+            conn.commit()
+            return None
+        except pymysql.MySQLError as exc:
+            rollback_quietly(conn)
+            if attempt == 0 and is_retryable_mysql_error(exc):
+                log(
+                    f"MySQL connection dropped (code={exc.args[0]}), reconnecting and retrying query once"
+                )
+                continue
+            raise
+
+
 def select_missing_rows(conn, last_spotify_id: int, limit: int) -> list[Dict[str, Any]]:
-    with conn.cursor() as cursor:
-        cursor.execute(SELECT_MISSING_ROWS_SQL, (last_spotify_id, limit))
-        return list(cursor.fetchall())
+    return mysql_execute(
+        conn,
+        SELECT_MISSING_ROWS_SQL,
+        (last_spotify_id, limit),
+        fetchall=True,
+    )
 
 
 def upsert_params_from_api_body(body: Any, spotify_id: int, spotify_track_id: str) -> Optional[list[float]]:
@@ -266,16 +310,12 @@ def iter_fetch_results(
 
 
 def persist_upsert(conn, params: list[float]) -> None:
-    with conn.cursor() as cursor:
-        cursor.execute(UPSERT_SQL, params)
-    conn.commit()
+    mysql_execute(conn, UPSERT_SQL, tuple(params))
 
 
 def persist_not_found(conn, spotify_id: int, spotify_track_id: str) -> None:
     timestamp = int(time.time())
-    with conn.cursor() as cursor:
-        cursor.execute(INSERT_404_SQL, (spotify_id, spotify_track_id, timestamp))
-    conn.commit()
+    mysql_execute(conn, INSERT_404_SQL, (spotify_id, spotify_track_id, timestamp))
 
 
 def parse_args() -> argparse.Namespace:
