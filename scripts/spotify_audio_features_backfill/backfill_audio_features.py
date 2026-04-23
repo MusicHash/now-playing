@@ -88,6 +88,8 @@ REQUIRED_API_FIELDS = (
     "valence",
 )
 
+DEFAULT_STAGE_PATHS = ("huggingface", "kaggle")
+
 
 def log(message: str) -> None:
     stamp = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -245,10 +247,12 @@ def upsert_params_from_api_body(body: Any, spotify_id: int, spotify_track_id: st
 
 def fetch_audio_features_json(
     base_url: str,
+    stage_path: str,
     spotify_track_id: str,
     timeout_seconds: int,
 ) -> Dict[str, Any]:
-    url = f"{base_url.rstrip('/')}/huggingface/track/{spotify_track_id}"
+    stage_name = stage_path.strip().strip("/")
+    url = f"{base_url.rstrip('/')}/{stage_name}/track/{spotify_track_id}"
     started_at = time.perf_counter()
 
     try:
@@ -268,6 +272,7 @@ def fetch_audio_features_json(
             "json": payload,
             "elapsed_ms": elapsed_ms,
             "error": None,
+            "stage": stage_name,
         }
     except requests.RequestException as exc:
         elapsed_ms = int((time.perf_counter() - started_at) * 1000)
@@ -276,24 +281,59 @@ def fetch_audio_features_json(
             "json": None,
             "elapsed_ms": elapsed_ms,
             "error": str(exc),
+            "stage": stage_name,
         }
 
 
 def iter_fetch_results(
     rows: list[Dict[str, Any]],
     base_url: str,
+    stage_paths: list[str],
     timeout_seconds: int,
     concurrency: int,
 ) -> Iterator[tuple[int, Dict[str, Any]]]:
 
     def fetch_one(index: int, row: Dict[str, Any]) -> tuple[int, Dict[str, Any]]:
         spotify_track_id = str(row["spotify_track_id"] or "").strip()
-        result = fetch_audio_features_json(
-            base_url=base_url,
-            spotify_track_id=spotify_track_id,
-            timeout_seconds=timeout_seconds,
-        )
-        return index, result
+        stage_results: list[Dict[str, Any]] = []
+
+        for stage_path in stage_paths:
+            stage_result = fetch_audio_features_json(
+                base_url=base_url,
+                stage_path=stage_path,
+                spotify_track_id=spotify_track_id,
+                timeout_seconds=timeout_seconds,
+            )
+            stage_results.append(stage_result)
+
+            if stage_result["error"]:
+                continue
+
+            response = stage_result["response"]
+            if response is None:
+                continue
+
+            if response.ok:
+                return index, {
+                    "final_result": stage_result,
+                    "stage_results": stage_results,
+                    "status": "ok",
+                }
+
+            if response.status_code == 404:
+                continue
+
+            return index, {
+                "final_result": stage_result,
+                "stage_results": stage_results,
+                "status": "http_error",
+            }
+
+        return index, {
+            "final_result": stage_results[-1] if stage_results else None,
+            "stage_results": stage_results,
+            "status": "all_stages_missed",
+        }
 
     worker_count = max(1, min(MAX_CONCURRENCY, int(concurrency)))
     if worker_count == 1:
@@ -334,7 +374,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Backfill nowplaying_spotify_track_audio_features from the "
-            "SPOTIFY_AUDIO_FEATURES_API_URL sidecar using the repo .env."
+            "SPOTIFY_AUDIO_FEATURES_API_URL sidecar using staged endpoints and the repo .env."
         )
     )
     parser.add_argument(
@@ -364,6 +404,14 @@ def parse_args() -> argparse.Namespace:
         "--run-until-empty",
         action="store_true",
         help="Keep fetching next batches until no more candidates remain.",
+    )
+    parser.add_argument(
+        "--stage-paths",
+        default=",".join(DEFAULT_STAGE_PATHS),
+        help=(
+            "Comma-separated endpoint prefixes to try in order, e.g. "
+            "'huggingface,kaggle' (default huggingface,kaggle)."
+        ),
     )
     parser.add_argument(
         "--http-timeout-seconds",
@@ -404,6 +452,9 @@ def main() -> int:
     timeout_seconds = max(1, int(args.http_timeout_seconds))
     concurrency = max(1, min(MAX_CONCURRENCY, int(args.concurrency)))
     dry_run = int(args.dry_run) == 1
+    stage_paths = [part.strip().strip("/") for part in str(args.stage_paths).split(",") if part.strip()]
+    if not stage_paths:
+        raise RuntimeError("--stage-paths must include at least one stage path")
 
     conn = mysql_connect(mysql_uri)
 
@@ -411,6 +462,12 @@ def main() -> int:
         "dry_run": int(dry_run),
         "requested_limit": limit,
         "concurrency": concurrency,
+        "stage_paths": stage_paths,
+        "stage_attempts": 0,
+        "stage_404s": 0,
+        "stage_http_errors": 0,
+        "stage_fetch_errors": 0,
+        "stage_invalid_responses": 0,
         "batches_attempted": 0,
         "batches_with_candidates": 0,
         "candidates_selected": 0,
@@ -451,12 +508,14 @@ def main() -> int:
 
             log(
                 f"Batch {summary['batches_attempted']}: selected={len(rows)} "
-                f"(limit={limit}, concurrency={concurrency}, start_after_spotify_id={int(rows[0]['spotify_id']) - 1})"
+                f"(limit={limit}, concurrency={concurrency}, stages={','.join(stage_paths)}, "
+                f"start_after_spotify_id={int(rows[0]['spotify_id']) - 1})"
             )
 
             for raw_index, result in iter_fetch_results(
                 rows=rows,
                 base_url=api_base_url,
+                stage_paths=stage_paths,
                 timeout_seconds=timeout_seconds,
                 concurrency=concurrency,
             ):
@@ -468,28 +527,31 @@ def main() -> int:
                 track_title = str(row.get("spotify_track_title") or "").strip()
                 display_song = f"{artist_title} - {track_title}".strip(" -")
 
-                response = result["response"]
-                payload = result["json"]
-                elapsed_ms = int(result["elapsed_ms"])
-                error = result["error"]
+                stage_results = result.get("stage_results") or []
+                status = str(result.get("status") or "")
+                final_result = result.get("final_result") or {}
+                response = final_result.get("response")
+                payload = final_result.get("json")
+                elapsed_ms = int(final_result.get("elapsed_ms") or 0)
+                error = final_result.get("error")
+                stage_name = str(final_result.get("stage") or "unknown")
 
-                if error:
-                    summary["fetch_errors"] += 1
-                    log(
-                        f"[{index}/{len(rows)}] {display_song} | track_id={spotify_track_id} | "
-                        f"fetch_error | request_ms={elapsed_ms} | error={error}"
-                    )
-                    continue
+                summary["stage_attempts"] += len(stage_results)
+                for stage_result in stage_results:
+                    stage_error = stage_result.get("error")
+                    stage_response = stage_result.get("response")
+                    if stage_error:
+                        summary["stage_fetch_errors"] += 1
+                        continue
+                    if stage_response is None:
+                        summary["stage_fetch_errors"] += 1
+                        continue
+                    if stage_response.status_code == 404:
+                        summary["stage_404s"] += 1
+                    elif not stage_response.ok:
+                        summary["stage_http_errors"] += 1
 
-                if response is None:
-                    summary["fetch_errors"] += 1
-                    log(
-                        f"[{index}/{len(rows)}] {display_song} | track_id={spotify_track_id} | "
-                        f"fetch_error | request_ms={elapsed_ms}"
-                    )
-                    continue
-
-                if response.status_code == 404:
+                if status == "all_stages_missed":
                     summary["skipped_not_found"] += 1
                     persist_not_found(conn, spotify_id, spotify_track_id, dry_run=dry_run)
                     if dry_run:
@@ -499,7 +561,23 @@ def main() -> int:
                     log(
                         f"[{index}/{len(rows)}] {display_song} | track_id={spotify_track_id} | "
                         f"{'would_mark_not_found' if dry_run else 'not_found'} | "
-                        f"request_ms={elapsed_ms} | http=404"
+                        f"stages_tried={','.join([str(x.get('stage') or '?') for x in stage_results])}"
+                    )
+                    continue
+
+                if error:
+                    summary["fetch_errors"] += 1
+                    log(
+                        f"[{index}/{len(rows)}] {display_song} | track_id={spotify_track_id} | "
+                        f"fetch_error | stage={stage_name} | request_ms={elapsed_ms} | error={error}"
+                    )
+                    continue
+
+                if response is None:
+                    summary["fetch_errors"] += 1
+                    log(
+                        f"[{index}/{len(rows)}] {display_song} | track_id={spotify_track_id} | "
+                        f"fetch_error | stage={stage_name} | request_ms={elapsed_ms}"
                     )
                     continue
 
@@ -507,16 +585,17 @@ def main() -> int:
                     summary["skipped_http_error"] += 1
                     log(
                         f"[{index}/{len(rows)}] {display_song} | track_id={spotify_track_id} | "
-                        f"http_error | request_ms={elapsed_ms} | http={response.status_code}"
+                        f"http_error | stage={stage_name} | request_ms={elapsed_ms} | http={response.status_code}"
                     )
                     continue
 
                 params = upsert_params_from_api_body(payload, spotify_id, spotify_track_id)
                 if not params:
                     summary["skipped_invalid_fields"] += 1
+                    summary["stage_invalid_responses"] += 1
                     log(
                         f"[{index}/{len(rows)}] {display_song} | track_id={spotify_track_id} | "
-                        f"invalid_response | request_ms={elapsed_ms} | http={response.status_code}"
+                        f"invalid_response | stage={stage_name} | request_ms={elapsed_ms} | http={response.status_code}"
                     )
                     continue
 
@@ -535,7 +614,7 @@ def main() -> int:
                 log(
                     f"[{index}/{len(rows)}] {display_song} | track_id={spotify_track_id} | "
                     f"{'would_upsert' if dry_run else 'upserted'} | "
-                    f"request_ms={elapsed_ms}{extra} | http={response.status_code}"
+                    f"stage={stage_name} | request_ms={elapsed_ms}{extra} | http={response.status_code}"
                 )
 
             if args.run_until_empty:
