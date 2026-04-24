@@ -964,3 +964,41 @@ export async function getPlaysByBucketForArtist(opts = {}) {
     const [rows] = await MySQLWrapper.queryWithCache(sql, params, CACHE_TTL_6_HOURS);
     return rows;
 }
+
+/**
+ * Spotify track audio features (for radar UI). Picks a single row by `spotify_track_id`, preferring real API data.
+ *
+ * @param {{ spotifyTrackId: string }} opts
+ * @returns {Promise<Record<string, unknown> | null>}
+ */
+export async function getTrackAudioFeatures(opts = {}) {
+    const spotifyTrackId = typeof opts.spotifyTrackId === 'string' ? opts.spotifyTrackId.trim() : '';
+    if (!spotifyTrackId) {
+        return null;
+    }
+    const sql = `
+        SELECT
+            af.danceability,
+            af.energy,
+            af.loudness,
+            af.speechiness,
+            af.acousticness,
+            af.instrumentalness,
+            af.liveness,
+            af.valence,
+            af.null_response
+        FROM
+            nowplaying_spotify_track_audio_features af
+        WHERE
+            af.spotify_track_id = ?
+        ORDER BY
+            af.null_response ASC,
+            af.spotify_id DESC
+        LIMIT 1
+    `;
+    const [rows] = await MySQLWrapper.queryWithCache(sql, [spotifyTrackId], CACHE_TTL_1_HOUR);
+    if (!Array.isArray(rows) || !rows[0]) {
+        return null;
+    }
+    return rows[0];
+}

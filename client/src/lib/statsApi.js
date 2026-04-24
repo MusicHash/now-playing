@@ -231,6 +231,15 @@ export function getPlaysByBucketTrackUrl(params) {
 }
 
 /**
+ * @param {string} spotifyTrackId
+ */
+export function getTrackAudioFeaturesUrl(spotifyTrackId) {
+    const p = new URLSearchParams();
+    p.set('spotify_track_id', String(spotifyTrackId).trim());
+    return `/api/data/stats/track-audio-features?${p}`;
+}
+
+/**
  * @param {{
  *   days?: unknown,
  *   station?: string,

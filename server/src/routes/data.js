@@ -10,6 +10,7 @@ import {
     getPlaysByBucketForArtist,
     getPlaysByBucketForTrack,
     getPlaysByDay,
+    getTrackAudioFeatures,
     getPlaysByHourWeekday,
     getRecentPlays,
     getTopArtists,
@@ -209,6 +210,41 @@ export default function dataRoutes(_logger) {
                 trackId,
             });
             res.json(rows);
+        } catch (error) {
+            res.status(500).json({ error: 'Query failed', message: String(error?.message || error) });
+        }
+    });
+
+    router.get('/data/stats/track-audio-features', async (req, res) => {
+        const trackId =
+            typeof req.query.spotify_track_id === 'string' ? req.query.spotify_track_id.trim() : '';
+        if (!trackId) {
+            res.status(400).json({ error: 'spotify_track_id is required' });
+            return;
+        }
+        try {
+            const row = await getTrackAudioFeatures({ spotifyTrackId: trackId });
+            if (!row) {
+                res.json({ track: null });
+                return;
+            }
+            const n = Number(row.null_response);
+            if (n === 1) {
+                res.json({ track: null });
+                return;
+            }
+            res.json({
+                track: {
+                    danceability: row.danceability,
+                    energy: row.energy,
+                    loudness: row.loudness,
+                    speechiness: row.speechiness,
+                    acousticness: row.acousticness,
+                    instrumentalness: row.instrumentalness,
+                    liveness: row.liveness,
+                    valence: row.valence,
+                },
+            });
         } catch (error) {
             res.status(500).json({ error: 'Query failed', message: String(error?.message || error) });
         }

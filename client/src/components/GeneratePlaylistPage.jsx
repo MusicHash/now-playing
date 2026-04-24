@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import PlaysBucketChart from './PlaysBucketChart.jsx';
+import TrackAudioFeaturesRadar from './TrackAudioFeaturesRadar.jsx';
 import SpotifyEmbedPlayer from './SpotifyEmbedPlayer.jsx';
 import SpotifyConnectPlayer from './SpotifyConnectPlayer.jsx';
 import { consumeHashTokens } from '../lib/spotifyPlayerAuth.js';
@@ -31,6 +32,7 @@ import {
     getChartTracksUrl,
     getPlaysByBucketTrackUrl,
     getPlaylistTracksUrl,
+    getTrackAudioFeaturesUrl,
     getStationsUrl,
     getPlaylistMoodsUrl,
     getTrackGenresUrl,
@@ -196,6 +198,9 @@ export default function GeneratePlaylistPage() {
     const [trackPlaysAllStationsData, setTrackPlaysAllStationsData] = useState(null);
     const [trackPlaysLoading, setTrackPlaysLoading] = useState(false);
     const [trackPlaysError, setTrackPlaysError] = useState(null);
+    const [trackAudioFeatures, setTrackAudioFeatures] = useState(null);
+    const [trackAudioFeaturesLoading, setTrackAudioFeaturesLoading] = useState(false);
+    const [trackAudioFeaturesError, setTrackAudioFeaturesError] = useState(null);
     const [chartWrapRef, chartWidth] = useSidebarChartWidth();
 
     const LS_PLAYER_PREF = 'playerPreference';
@@ -281,6 +286,43 @@ export default function GeneratePlaylistPage() {
             cancelled = true;
         };
     }, [activeSpotifyTrackId, station, isChartMode]);
+
+    // --- Audio features for active track (DB) ---
+    useEffect(() => {
+        if (!activeSpotifyTrackId) {
+            setTrackAudioFeatures(null);
+            setTrackAudioFeaturesLoading(false);
+            setTrackAudioFeaturesError(null);
+            return;
+        }
+        let cancelled = false;
+        setTrackAudioFeaturesLoading(true);
+        setTrackAudioFeaturesError(null);
+        fetchJson(getTrackAudioFeaturesUrl(activeSpotifyTrackId))
+            .then((body) => {
+                if (!cancelled) {
+                    setTrackAudioFeatures(
+                        body && typeof body === 'object' && body.track != null
+                            ? /** @type {Record<string, number>} */ (body.track)
+                            : null,
+                    );
+                }
+            })
+            .catch((e) => {
+                if (!cancelled) {
+                    setTrackAudioFeaturesError(e);
+                    setTrackAudioFeatures(null);
+                }
+            })
+            .finally(() => {
+                if (!cancelled) {
+                    setTrackAudioFeaturesLoading(false);
+                }
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [activeSpotifyTrackId]);
 
     // --- Play-log mode: load playlist ---
     const loadPlaylist = useCallback(() => {
@@ -888,6 +930,62 @@ export default function GeneratePlaylistPage() {
                             chartTitle=""
                             compact
                         />
+                    )}
+
+                    {activeSpotifyTrackId && (
+                        <div style={{ marginTop: '0.85rem' }}>
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'flex-start',
+                                    justifyContent: 'space-between',
+                                    gap: '0.35rem',
+                                }}
+                            >
+                                <div>
+                                    <p
+                                        style={{
+                                            margin: '0 0 0.15rem',
+                                            fontSize: '0.72rem',
+                                            fontWeight: 600,
+                                            color: '#475569',
+                                            letterSpacing: '0.02em',
+                                        }}
+                                    >
+                                        Audio features
+                                    </p>
+                                    <p style={{ margin: 0, fontSize: '0.7rem', color: '#94a3b8' }}>
+                                        This track
+                                    </p>
+                                </div>
+                                <span
+                                    title="Spotify audio features (0–100% on each axis). Loudness uses a dB-to-percent mapping."
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        width: '1rem',
+                                        height: '1rem',
+                                        borderRadius: '50%',
+                                        border: '1px solid #cbd5e1',
+                                        color: '#94a3b8',
+                                        fontSize: '0.65rem',
+                                        fontWeight: 700,
+                                        lineHeight: 1,
+                                        flexShrink: 0,
+                                        cursor: 'help',
+                                    }}
+                                >
+                                    ?
+                                </span>
+                            </div>
+                            <TrackAudioFeaturesRadar
+                                data={trackAudioFeatures}
+                                width={chartWidth}
+                                loading={trackAudioFeaturesLoading}
+                                error={trackAudioFeaturesError}
+                            />
+                        </div>
                     )}
                 </div>
             </div>
