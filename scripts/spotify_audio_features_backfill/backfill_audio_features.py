@@ -93,14 +93,21 @@ REQUIRED_API_FIELDS = (
 # Obfuscated host/path prefix (base64, no scheme in source).
 _SG_HOST_PREFIX_B64 = "c29uZ2RhdGEuaW8vdHJhY2sv"
 SG_STAGE = "sg"
+_TB_HOST_PREFIX_B64 = "dHVuZWJhdC5jb20vSW5mby9hLw=="
+TB_STAGE = "tb"
 # Chrome proxy (e.g. server/proxies/chrome_proxy.py) — fetch with ?url= to bypass Cloudflare.
 DEFAULT_CHROME_PROXY_URL = "http://127.0.0.1:50015"
-DEFAULT_STAGE_PATHS = ("huggingface", "kaggle", SG_STAGE)
+DEFAULT_STAGE_PATHS = ("huggingface", "kaggle", SG_STAGE, TB_STAGE)
 
 
 def _sg_track_page_url(spotify_track_id: str) -> str:
     host_prefix = base64.b64decode(_SG_HOST_PREFIX_B64).decode("ascii")
     return f"https://{host_prefix}{spotify_track_id}/"
+
+
+def _tb_track_page_url(spotify_track_id: str) -> str:
+    host_prefix = base64.b64decode(_TB_HOST_PREFIX_B64).decode("ascii")
+    return f"https://{host_prefix}{spotify_track_id}"
 
 
 def log(message: str) -> None:
@@ -458,6 +465,163 @@ def fetch_sg_via_chrome_proxy(
         }
 
 
+# Tunebat: progress labels map to API fields; "happiness" is valence (0-100 in UI).
+_TB_LABEL_TO_FIELD: dict[str, str] = {
+    "popularity": "popularity",
+    "energy": "energy",
+    "danceability": "danceability",
+    "happiness": "valence",
+    "acousticness": "acousticness",
+    "instrumentalness": "instrumentalness",
+    "liveness": "liveness",
+    "speechiness": "speechiness",
+    "loudness": "loudness",
+}
+
+
+def _tb_value_from_title(title: str, field: str) -> Any:
+    t = (title or "").strip()
+    if field == "loudness":
+        v = _parse_loudness_db(t)
+        return v
+    m = re.search(r"(-?\d+(?:\.\d+)?)", t)
+    if not m:
+        return None
+    v = float(m.group(1))
+    if field == "popularity":
+        return int(round(max(0.0, min(100.0, v))))
+    return max(0.0, min(1.0, v / 100.0))
+
+
+def tb_html_to_api_body(html: str, spotify_track_id: str) -> Optional[Dict[str, Any]]:
+    if not html or "Just a moment" in html or "challenges.cloudflare" in html:
+        return None
+    if re.search(r"something went wrong", html, re.I):
+        return None
+    low = html.lower()
+    if f"open.spotify.com/track/{spotify_track_id.lower()}" not in low.replace(" ", ""):
+        return None
+
+    km = re.search(
+        r'<h3 class="ant-typography">([^<]+)</h3>\s*'
+        r'<span class="ant-typography ant-typography-secondary">key</span>',
+        html,
+        re.I,
+    )
+    bpm_m = re.search(
+        r'<h3 class="ant-typography">(\d+(?:\.\d+)?)</h3>\s*'
+        r'<span class="ant-typography ant-typography-secondary">BPM</span>',
+        html,
+        re.I,
+    )
+    dur_m = re.search(
+        r'<h3 class="ant-typography">(\d{1,2}):(\d{2})</h3>\s*'
+        r'<span class="ant-typography ant-typography-secondary">duration</span>',
+        html,
+        re.I,
+    )
+    if not (km and bpm_m and dur_m):
+        return None
+    key_s, tempo_s = km.group(1), bpm_m.group(1)
+    try:
+        tempo = float(re.sub(r"[^\d.]", "", tempo_s) or 0.0)
+    except ValueError:
+        return None
+    if tempo <= 0.0:
+        return None
+    key_n, mode_n = _sg_parse_key_mode(key_s)
+    if key_n is None or mode_n is None:
+        return None
+    minutes, seconds = int(dur_m.group(1)), int(dur_m.group(2))
+    if minutes > 90 or seconds > 59:
+        return None
+    duration_ms = (minutes * 60 + seconds) * 1000
+    if duration_ms < 1000:
+        return None
+
+    start = html.find('class="dr-ag"')
+    if start == -1:
+        return None
+    end = html.find("Recommendations for Harmonic", start)
+    if end == -1:
+        end = start + 500_000
+    chunk = html[start:end]
+    pairs = re.findall(
+        r'<span class="ant-progress-text" title="([^"]*)"[^>]*>[\s\S]*?'
+        r'<span class="ant-typography fd89q">([^<]+)</span>',
+        chunk,
+    )
+    by_api: Dict[str, Any] = {}
+    for title_attr, label_text in pairs:
+        lab = (label_text or "").strip().lower()
+        field = _TB_LABEL_TO_FIELD.get(lab)
+        if not field:
+            continue
+        val = _tb_value_from_title(title_attr, field)
+        if val is None:
+            return None
+        by_api[field] = val
+
+    need = set(_TB_LABEL_TO_FIELD.values())
+    if need != set(by_api.keys()):
+        return None
+
+    out: Dict[str, Any] = {
+        "id": spotify_track_id,
+        "popularity": by_api["popularity"],
+        "null_response": 0,
+        "duration_ms": duration_ms,
+        "time_signature": 4,
+        "key": key_n,
+        "mode": mode_n,
+        "tempo": tempo,
+        "loudness": by_api["loudness"],
+        "danceability": by_api["danceability"],
+        "energy": by_api["energy"],
+        "speechiness": by_api["speechiness"],
+        "acousticness": by_api["acousticness"],
+        "instrumentalness": by_api["instrumentalness"],
+        "liveness": by_api["liveness"],
+        "valence": by_api["valence"],
+    }
+    return out
+
+
+def fetch_tb_via_chrome_proxy(
+    chrome_proxy_url: str,
+    spotify_track_id: str,
+    timeout_seconds: int,
+) -> Dict[str, Any]:
+    target = _tb_track_page_url(spotify_track_id)
+    full_url = f"{chrome_proxy_url.rstrip('/')}/?url={quote(target, safe='')}"
+    started_at = time.perf_counter()
+    try:
+        response = requests.get(
+            full_url,
+            headers={"Accept": "text/html,application/json;q=0.9,*/*;q=0.8"},
+            timeout=timeout_seconds,
+        )
+        elapsed_ms = int((time.perf_counter() - started_at) * 1000)
+        text = response.text
+        body = tb_html_to_api_body(text, spotify_track_id) if text else None
+        return {
+            "response": response,
+            "json": body,
+            "elapsed_ms": elapsed_ms,
+            "error": None,
+            "stage": TB_STAGE,
+        }
+    except requests.RequestException as exc:
+        elapsed_ms = int((time.perf_counter() - started_at) * 1000)
+        return {
+            "response": None,
+            "json": None,
+            "elapsed_ms": elapsed_ms,
+            "error": str(exc),
+            "stage": TB_STAGE,
+        }
+
+
 def fetch_audio_features_json(
     base_url: str,
     stage_path: str,
@@ -518,6 +682,14 @@ def iter_fetch_results(
                 if not chrome_proxy_url:
                     raise RuntimeError("sg stage requires --chrome-proxy-url or CHROME_PROXY_URL")
                 stage_result = fetch_sg_via_chrome_proxy(
+                    chrome_proxy_url=chrome_proxy_url,
+                    spotify_track_id=spotify_track_id,
+                    timeout_seconds=timeout_seconds,
+                )
+            elif stage_name == TB_STAGE:
+                if not chrome_proxy_url:
+                    raise RuntimeError("tb stage requires --chrome-proxy-url or CHROME_PROXY_URL")
+                stage_result = fetch_tb_via_chrome_proxy(
                     chrome_proxy_url=chrome_proxy_url,
                     spotify_track_id=spotify_track_id,
                     timeout_seconds=timeout_seconds,
@@ -651,8 +823,8 @@ def parse_args() -> argparse.Namespace:
         default=",".join(DEFAULT_STAGE_PATHS),
         help=(
             "Comma-separated sources to try in order: API stages huggingface and kaggle use "
-            "SPOTIFY_AUDIO_FEATURES_API_URL; the sg stage (HTML via chrome proxy / ?url=) is the third "
-            f"default fallback. Example: 'huggingface,kaggle,{SG_STAGE}' (default)."
+            "SPOTIFY_AUDIO_FEATURES_API_URL; sg and tb are HTML fallbacks (chrome proxy / ?url=) after "
+            f"the JSON APIs. Example: 'huggingface,kaggle,{SG_STAGE},{TB_STAGE}' (default)."
         ),
     )
     parser.add_argument(
@@ -660,7 +832,7 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help=(
             "Base URL of chrome_proxy.py (GET /?url=...). "
-            f"Default env CHROME_PROXY_URL or {DEFAULT_CHROME_PROXY_URL} when the sg stage is enabled."
+            f"Default env CHROME_PROXY_URL or {DEFAULT_CHROME_PROXY_URL} when sg and/or tb is enabled."
         ),
     )
     parser.add_argument(
@@ -707,12 +879,12 @@ def main() -> int:
         raise RuntimeError("--stage-paths must include at least one stage path")
 
     chrome_proxy_url: Optional[str] = None
-    if SG_STAGE in stage_paths:
+    if SG_STAGE in stage_paths or TB_STAGE in stage_paths:
         chrome_proxy_url = (
             (args.chrome_proxy_url or os.environ.get("CHROME_PROXY_URL") or DEFAULT_CHROME_PROXY_URL)
         ).strip()
         if not chrome_proxy_url:
-            raise RuntimeError("sg stage needs a non-empty --chrome-proxy-url or CHROME_PROXY_URL")
+            raise RuntimeError("sg/tb stage needs a non-empty --chrome-proxy-url or CHROME_PROXY_URL")
 
     conn = mysql_connect(mysql_uri)
 
