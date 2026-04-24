@@ -507,12 +507,12 @@ def _tb_value_from_title(title: str, field: str) -> Any:
     return max(0.0, min(1.0, v / 100.0))
 
 
-def tb_html_to_api_body(html: str, spotify_track_id: str) -> Optional[Dict[str, Any]]:
-    if not html or "Just a moment" in html or "challenges.cloudflare" in html:
+def tb_html_to_api_body(page_html: str, spotify_track_id: str) -> Optional[Dict[str, Any]]:
+    if not page_html or "Just a moment" in page_html or "challenges.cloudflare" in page_html:
         return None
-    if re.search(r"something went wrong", html, re.I):
+    if re.search(r"something went wrong", page_html, re.I):
         return None
-    h_dec = html.unescape(html)
+    h_dec = html.unescape(page_html)
     tid = spotify_track_id.lower()
     if not _tb_page_has_spotify_track(h_dec, tid):
         return None
@@ -520,19 +520,19 @@ def tb_html_to_api_body(html: str, spotify_track_id: str) -> Optional[Dict[str, 
     km = re.search(
         r'<h3 class="ant-typography">([^<]+)</h3>\s*'
         r'<span class="ant-typography ant-typography-secondary">key</span>',
-        html,
+        page_html,
         re.I,
     )
     bpm_m = re.search(
         r'<h3 class="ant-typography">(\d+(?:\.\d+)?)</h3>\s*'
         r'<span class="ant-typography ant-typography-secondary">BPM</span>',
-        html,
+        page_html,
         re.I,
     )
     dur_m = re.search(
         r'<h3 class="ant-typography">(\d{1,2}):(\d{2})</h3>\s*'
         r'<span class="ant-typography ant-typography-secondary">duration</span>',
-        html,
+        page_html,
         re.I,
     )
     if not (km and bpm_m and dur_m):
@@ -554,14 +554,14 @@ def tb_html_to_api_body(html: str, spotify_track_id: str) -> Optional[Dict[str, 
     if duration_ms < 1000:
         return None
 
-    m_chunk = re.search(r'class="dr-ag"', html, re.I)
+    m_chunk = re.search(r'class="dr-ag"', page_html, re.I)
     if not m_chunk:
         return None
     start = m_chunk.start()
-    end = html.find("Recommendations for Harmonic", start)
+    end = page_html.find("Recommendations for Harmonic", start)
     if end == -1:
         end = start + 500_000
-    chunk = html[start:end]
+    chunk = page_html[start:end]
     pairs = re.findall(
         r'<span class="ant-progress-text" title="([^"]*)"[^>]*>[\s\S]*?'
         r'<span class="ant-typography fd89q">([^<]+)</span>',
