@@ -1,16 +1,20 @@
 {
   "name": "now-playing-monorepo",
   "private": true,
-  "workspaces": ["server", "client", "stream-recognizer"],
+  "workspaces": [
+    "server",
+    "client",
+    "stream-recognizer"
+  ],
   "scripts": {
     "start": "npm start -w server",
     "dev:server": "npm run debug -w server",
     "dev:client": "npm run dev -w client",
     "build:client": "npm run build -w client",
     "test": "npm test -w server",
-    "backfill:spotify-audio-features": "python3 ./scripts/spotify_audio_features_backfill/backfill_audio_features.py",
-    "backfill:spotify-release-dates": "python3 ./scripts/spotify_release_dates_backfill/backfill_dates.py",
-    "backfill:spotify-track-genres-kaggle": "python3 ./scripts/spotify_audio_features_backfill/backfill_track_genres_kaggle.py",
-    "backfill:lastfm-genres": "python3 ./scripts/spotify_audio_features_backfill/backfill_lastfm_genres.py"
+    "backfill:spotify-audio-features": "screen -dmS spotify-audio-features python3 scripts/spotify_audio_features_backfill/backfill_audio_features.py --stage-paths huggingface,kaggle,sg,tb --run-until-empty",
+    "backfill:spotify-release-dates": "screen -dmS spotify-release-dates python3 ./scripts/spotify_release_dates_backfill/backfill_dates.py",
+    "backfill:spotify-track-genres-kaggle": "screen -dmS spotify-track-genres-kaggle python3 ./scripts/spotify_audio_features_backfill/backfill_track_genres_kaggle.py",
+    "backfill:lastfm-genres": "screen -dmS lastfm-genres python3 ./scripts/spotify_audio_features_backfill/backfill_lastfm_genres.py"
   }
 }
