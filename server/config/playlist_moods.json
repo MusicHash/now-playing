@@ -1,0 +1,70 @@
+{
+  "moods": [
+    {
+      "id": "happy",
+      "label": "Happy / uplifting",
+      "filters": {
+        "valence": { "min": 0.65 },
+        "energy": { "min": 0.4 }
+      }
+    },
+    {
+      "id": "sad",
+      "label": "Sad / melancholic",
+      "filters": {
+        "valence": { "max": 0.38 },
+        "energy": { "max": 0.55 }
+      }
+    },
+    {
+      "id": "chill",
+      "label": "Chill / relaxed",
+      "filters": {
+        "energy": { "max": 0.48 },
+        "valence": { "min": 0.32 }
+      }
+    },
+    {
+      "id": "intense",
+      "label": "Intense / dark energy",
+      "filters": {
+        "energy": { "min": 0.68 },
+        "valence": { "max": 0.42 }
+      }
+    },
+    {
+      "id": "dance",
+      "label": "Dance / club",
+      "filters": {
+        "danceability": { "min": 0.62 },
+        "energy": { "min": 0.55 }
+      }
+    },
+    {
+      "id": "romantic",
+      "label": "Soft / intimate",
+      "filters": {
+        "valence": { "min": 0.42, "max": 0.72 },
+        "energy": { "min": 0.22, "max": 0.58 },
+        "acousticness": { "min": 0.22 }
+      }
+    },
+    {
+      "id": "focus",
+      "label": "Focus / instrumental",
+      "filters": {
+        "instrumentalness": { "min": 0.45 },
+        "speechiness": { "max": 0.09 },
+        "energy": { "max": 0.68 }
+      }
+    },
+    {
+      "id": "acoustic",
+      "label": "Acoustic / unplugged",
+      "filters": {
+        "acousticness": { "min": 0.52 },
+        "energy": { "max": 0.62 }
+      }
+    }
+  ]
+}

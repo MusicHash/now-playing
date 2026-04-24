@@ -10,6 +10,7 @@ import {
     parsePlaylistIndex,
     parsePlaylistMode,
     parsePlaylistGenre,
+    parsePlaylistMood,
     parsePlaylistRun,
     parsePlaylistSort,
     parsePlayType,
@@ -135,6 +136,11 @@ function titlePlaylist(sp) {
     const genre = parsePlaylistGenre(sp);
     if (genre) {
         parts.push(truncateLabel(genre, 28));
+    }
+
+    const mood = parsePlaylistMood(sp);
+    if (mood) {
+        parts.push(truncateLabel(mood, 24));
     }
 
     const days = parseDays(sp);

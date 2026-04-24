@@ -52,6 +52,18 @@ export function parsePlaylistGenre(sp) {
 
 /**
  * @param {URLSearchParams} sp
+ * @returns {string} Mood id (lowercase slug), or '' when unset (no filter).
+ */
+export function parsePlaylistMood(sp) {
+    const m = sp.get('mood');
+    if (typeof m !== 'string') {
+        return '';
+    }
+    return m.trim().toLowerCase();
+}
+
+/**
+ * @param {URLSearchParams} sp
  * @returns {typeof MOMENTUM_DIRECTION_UP | typeof MOMENTUM_DIRECTION_DOWN}
  */
 export function parseMomentum(sp) {
@@ -259,6 +271,7 @@ const PLAYLIST_INDEX_KEYS = [
     'station',
     'sort',
     'genre',
+    'mood',
     'mode',
     'chart',
     'week',
@@ -289,6 +302,7 @@ export function parsePlaylistIndex(sp) {
  *   station?: string,
  *   sort?: typeof PLAYLIST_SORT_PLAY_COUNT | typeof PLAYLIST_SORT_RECENT,
  *   genre?: string | null,
+ *   mood?: string | null,
  *   run?: boolean | null,
  *   mode?: typeof PLAYLIST_MODE_PLAYLOG | typeof PLAYLIST_MODE_CHART,
  *   chart?: string,
@@ -322,6 +336,14 @@ export function patchPlaylistState(base, patch) {
             next.set('genre', g);
         } else {
             next.delete('genre');
+        }
+    }
+    if (patch.mood !== undefined) {
+        const m = typeof patch.mood === 'string' ? patch.mood.trim().toLowerCase() : '';
+        if (m) {
+            next.set('mood', m);
+        } else {
+            next.delete('mood');
         }
     }
     if (patch.run !== undefined && patch.run !== null) {

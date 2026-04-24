@@ -1,13 +1,14 @@
 import MySQLWrapper from '../../utils/mysql_wrapper.js';
 import logger from '../../utils/logger.js';
+import { moodExistsClause } from '../playlist_moods.js';
 
 const TABLE = 'nowplaying_chart_log';
 
 const MS_PER_DAY = 86400000;
 
 /**
- * @param {{ genre?: string }} opts
- * @returns {{ sql: string, params: string[] }}
+ * @param {{ genre?: string, mood?: string }} opts
+ * @returns {{ sql: string, params: unknown[] }}
  */
 function chartGenreExistsClause(opts) {
     const g = typeof opts.genre === 'string' ? opts.genre.trim() : '';
@@ -141,17 +142,20 @@ async function getLatestChartEntries(chartId) {
  */
 async function getChartEntries(chartId, yearWeek, opts = {}) {
     const { sql: genreSql, params: genreParams } = chartGenreExistsClause(opts);
+    const { sql: moodSql, params: moodParams } = moodExistsClause('t', opts);
+    const entryFilterSql = `${genreSql}${moodSql}`;
+    const entryFilterParams = [...genreParams, ...moodParams];
     const weekClause = yearWeek
         ? `c.chart_year_week = ?`
         : `c.chart_year_week = (SELECT MAX(chart_year_week) FROM \`${TABLE}\` WHERE chart_id = ?)`;
-    const params = [chartId, yearWeek || chartId, ...genreParams];
+    const params = [chartId, yearWeek || chartId, ...entryFilterParams];
 
     const [rows] = await MySQLWrapper.queryWithCache(
         `SELECT c.chart_position, c.chart_year_week, c.entry_artist, c.entry_title, c.entry_extra, ` +
         `c.spotify_id, t.spotify_track_id, t.spotify_isrc ` +
         `FROM \`${TABLE}\` c ` +
         `LEFT JOIN \`nowplaying_spotify_tracks\` t ON c.spotify_id = t.spotify_id ` +
-        `WHERE c.chart_id = ? AND ${weekClause}${genreSql} ` +
+        `WHERE c.chart_id = ? AND ${weekClause}${entryFilterSql} ` +
         `ORDER BY c.chart_position ASC`,
         params,
         300,
@@ -167,9 +171,9 @@ async function getChartEntries(chartId, yearWeek, opts = {}) {
         `LEFT JOIN \`nowplaying_spotify_tracks\` t ON c.spotify_id = t.spotify_id ` +
         `WHERE c.chart_id = ? AND c.chart_year_week = ` +
         `(SELECT MAX(chart_year_week) FROM \`${TABLE}\` WHERE chart_id = ? AND chart_year_week < ?)` +
-        `${genreSql} ` +
+        `${entryFilterSql} ` +
         `ORDER BY c.chart_position ASC`,
-        [chartId, chartId, resolvedWeek, ...genreParams],
+        [chartId, chartId, resolvedWeek, ...entryFilterParams],
         300,
     );
 

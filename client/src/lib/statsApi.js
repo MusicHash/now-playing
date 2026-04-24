@@ -104,6 +104,10 @@ export function getTrackGenresUrl() {
     return '/api/data/track-genres';
 }
 
+export function getPlaylistMoodsUrl() {
+    return '/api/data/playlist-moods';
+}
+
 /**
  * @param {{ days?: unknown, station?: string }} params
  */
@@ -190,6 +194,7 @@ export function getTopArtistsMomentumUrl(params) {
  *   station?: string,
  *   sort?: typeof PLAYLIST_SORT_PLAY_COUNT | typeof PLAYLIST_SORT_RECENT,
  *   genre?: string,
+ *   mood?: string,
  * }} params
  */
 export function getPlaylistTracksUrl(params) {
@@ -199,6 +204,9 @@ export function getPlaylistTracksUrl(params) {
     p.set('sort', sort);
     if (typeof params.genre === 'string' && params.genre.trim()) {
         p.set('genre', params.genre.trim());
+    }
+    if (typeof params.mood === 'string' && params.mood.trim()) {
+        p.set('mood', params.mood.trim().toLowerCase());
     }
     return `/api/data/stats/playlist-tracks?${p}`;
 }
@@ -242,7 +250,7 @@ export function getPlaysByBucketArtistUrl(params) {
 }
 
 /**
- * @param {{ chart: string, week?: number | null, genre?: string }} params
+ * @param {{ chart: string, week?: number | null, genre?: string, mood?: string }} params
  */
 export function getChartTracksUrl(params) {
     const p = new URLSearchParams();
@@ -252,6 +260,9 @@ export function getChartTracksUrl(params) {
     }
     if (typeof params.genre === 'string' && params.genre.trim()) {
         p.set('genre', params.genre.trim());
+    }
+    if (typeof params.mood === 'string' && params.mood.trim()) {
+        p.set('mood', params.mood.trim().toLowerCase());
     }
     return `/api/data/chart-tracks?${p}`;
 }

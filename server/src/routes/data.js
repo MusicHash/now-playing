@@ -20,6 +20,7 @@ import {
 } from '../lib/query_log/stats_queries.js';
 import { getChartEntries, getAvailableWeeks } from '../lib/query_log/chart_log.js';
 import { getTrackGenreLabels } from '../lib/track_genres.js';
+import { getPlaylistMoodsForApi } from '../lib/playlist_moods.js';
 
 function requireMysql(_req, res, next) {
     if (!MySQLWrapper.isEnabled()) {
@@ -68,6 +69,14 @@ export default function dataRoutes(_logger) {
             res.json({ genres: getTrackGenreLabels() });
         } catch (error) {
             res.status(500).json({ error: 'Failed to load genres', message: String(error?.message || error) });
+        }
+    });
+
+    router.get('/data/playlist-moods', (_req, res) => {
+        try {
+            res.json({ moods: getPlaylistMoodsForApi() });
+        } catch (error) {
+            res.status(500).json({ error: 'Failed to load moods', message: String(error?.message || error) });
         }
     });
 
@@ -122,10 +131,12 @@ export default function dataRoutes(_logger) {
             const sort =
                 typeof req.query.sort === 'string' ? req.query.sort : undefined;
             const genreRaw = typeof req.query.genre === 'string' ? req.query.genre.trim() : '';
+            const moodRaw = typeof req.query.mood === 'string' ? req.query.mood.trim().toLowerCase() : '';
             const rows = await getPlaylistTracks({
                 ...q,
                 sort,
                 ...(genreRaw ? { genre: genreRaw } : {}),
+                ...(moodRaw ? { mood: moodRaw } : {}),
             });
             res.json(rows);
         } catch (error) {
@@ -237,7 +248,15 @@ export default function dataRoutes(_logger) {
             return;
         }
         const genreRaw = typeof req.query.genre === 'string' ? req.query.genre.trim() : '';
-        const chartOpts = genreRaw ? { genre: genreRaw } : {};
+        const moodRaw = typeof req.query.mood === 'string' ? req.query.mood.trim().toLowerCase() : '';
+        /** @type {{ genre?: string, mood?: string }} */
+        const chartOpts = {};
+        if (genreRaw) {
+            chartOpts.genre = genreRaw;
+        }
+        if (moodRaw) {
+            chartOpts.mood = moodRaw;
+        }
         try {
             const [tracks, availableWeeks] = await Promise.all([
                 getChartEntries(chart, week, chartOpts),

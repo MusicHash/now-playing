@@ -11,6 +11,7 @@ import {
     parseDevice,
     parseLimit,
     parsePlaylistGenre,
+    parsePlaylistMood,
     parsePlaylistIndex,
     parsePlaylistMode,
     parsePlaylistRun,
@@ -31,6 +32,7 @@ import {
     getPlaysByBucketTrackUrl,
     getPlaylistTracksUrl,
     getStationsUrl,
+    getPlaylistMoodsUrl,
     getTrackGenresUrl,
     MAX_STATS_DAYS,
     MAX_STATS_LIMIT,
@@ -151,6 +153,8 @@ export default function GeneratePlaylistPage() {
     const [stationOptions, setStationOptions] = useState([]);
     const [chartOptions, setChartOptions] = useState([]);
     const [genreOptions, setGenreOptions] = useState([]);
+    /** @type {Array<{ id: string, label: string }>} */
+    const [moodOptions, setMoodOptions] = useState([]);
 
     const mode = useMemo(() => parsePlaylistMode(searchParams), [searchParams]);
     const isChartMode = mode === PLAYLIST_MODE_CHART;
@@ -159,6 +163,7 @@ export default function GeneratePlaylistPage() {
     const limit = useMemo(() => parseLimit(searchParams), [searchParams]);
     const station = useMemo(() => parseStation(searchParams), [searchParams]);
     const genre = useMemo(() => parsePlaylistGenre(searchParams), [searchParams]);
+    const mood = useMemo(() => parsePlaylistMood(searchParams), [searchParams]);
     const sort = useMemo(() => parsePlaylistSort(searchParams), [searchParams]);
     const runFlag = useMemo(() => parsePlaylistRun(searchParams), [searchParams]);
 
@@ -289,6 +294,7 @@ export default function GeneratePlaylistPage() {
             station: station || undefined,
             sort,
             genre: genre || undefined,
+            mood: mood || undefined,
         });
         fetchJson(url)
             .then((rows) => {
@@ -306,14 +312,14 @@ export default function GeneratePlaylistPage() {
             .finally(() => {
                 setLoading(false);
             });
-    }, [days, limit, station, sort, genre]);
+    }, [days, limit, station, sort, genre, mood]);
 
     useEffect(() => {
         if (isChartMode || !runFlag) {
             return;
         }
         loadPlaylist();
-    }, [isChartMode, runFlag, days, limit, station, sort, genre, loadPlaylist]);
+    }, [isChartMode, runFlag, days, limit, station, sort, genre, mood, loadPlaylist]);
 
     // --- Chart mode: load chart tracks ---
     const loadChart = useCallback(
@@ -321,7 +327,14 @@ export default function GeneratePlaylistPage() {
             if (!chart) return;
             setLoading(true);
             setError(null);
-            fetchJson(getChartTracksUrl({ chart, week, genre: genre || undefined }))
+            fetchJson(
+                getChartTracksUrl({
+                    chart,
+                    week,
+                    genre: genre || undefined,
+                    mood: mood || undefined,
+                }),
+            )
                 .then((body) => {
                     const rows = Array.isArray(body.tracks) ? body.tracks : [];
                     setTracks(
@@ -348,7 +361,7 @@ export default function GeneratePlaylistPage() {
                     setLoading(false);
                 });
         },
-        [genre],
+        [genre, mood],
     );
 
     useEffect(() => {
@@ -358,8 +371,12 @@ export default function GeneratePlaylistPage() {
 
     // --- Fetch station + chart options on mount ---
     useEffect(() => {
-        Promise.all([fetchJson(getStationsUrl()), fetchJson(getTrackGenresUrl())])
-            .then(([body, genresBody]) => {
+        Promise.all([
+            fetchJson(getStationsUrl()),
+            fetchJson(getTrackGenresUrl()),
+            fetchJson(getPlaylistMoodsUrl()),
+        ])
+            .then(([body, genresBody, moodsBody]) => {
                 setStationOptions(mergeStationIds([], body.logged));
                 if (Array.isArray(body.charts)) {
                     setChartOptions(body.charts);
@@ -369,11 +386,17 @@ export default function GeneratePlaylistPage() {
                 } else {
                     setGenreOptions([]);
                 }
+                if (Array.isArray(moodsBody.moods)) {
+                    setMoodOptions(moodsBody.moods);
+                } else {
+                    setMoodOptions([]);
+                }
             })
             .catch(() => {
                 setStationOptions([]);
                 setChartOptions([]);
                 setGenreOptions([]);
+                setMoodOptions([]);
             });
     }, []);
 
@@ -471,6 +494,7 @@ export default function GeneratePlaylistPage() {
     const setLimit = useCallback((n) => patch({ limit: clampInt(n, DEFAULT_STATS_LIMIT, MAX_STATS_LIMIT) }), [patch]);
     const setStation = useCallback((s) => patch({ station: s }), [patch]);
     const setGenreParam = useCallback((g) => patch({ genre: g ? g : null }), [patch]);
+    const setMoodParam = useCallback((m) => patch({ mood: m ? m : null }), [patch]);
     const setSort = useCallback(
         (s) => patch({ sort: s === PLAYLIST_SORT_RECENT ? PLAYLIST_SORT_RECENT : PLAYLIST_SORT_PLAY_COUNT }),
         [patch],
@@ -488,6 +512,8 @@ export default function GeneratePlaylistPage() {
     }, [runFlag, loadPlaylist, patch]);
 
     const genreOrphan = Boolean(genre && !genreOptions.includes(genre));
+    const moodIds = useMemo(() => moodOptions.map((x) => x.id), [moodOptions]);
+    const moodOrphan = Boolean(mood && !moodIds.includes(mood));
 
     // --- Week stepper helpers ---
     const weekIndex = availableWeeks.indexOf(currentWeek);
@@ -553,6 +579,28 @@ export default function GeneratePlaylistPage() {
                         {genreOptions.map((g) => (
                             <option key={g} value={g}>
                                 {g}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div style={fieldStyle}>
+                    <label htmlFor="gp-mood" style={labelStyle}>
+                        Mood
+                    </label>
+                    <select
+                        id="gp-mood"
+                        value={mood}
+                        onChange={(e) => setMoodParam(e.target.value)}
+                        style={{ ...inputStyle, minWidth: '100%' }}
+                    >
+                        <option value="">All moods</option>
+                        {moodOrphan ? (
+                            <option value={mood}>{mood}</option>
+                        ) : null}
+                        {moodOptions.map((opt) => (
+                            <option key={opt.id} value={opt.id}>
+                                {opt.label}
                             </option>
                         ))}
                     </select>
