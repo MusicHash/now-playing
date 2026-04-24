@@ -509,6 +509,7 @@ def iter_fetch_results(
 
     def fetch_one(index: int, row: Dict[str, Any]) -> tuple[int, Dict[str, Any]]:
         spotify_track_id = str(row["spotify_track_id"] or "").strip()
+        spotify_id = int(row["spotify_id"])
         stage_results: list[Dict[str, Any]] = []
 
         for stage_path in stage_paths:
@@ -538,7 +539,13 @@ def iter_fetch_results(
                 continue
 
             if response.ok:
-                if stage_name == SG_STAGE and not stage_result.get("json"):
+                payload = stage_result.get("json")
+                if not upsert_params_from_api_body(payload, spotify_id, spotify_track_id):
+                    stage_result["invalid_payload"] = True
+                    log(
+                        f"[{index + 1}] track_id={spotify_track_id} | "
+                        f"invalid_response | stage={stage_name} | http={response.status_code} | next_stage"
+                    )
                     continue
                 return index, {
                     "final_result": stage_result,
@@ -555,8 +562,16 @@ def iter_fetch_results(
                 "status": "http_error",
             }
 
+        last = stage_results[-1]
+        last_response = last.get("response")
+        if last_response is not None and last_response.ok and last.get("invalid_payload"):
+            return index, {
+                "final_result": last,
+                "stage_results": stage_results,
+                "status": "all_payloads_invalid",
+            }
         return index, {
-            "final_result": stage_results[-1] if stage_results else None,
+            "final_result": last,
             "stage_results": stage_results,
             "status": "all_stages_missed",
         }
@@ -783,6 +798,8 @@ def main() -> int:
 
                 summary["stage_attempts"] += len(stage_results)
                 for stage_result in stage_results:
+                    if stage_result.get("invalid_payload"):
+                        summary["stage_invalid_responses"] += 1
                     stage_error = stage_result.get("error")
                     stage_response = stage_result.get("response")
                     if stage_error:
@@ -795,6 +812,15 @@ def main() -> int:
                         summary["stage_404s"] += 1
                     elif not stage_response.ok:
                         summary["stage_http_errors"] += 1
+
+                if status == "all_payloads_invalid":
+                    summary["skipped_invalid_fields"] += 1
+                    log(
+                        f"[{index}/{len(rows)}] {display_song} | track_id={spotify_track_id} | "
+                        f"all_stages_invalid_response | "
+                        f"stages_tried={','.join([str(x.get('stage') or '?') for x in stage_results])}"
+                    )
+                    continue
 
                 if status == "all_stages_missed":
                     summary["skipped_not_found"] += 1
