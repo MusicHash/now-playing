@@ -44,6 +44,7 @@ import {
     PLAYLIST_SORT_PLAY_COUNT,
     PLAYLIST_SORT_RECENT,
 } from '../lib/statsApi.js';
+import { parsePlaylistDecades, PLAYLIST_DECADE_OPTIONS } from '../lib/releaseDecades.js';
 
 /** Plays-over-time chart always uses this window; not tied to ?days (playlist controls). */
 const PLAYLIST_TRACK_PLAYS_DAYS = 90;
@@ -166,6 +167,7 @@ export default function GeneratePlaylistPage() {
     const station = useMemo(() => parseStation(searchParams), [searchParams]);
     const genre = useMemo(() => parsePlaylistGenre(searchParams), [searchParams]);
     const mood = useMemo(() => parsePlaylistMood(searchParams), [searchParams]);
+    const decades = useMemo(() => parsePlaylistDecades(searchParams), [searchParams]);
     const sort = useMemo(() => parsePlaylistSort(searchParams), [searchParams]);
     const runFlag = useMemo(() => parsePlaylistRun(searchParams), [searchParams]);
 
@@ -337,6 +339,7 @@ export default function GeneratePlaylistPage() {
             sort,
             genre: genre || undefined,
             mood: mood || undefined,
+            decades: decades.length > 0 ? decades : undefined,
         });
         fetchJson(url)
             .then((rows) => {
@@ -354,14 +357,14 @@ export default function GeneratePlaylistPage() {
             .finally(() => {
                 setLoading(false);
             });
-    }, [days, limit, station, sort, genre, mood]);
+    }, [days, limit, station, sort, genre, mood, decades]);
 
     useEffect(() => {
         if (isChartMode || !runFlag) {
             return;
         }
         loadPlaylist();
-    }, [isChartMode, runFlag, days, limit, station, sort, genre, mood, loadPlaylist]);
+    }, [isChartMode, runFlag, days, limit, station, sort, genre, mood, decades, loadPlaylist]);
 
     // --- Chart mode: load chart tracks ---
     const loadChart = useCallback(
@@ -375,6 +378,7 @@ export default function GeneratePlaylistPage() {
                     week,
                     genre: genre || undefined,
                     mood: mood || undefined,
+                    decades: decades.length > 0 ? decades : undefined,
                 }),
             )
                 .then((body) => {
@@ -403,7 +407,7 @@ export default function GeneratePlaylistPage() {
                     setLoading(false);
                 });
         },
-        [genre, mood],
+        [genre, mood, decades],
     );
 
     useEffect(() => {
@@ -537,6 +541,12 @@ export default function GeneratePlaylistPage() {
     const setStation = useCallback((s) => patch({ station: s }), [patch]);
     const setGenreParam = useCallback((g) => patch({ genre: g ? g : null }), [patch]);
     const setMoodParam = useCallback((m) => patch({ mood: m ? m : null }), [patch]);
+    const setDecadesParam = useCallback(
+        (nextIds) => {
+            patch({ decades: nextIds.length > 0 ? nextIds : null });
+        },
+        [patch],
+    );
     const setSort = useCallback(
         (s) => patch({ sort: s === PLAYLIST_SORT_RECENT ? PLAYLIST_SORT_RECENT : PLAYLIST_SORT_PLAY_COUNT }),
         [patch],
@@ -646,6 +656,61 @@ export default function GeneratePlaylistPage() {
                             </option>
                         ))}
                     </select>
+                </div>
+
+                <div style={fieldStyle}>
+                    <details
+                        style={{ width: '100%' }}
+                    >
+                        <summary
+                            style={{
+                                ...labelStyle,
+                                cursor: 'pointer',
+                                listStyle: 'none',
+                            }}
+                        >
+                            Decade{decades.length > 0 ? ` (${decades.length})` : ''}
+                        </summary>
+                        <div
+                            style={{
+                                marginTop: 8,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 6,
+                            }}
+                        >
+                            {PLAYLIST_DECADE_OPTIONS.map((opt) => (
+                                <label
+                                    key={opt.id}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 8,
+                                        cursor: 'pointer',
+                                        fontSize: 13,
+                                    }}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={decades.includes(opt.id)}
+                                        onChange={(e) => {
+                                            const next = new Set(decades);
+                                            if (e.target.checked) {
+                                                next.add(opt.id);
+                                            } else {
+                                                next.delete(opt.id);
+                                            }
+                                            const ordered = PLAYLIST_DECADE_OPTIONS.map((o) => o.id).filter(
+                                                (id) => next.has(id),
+                                            );
+                                            setDecadesParam(ordered);
+                                        }}
+                                    />
+                                    <span>{opt.label}</span>
+                                </label>
+                            ))}
+                        </div>
+                    </details>
                 </div>
 
                 {/* Play-log controls */}

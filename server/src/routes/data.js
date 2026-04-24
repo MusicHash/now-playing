@@ -22,6 +22,7 @@ import {
 import { getChartEntries, getAvailableWeeks } from '../lib/query_log/chart_log.js';
 import { getTrackGenreLabels } from '../lib/track_genres.js';
 import { getPlaylistMoodsForApi } from '../lib/playlist_moods.js';
+import { parseDecadeSlugs } from '../lib/release_decades.js';
 
 function requireMysql(_req, res, next) {
     if (!MySQLWrapper.isEnabled()) {
@@ -133,11 +134,14 @@ export default function dataRoutes(_logger) {
                 typeof req.query.sort === 'string' ? req.query.sort : undefined;
             const genreRaw = typeof req.query.genre === 'string' ? req.query.genre.trim() : '';
             const moodRaw = typeof req.query.mood === 'string' ? req.query.mood.trim().toLowerCase() : '';
+            const decadesRaw = typeof req.query.decade === 'string' ? req.query.decade : '';
+            const decades = parseDecadeSlugs(decadesRaw);
             const rows = await getPlaylistTracks({
                 ...q,
                 sort,
                 ...(genreRaw ? { genre: genreRaw } : {}),
                 ...(moodRaw ? { mood: moodRaw } : {}),
+                ...(decades.length > 0 ? { decades } : {}),
             });
             res.json(rows);
         } catch (error) {
@@ -285,13 +289,18 @@ export default function dataRoutes(_logger) {
         }
         const genreRaw = typeof req.query.genre === 'string' ? req.query.genre.trim() : '';
         const moodRaw = typeof req.query.mood === 'string' ? req.query.mood.trim().toLowerCase() : '';
-        /** @type {{ genre?: string, mood?: string }} */
+        const decadesRaw = typeof req.query.decade === 'string' ? req.query.decade : '';
+        const decades = parseDecadeSlugs(decadesRaw);
+        /** @type {{ genre?: string, mood?: string, decades?: string[] }} */
         const chartOpts = {};
         if (genreRaw) {
             chartOpts.genre = genreRaw;
         }
         if (moodRaw) {
             chartOpts.mood = moodRaw;
+        }
+        if (decades.length > 0) {
+            chartOpts.decades = decades;
         }
         try {
             const [tracks, availableWeeks] = await Promise.all([

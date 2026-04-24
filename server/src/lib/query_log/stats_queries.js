@@ -1,4 +1,5 @@
 import MySQLWrapper from '../../utils/mysql_wrapper.js';
+import { releaseDecadeYearClause } from '../release_decades.js';
 import { moodExistsClause } from '../playlist_moods.js';
 
 /** Default rolling window in days (`days` query param on stats routes). */
@@ -204,7 +205,7 @@ export async function getPlaysByHourWeekday(opts = {}) {
 }
 
 /**
- * @param {{ days?: unknown, limit?: unknown, station?: string, stationLike?: string, genre?: string, mood?: string }} opts
+ * @param {{ days?: unknown, limit?: unknown, station?: string, stationLike?: string, genre?: string, mood?: string, decades?: string[] }} opts
  */
 export async function getMostPlayedTracks(opts = {}) {
     const days = clampInt(opts.days, DEFAULT_STATS_DAYS, MAX_STATS_DAYS);
@@ -212,6 +213,10 @@ export async function getMostPlayedTracks(opts = {}) {
     const { sql: extraWhere, params: extraParams } = stationWhereClause(opts);
     const { sql: genreSql, params: genreParams } = genreExistsClause('spotify_tracks', opts);
     const { sql: moodSql, params: moodParams } = moodExistsClause('spotify_tracks', opts);
+    const { sql: decadeSql, params: decadeParams } = releaseDecadeYearClause(
+        'spotify_tracks',
+        Array.isArray(opts.decades) ? opts.decades : [],
+    );
 
     const sql = `
         SELECT
@@ -228,7 +233,7 @@ export async function getMostPlayedTracks(opts = {}) {
             ON station_log.spotify_id = spotify_tracks.spotify_id
         WHERE
             station_log.log_datetime_played >= NOW() - INTERVAL ? DAY
-            ${extraWhere}${genreSql}${moodSql}
+            ${extraWhere}${genreSql}${moodSql}${decadeSql}
         GROUP BY
             spotify_tracks.spotify_track_id,
             spotify_tracks.spotify_artist_title,
@@ -240,7 +245,7 @@ export async function getMostPlayedTracks(opts = {}) {
 
     const [rows] = await MySQLWrapper.query(
         sql,
-        [days, ...extraParams, ...genreParams, ...moodParams, limit],
+        [days, ...extraParams, ...genreParams, ...moodParams, ...decadeParams, limit],
         CACHE_TTL_1_DAY,
     );
     return rows;
@@ -265,7 +270,7 @@ export function parsePlaylistSort(value) {
 /**
  * One row per Spotify track in the rolling window, ordered by most recent play time (distinct tracks).
  *
- * @param {{ days?: unknown, limit?: unknown, station?: string, stationLike?: string, genre?: string, mood?: string }} opts
+ * @param {{ days?: unknown, limit?: unknown, station?: string, stationLike?: string, genre?: string, mood?: string, decades?: string[] }} opts
  */
 export async function getDistinctTracksByRecentPlay(opts = {}) {
     const days = clampInt(opts.days, DEFAULT_STATS_DAYS, MAX_STATS_DAYS);
@@ -273,6 +278,10 @@ export async function getDistinctTracksByRecentPlay(opts = {}) {
     const { sql: extraWhere, params: extraParams } = stationWhereClause(opts);
     const { sql: genreSql, params: genreParams } = genreExistsClause('spotify_tracks', opts);
     const { sql: moodSql, params: moodParams } = moodExistsClause('spotify_tracks', opts);
+    const { sql: decadeSql, params: decadeParams } = releaseDecadeYearClause(
+        'spotify_tracks',
+        Array.isArray(opts.decades) ? opts.decades : [],
+    );
 
     const sql = `
         SELECT
@@ -290,7 +299,7 @@ export async function getDistinctTracksByRecentPlay(opts = {}) {
             ON station_log.spotify_id = spotify_tracks.spotify_id
         WHERE
             station_log.log_datetime_played >= NOW() - INTERVAL ? DAY
-            ${extraWhere}${genreSql}${moodSql}
+            ${extraWhere}${genreSql}${moodSql}${decadeSql}
         GROUP BY
             spotify_tracks.spotify_track_id,
             spotify_tracks.spotify_artist_title,
@@ -302,7 +311,7 @@ export async function getDistinctTracksByRecentPlay(opts = {}) {
 
     const [rows] = await MySQLWrapper.query(
         sql,
-        [days, ...extraParams, ...genreParams, ...moodParams, limit],
+        [days, ...extraParams, ...genreParams, ...moodParams, ...decadeParams, limit],
         CACHE_TTL_1_HOUR,
     );
     return rows;
@@ -311,7 +320,7 @@ export async function getDistinctTracksByRecentPlay(opts = {}) {
 /**
  * Playlist candidate rows: either by play count or by distinct tracks ordered by last play time.
  *
- * @param {{ days?: unknown, limit?: unknown, station?: string, stationLike?: string, sort?: unknown, genre?: string, mood?: string }} opts
+ * @param {{ days?: unknown, limit?: unknown, station?: string, stationLike?: string, sort?: unknown, genre?: string, mood?: string, decades?: string[] }} opts
  */
 export async function getPlaylistTracks(opts = {}) {
     const sort = parsePlaylistSort(opts.sort);

@@ -17,6 +17,7 @@ import {
     parseStation,
     PLAY_TYPE_SHUFFLE,
 } from './appSearchParams.js';
+import { parsePlaylistDecades } from './releaseDecades.js';
 import {
     DEFAULT_BUCKET_MINUTES,
     DEFAULT_STATS_DAYS,
@@ -141,6 +142,11 @@ function titlePlaylist(sp) {
     const mood = parsePlaylistMood(sp);
     if (mood) {
         parts.push(truncateLabel(mood, 24));
+    }
+
+    const decades = parsePlaylistDecades(sp);
+    if (decades.length > 0) {
+        parts.push(decades.join('+'));
     }
 
     const days = parseDays(sp);

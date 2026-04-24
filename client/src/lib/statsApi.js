@@ -195,6 +195,7 @@ export function getTopArtistsMomentumUrl(params) {
  *   sort?: typeof PLAYLIST_SORT_PLAY_COUNT | typeof PLAYLIST_SORT_RECENT,
  *   genre?: string,
  *   mood?: string,
+ *   decades?: string[],
  * }} params
  */
 export function getPlaylistTracksUrl(params) {
@@ -207,6 +208,9 @@ export function getPlaylistTracksUrl(params) {
     }
     if (typeof params.mood === 'string' && params.mood.trim()) {
         p.set('mood', params.mood.trim().toLowerCase());
+    }
+    if (Array.isArray(params.decades) && params.decades.length > 0) {
+        p.set('decade', params.decades.join(','));
     }
     return `/api/data/stats/playlist-tracks?${p}`;
 }
@@ -259,7 +263,7 @@ export function getPlaysByBucketArtistUrl(params) {
 }
 
 /**
- * @param {{ chart: string, week?: number | null, genre?: string, mood?: string }} params
+ * @param {{ chart: string, week?: number | null, genre?: string, mood?: string, decades?: string[] }} params
  */
 export function getChartTracksUrl(params) {
     const p = new URLSearchParams();
@@ -272,6 +276,9 @@ export function getChartTracksUrl(params) {
     }
     if (typeof params.mood === 'string' && params.mood.trim()) {
         p.set('mood', params.mood.trim().toLowerCase());
+    }
+    if (Array.isArray(params.decades) && params.decades.length > 0) {
+        p.set('decade', params.decades.join(','));
     }
     return `/api/data/chart-tracks?${p}`;
 }

@@ -1,5 +1,6 @@
 import MySQLWrapper from '../../utils/mysql_wrapper.js';
 import logger from '../../utils/logger.js';
+import { releaseDecadeYearClause } from '../release_decades.js';
 import { moodExistsClause } from '../playlist_moods.js';
 
 const TABLE = 'nowplaying_chart_log';
@@ -7,7 +8,7 @@ const TABLE = 'nowplaying_chart_log';
 const MS_PER_DAY = 86400000;
 
 /**
- * @param {{ genre?: string, mood?: string }} opts
+ * @param {{ genre?: string, mood?: string, decades?: string[] }} opts
  * @returns {{ sql: string, params: unknown[] }}
  */
 function chartGenreExistsClause(opts) {
@@ -143,8 +144,12 @@ async function getLatestChartEntries(chartId) {
 async function getChartEntries(chartId, yearWeek, opts = {}) {
     const { sql: genreSql, params: genreParams } = chartGenreExistsClause(opts);
     const { sql: moodSql, params: moodParams } = moodExistsClause('t', opts);
-    const entryFilterSql = `${genreSql}${moodSql}`;
-    const entryFilterParams = [...genreParams, ...moodParams];
+    const { sql: decadeSql, params: decadeParams } = releaseDecadeYearClause(
+        't',
+        Array.isArray(opts.decades) ? opts.decades : [],
+    );
+    const entryFilterSql = `${genreSql}${moodSql}${decadeSql}`;
+    const entryFilterParams = [...genreParams, ...moodParams, ...decadeParams];
     const weekClause = yearWeek
         ? `c.chart_year_week = ?`
         : `c.chart_year_week = (SELECT MAX(chart_year_week) FROM \`${TABLE}\` WHERE chart_id = ?)`;

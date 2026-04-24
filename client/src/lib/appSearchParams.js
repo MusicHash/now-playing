@@ -13,6 +13,7 @@ import {
     PLAYLIST_SORT_PLAY_COUNT,
     PLAYLIST_SORT_RECENT,
 } from './statsApi.js';
+import { formatPlaylistDecadesParam } from './releaseDecades.js';
 
 /** @typedef {{ type: 'track', trackId: string, label: string } | { type: 'artist', artistName: string, label: string } | null} MetricsDrill */
 
@@ -272,6 +273,7 @@ const PLAYLIST_INDEX_KEYS = [
     'sort',
     'genre',
     'mood',
+    'decades',
     'mode',
     'chart',
     'week',
@@ -303,6 +305,7 @@ export function parsePlaylistIndex(sp) {
  *   sort?: typeof PLAYLIST_SORT_PLAY_COUNT | typeof PLAYLIST_SORT_RECENT,
  *   genre?: string | null,
  *   mood?: string | null,
+ *   decades?: string[] | null,
  *   run?: boolean | null,
  *   mode?: typeof PLAYLIST_MODE_PLAYLOG | typeof PLAYLIST_MODE_CHART,
  *   chart?: string,
@@ -344,6 +347,20 @@ export function patchPlaylistState(base, patch) {
             next.set('mood', m);
         } else {
             next.delete('mood');
+        }
+    }
+    if (patch.decades !== undefined) {
+        const arr =
+            patch.decades === null
+                ? []
+                : Array.isArray(patch.decades)
+                  ? patch.decades
+                  : [];
+        const s = formatPlaylistDecadesParam(arr);
+        if (s) {
+            next.set('decade', s);
+        } else {
+            next.delete('decade');
         }
     }
     if (patch.run !== undefined && patch.run !== null) {
