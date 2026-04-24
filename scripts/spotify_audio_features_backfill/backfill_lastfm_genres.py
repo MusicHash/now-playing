@@ -59,6 +59,7 @@ GENRE_ALIASES = {
     "alt rock": "alternative-rock",
     "alternative rock": "alternative-rock",
     "indie rock": "alternative-rock",
+    "alternative rnb": "alternative-r&b",
     "hip hop": "hip-hop",
     "hiphop": "hip-hop",
     "r-n-b": "r&b",
