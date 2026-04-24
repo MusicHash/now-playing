@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import base64
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import html
 import json
 import os
 import re
@@ -479,6 +480,19 @@ _TB_LABEL_TO_FIELD: dict[str, str] = {
 }
 
 
+def _tb_page_has_spotify_track(h_dec: str, tid: str) -> bool:
+    low = h_dec.lower().replace(" ", "")
+    if f"open.spotify.com/track/{tid}" in low or f"//open.spotify.com/track/{tid}" in low:
+        return True
+    return bool(
+        re.search(
+            rf"https?://open\.spotify\.com/(?:[\w-]+/)*track/{re.escape(tid)}\b",
+            h_dec,
+            re.I,
+        )
+    )
+
+
 def _tb_value_from_title(title: str, field: str) -> Any:
     t = (title or "").strip()
     if field == "loudness":
@@ -498,8 +512,9 @@ def tb_html_to_api_body(html: str, spotify_track_id: str) -> Optional[Dict[str, 
         return None
     if re.search(r"something went wrong", html, re.I):
         return None
-    low = html.lower()
-    if f"open.spotify.com/track/{spotify_track_id.lower()}" not in low.replace(" ", ""):
+    h_dec = html.unescape(html)
+    tid = spotify_track_id.lower()
+    if not _tb_page_has_spotify_track(h_dec, tid):
         return None
 
     km = re.search(
@@ -539,9 +554,10 @@ def tb_html_to_api_body(html: str, spotify_track_id: str) -> Optional[Dict[str, 
     if duration_ms < 1000:
         return None
 
-    start = html.find('class="dr-ag"')
-    if start == -1:
+    m_chunk = re.search(r'class="dr-ag"', html, re.I)
+    if not m_chunk:
         return None
+    start = m_chunk.start()
     end = html.find("Recommendations for Harmonic", start)
     if end == -1:
         end = start + 500_000
@@ -824,7 +840,8 @@ def parse_args() -> argparse.Namespace:
         help=(
             "Comma-separated sources to try in order: API stages huggingface and kaggle use "
             "SPOTIFY_AUDIO_FEATURES_API_URL; sg and tb are HTML fallbacks (chrome proxy / ?url=) after "
-            f"the JSON APIs. Example: 'huggingface,kaggle,{SG_STAGE},{TB_STAGE}' (default)."
+            f"the JSON APIs. "
+            f"Example: 'huggingface,kaggle,{SG_STAGE},{TB_STAGE}' (default)."
         ),
     )
     parser.add_argument(
