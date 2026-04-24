@@ -14,6 +14,9 @@ import {
 } from '../lib/appSearchParams.js';
 
 const SPOTIFY_API = 'https://api.spotify.com/v1/me/player';
+/** Spotify caps `/me/player/play` body size; ~100 track URIs is safe. Remaining tracks are queued via `/queue`. */
+const MAX_URIS_PER_PLAY_REQUEST = 100;
+const QUEUE_TAIL_DELAY_MS = 75;
 const POLL_INTERVAL_MS = 1500;
 const LS_DEVICE_NAME = 'sp_player_device_name';
 
@@ -117,6 +120,8 @@ export default function SpotifyConnectPlayer({
     const lastPlayedUriRef = useRef('');
     /** Once true, URI changes (same index) auto-play; initial load does not. */
     const userPlaybackStartedRef = useRef(false);
+    /** Incremented on each `playUri` start so stale tail-queue loops abort after a new play. */
+    const queueTailGenerationRef = useRef(0);
     /** Keeps first paint from auto-playing; changing index (list click, next/prev, track end) always plays. */
     const prevActiveIndexRef = useRef(activeIndex);
     activeIndexRef.current = activeIndex;
@@ -325,15 +330,25 @@ export default function SpotifyConnectPlayer({
         [selectDeviceById, scheduleFetchPlaybackState],
     );
 
-    // --- Play a specific URI on the selected device ---
+    // --- Play from current index with full list as Spotify context (device keeps playing if this tab/PC goes away) ---
     const playUri = useCallback(
-        async (uri) => {
+        async () => {
+            const list = urisRef.current.map(toTrackUri).filter(Boolean);
+            const idx = activeIndexRef.current;
+            const uri = list[idx];
             if (!uri || !selectedDeviceId) return;
+            queueTailGenerationRef.current += 1;
+            const tailGen = queueTailGenerationRef.current;
+            const slice = list.slice(idx, idx + MAX_URIS_PER_PLAY_REQUEST);
+            const playBody =
+                slice.length > 1
+                    ? { uris: slice, offset: { position: 0 } }
+                    : { uris: slice };
             try {
                 const res = await spotifyFetch(`${SPOTIFY_API}/play?device_id=${selectedDeviceId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ uris: [uri] }),
+                    body: JSON.stringify(playBody),
                 });
                 if (res.status === 404) {
                     setError('device_not_found');
@@ -347,6 +362,25 @@ export default function SpotifyConnectPlayer({
                 setIsPaused(false);
                 setError(null);
                 scheduleFetchPlaybackState(300);
+
+                const tail = list.slice(idx + slice.length);
+                if (tail.length === 0) return;
+                const devId = selectedDeviceId;
+                void (async () => {
+                    for (const u of tail) {
+                        if (queueTailGenerationRef.current !== tailGen) break;
+                        try {
+                            const q = new URLSearchParams({
+                                uri: u,
+                                device_id: devId,
+                            });
+                            await spotifyFetch(`${SPOTIFY_API}/queue?${q}`, { method: 'POST' });
+                        } catch {
+                            /* best-effort tail */
+                        }
+                        await new Promise((r) => setTimeout(r, QUEUE_TAIL_DELAY_MS));
+                    }
+                })();
             } catch (err) {
                 if (err.message === 'not_authenticated' || err.message === 'token_refresh_failed') {
                     setError('auth_expired');
@@ -364,12 +398,12 @@ export default function SpotifyConnectPlayer({
         if (prevActiveIndexRef.current !== activeIndex) {
             prevActiveIndexRef.current = activeIndex;
             userPlaybackStartedRef.current = true;
-            playUri(currentUri);
+            playUri();
             return;
         }
         if (!userPlaybackStartedRef.current) return;
         if (currentUri === lastPlayedUriRef.current) return;
-        playUri(currentUri);
+        playUri();
     }, [authenticated, currentUri, selectedDeviceId, activeIndex, playUri]);
 
     // --- Pause / Resume ---
@@ -379,7 +413,7 @@ export default function SpotifyConnectPlayer({
             if (isPaused) {
                 if (!userPlaybackStartedRef.current) {
                     userPlaybackStartedRef.current = true;
-                    await playUri(currentUri);
+                    await playUri();
                     return;
                 }
                 if (lastPlayedUriRef.current === currentUri) {
@@ -391,7 +425,7 @@ export default function SpotifyConnectPlayer({
                         scheduleFetchPlaybackState(300);
                     }
                 } else {
-                    await playUri(currentUri);
+                    await playUri();
                 }
             } else {
                 const res = await spotifyFetch(`${SPOTIFY_API}/pause?device_id=${selectedDeviceId}`, {
