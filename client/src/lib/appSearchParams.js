@@ -43,6 +43,15 @@ export function parseStation(sp) {
 
 /**
  * @param {URLSearchParams} sp
+ * @returns {string} Normalized genre label, or '' when unset (no filter).
+ */
+export function parsePlaylistGenre(sp) {
+    const g = sp.get('genre');
+    return typeof g === 'string' ? g.trim() : '';
+}
+
+/**
+ * @param {URLSearchParams} sp
  * @returns {typeof MOMENTUM_DIRECTION_UP | typeof MOMENTUM_DIRECTION_DOWN}
  */
 export function parseMomentum(sp) {
@@ -249,6 +258,7 @@ const PLAYLIST_INDEX_KEYS = [
     'limit',
     'station',
     'sort',
+    'genre',
     'mode',
     'chart',
     'week',
@@ -278,6 +288,7 @@ export function parsePlaylistIndex(sp) {
  *   limit?: number,
  *   station?: string,
  *   sort?: typeof PLAYLIST_SORT_PLAY_COUNT | typeof PLAYLIST_SORT_RECENT,
+ *   genre?: string | null,
  *   run?: boolean | null,
  *   mode?: typeof PLAYLIST_MODE_PLAYLOG | typeof PLAYLIST_MODE_CHART,
  *   chart?: string,
@@ -304,6 +315,14 @@ export function patchPlaylistState(base, patch) {
     }
     if (patch.sort !== undefined) {
         next.set('sort', patch.sort);
+    }
+    if (patch.genre !== undefined) {
+        const g = typeof patch.genre === 'string' ? patch.genre.trim() : '';
+        if (g) {
+            next.set('genre', g);
+        } else {
+            next.delete('genre');
+        }
     }
     if (patch.run !== undefined && patch.run !== null) {
         if (patch.run) {

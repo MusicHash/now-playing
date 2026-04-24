@@ -9,6 +9,7 @@ import {
     parseBucket,
     parsePlaylistIndex,
     parsePlaylistMode,
+    parsePlaylistGenre,
     parsePlaylistRun,
     parsePlaylistSort,
     parsePlayType,
@@ -129,6 +130,11 @@ function titlePlaylist(sp) {
     const station = parseStation(sp);
     if (station) {
         parts.push(truncateLabel(station, 32));
+    }
+
+    const genre = parsePlaylistGenre(sp);
+    if (genre) {
+        parts.push(truncateLabel(genre, 28));
     }
 
     const days = parseDays(sp);

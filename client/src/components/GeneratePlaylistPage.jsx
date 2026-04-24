@@ -10,6 +10,7 @@ import {
     parseDays,
     parseDevice,
     parseLimit,
+    parsePlaylistGenre,
     parsePlaylistIndex,
     parsePlaylistMode,
     parsePlaylistRun,
@@ -30,6 +31,7 @@ import {
     getPlaysByBucketTrackUrl,
     getPlaylistTracksUrl,
     getStationsUrl,
+    getTrackGenresUrl,
     MAX_STATS_DAYS,
     MAX_STATS_LIMIT,
     mergeStationIds,
@@ -148,6 +150,7 @@ export default function GeneratePlaylistPage() {
     const [searchParams, setSearchParams] = useSearchParams();
     const [stationOptions, setStationOptions] = useState([]);
     const [chartOptions, setChartOptions] = useState([]);
+    const [genreOptions, setGenreOptions] = useState([]);
 
     const mode = useMemo(() => parsePlaylistMode(searchParams), [searchParams]);
     const isChartMode = mode === PLAYLIST_MODE_CHART;
@@ -155,6 +158,7 @@ export default function GeneratePlaylistPage() {
     const days = useMemo(() => parseDays(searchParams), [searchParams]);
     const limit = useMemo(() => parseLimit(searchParams), [searchParams]);
     const station = useMemo(() => parseStation(searchParams), [searchParams]);
+    const genre = useMemo(() => parsePlaylistGenre(searchParams), [searchParams]);
     const sort = useMemo(() => parsePlaylistSort(searchParams), [searchParams]);
     const runFlag = useMemo(() => parsePlaylistRun(searchParams), [searchParams]);
 
@@ -284,6 +288,7 @@ export default function GeneratePlaylistPage() {
             limit: l,
             station: station || undefined,
             sort,
+            genre: genre || undefined,
         });
         fetchJson(url)
             .then((rows) => {
@@ -301,14 +306,14 @@ export default function GeneratePlaylistPage() {
             .finally(() => {
                 setLoading(false);
             });
-    }, [days, limit, station, sort]);
+    }, [days, limit, station, sort, genre]);
 
     useEffect(() => {
         if (isChartMode || !runFlag) {
             return;
         }
         loadPlaylist();
-    }, [isChartMode, runFlag, days, limit, station, sort, loadPlaylist]);
+    }, [isChartMode, runFlag, days, limit, station, sort, genre, loadPlaylist]);
 
     // --- Chart mode: load chart tracks ---
     const loadChart = useCallback(
@@ -316,7 +321,7 @@ export default function GeneratePlaylistPage() {
             if (!chart) return;
             setLoading(true);
             setError(null);
-            fetchJson(getChartTracksUrl({ chart, week }))
+            fetchJson(getChartTracksUrl({ chart, week, genre: genre || undefined }))
                 .then((body) => {
                     const rows = Array.isArray(body.tracks) ? body.tracks : [];
                     setTracks(
@@ -343,7 +348,7 @@ export default function GeneratePlaylistPage() {
                     setLoading(false);
                 });
         },
-        [],
+        [genre],
     );
 
     useEffect(() => {
@@ -353,16 +358,22 @@ export default function GeneratePlaylistPage() {
 
     // --- Fetch station + chart options on mount ---
     useEffect(() => {
-        fetchJson(getStationsUrl())
-            .then((body) => {
+        Promise.all([fetchJson(getStationsUrl()), fetchJson(getTrackGenresUrl())])
+            .then(([body, genresBody]) => {
                 setStationOptions(mergeStationIds([], body.logged));
                 if (Array.isArray(body.charts)) {
                     setChartOptions(body.charts);
+                }
+                if (Array.isArray(genresBody.genres)) {
+                    setGenreOptions(genresBody.genres);
+                } else {
+                    setGenreOptions([]);
                 }
             })
             .catch(() => {
                 setStationOptions([]);
                 setChartOptions([]);
+                setGenreOptions([]);
             });
     }, []);
 
@@ -459,6 +470,7 @@ export default function GeneratePlaylistPage() {
     const setDays = useCallback((n) => patch({ days: clampInt(n, DEFAULT_STATS_DAYS, MAX_STATS_DAYS) }), [patch]);
     const setLimit = useCallback((n) => patch({ limit: clampInt(n, DEFAULT_STATS_LIMIT, MAX_STATS_LIMIT) }), [patch]);
     const setStation = useCallback((s) => patch({ station: s }), [patch]);
+    const setGenreParam = useCallback((g) => patch({ genre: g ? g : null }), [patch]);
     const setSort = useCallback(
         (s) => patch({ sort: s === PLAYLIST_SORT_RECENT ? PLAYLIST_SORT_RECENT : PLAYLIST_SORT_PLAY_COUNT }),
         [patch],
@@ -474,6 +486,8 @@ export default function GeneratePlaylistPage() {
             patch({ run: true });
         }
     }, [runFlag, loadPlaylist, patch]);
+
+    const genreOrphan = Boolean(genre && !genreOptions.includes(genre));
 
     // --- Week stepper helpers ---
     const weekIndex = availableWeeks.indexOf(currentWeek);
@@ -520,6 +534,28 @@ export default function GeneratePlaylistPage() {
                     >
                         Charts
                     </button>
+                </div>
+
+                <div style={fieldStyle}>
+                    <label htmlFor="gp-genre" style={labelStyle}>
+                        Genre
+                    </label>
+                    <select
+                        id="gp-genre"
+                        value={genre}
+                        onChange={(e) => setGenreParam(e.target.value)}
+                        style={{ ...inputStyle, minWidth: '100%' }}
+                    >
+                        <option value="">All genres</option>
+                        {genreOrphan ? (
+                            <option value={genre}>{genre}</option>
+                        ) : null}
+                        {genreOptions.map((g) => (
+                            <option key={g} value={g}>
+                                {g}
+                            </option>
+                        ))}
+                    </select>
                 </div>
 
                 {/* Play-log controls */}

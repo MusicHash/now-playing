@@ -19,6 +19,7 @@ import {
     magicalMomentParamsFromRequest,
 } from '../lib/query_log/stats_queries.js';
 import { getChartEntries, getAvailableWeeks } from '../lib/query_log/chart_log.js';
+import { getTrackGenreLabels } from '../lib/track_genres.js';
 
 function requireMysql(_req, res, next) {
     if (!MySQLWrapper.isEnabled()) {
@@ -61,6 +62,14 @@ function parseQuery(req) {
 
 export default function dataRoutes(_logger) {
     const router = Router();
+
+    router.get('/data/track-genres', (_req, res) => {
+        try {
+            res.json({ genres: getTrackGenreLabels() });
+        } catch (error) {
+            res.status(500).json({ error: 'Failed to load genres', message: String(error?.message || error) });
+        }
+    });
 
     router.use(requireMysql);
 
@@ -112,7 +121,12 @@ export default function dataRoutes(_logger) {
             const q = parseQuery(req);
             const sort =
                 typeof req.query.sort === 'string' ? req.query.sort : undefined;
-            const rows = await getPlaylistTracks({ ...q, sort });
+            const genreRaw = typeof req.query.genre === 'string' ? req.query.genre.trim() : '';
+            const rows = await getPlaylistTracks({
+                ...q,
+                sort,
+                ...(genreRaw ? { genre: genreRaw } : {}),
+            });
             res.json(rows);
         } catch (error) {
             res.status(500).json({ error: 'Query failed', message: String(error?.message || error) });
@@ -222,9 +236,11 @@ export default function dataRoutes(_logger) {
             res.status(400).json({ error: 'week must be a positive integer (e.g. 202614)' });
             return;
         }
+        const genreRaw = typeof req.query.genre === 'string' ? req.query.genre.trim() : '';
+        const chartOpts = genreRaw ? { genre: genreRaw } : {};
         try {
             const [tracks, availableWeeks] = await Promise.all([
-                getChartEntries(chart, week),
+                getChartEntries(chart, week, chartOpts),
                 getAvailableWeeks(chart),
             ]);
             const resolvedWeek = tracks.length > 0 ? tracks[0].chart_year_week : (week || null);

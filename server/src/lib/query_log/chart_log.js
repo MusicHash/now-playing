@@ -6,6 +6,24 @@ const TABLE = 'nowplaying_chart_log';
 const MS_PER_DAY = 86400000;
 
 /**
+ * @param {{ genre?: string }} opts
+ * @returns {{ sql: string, params: string[] }}
+ */
+function chartGenreExistsClause(opts) {
+    const g = typeof opts.genre === 'string' ? opts.genre.trim() : '';
+    if (!g) {
+        return { sql: '', params: [] };
+    }
+    return {
+        sql: ` AND EXISTS (
+            SELECT 1 FROM nowplaying_spotify_track_genres stg
+            WHERE stg.spotify_id = t.spotify_id AND stg.genre = ?
+        )`,
+        params: [g],
+    };
+}
+
+/**
  * UTC calendar day (y-m-d) at local midnight → ms for Tuesday 00:00 UTC that starts the Tue–Mon block containing that day.
  */
 function utcAnchorTuesdayMidnightMs(y, monthIndex, day) {
@@ -101,7 +119,7 @@ async function insertChartEntries(chartId, yearWeek, fields) {
  */
 async function getLatestChartEntries(chartId) {
     const [rows] = await MySQLWrapper.queryWithCache(
-        `SELECT c.*, t.spotify_track_id ` +
+        `SELECT c.*, t.spotify_track_id, t.spotify_isrc ` +
         `FROM \`${TABLE}\` c ` +
         `LEFT JOIN \`nowplaying_spotify_tracks\` t ON c.spotify_id = t.spotify_id ` +
         `WHERE c.chart_id = ? ` +
@@ -121,18 +139,19 @@ async function getLatestChartEntries(chartId) {
  * Each row includes `previous_position` (null if new entry) and
  * `position_change` (positive = moved up, negative = moved down, null if new).
  */
-async function getChartEntries(chartId, yearWeek) {
+async function getChartEntries(chartId, yearWeek, opts = {}) {
+    const { sql: genreSql, params: genreParams } = chartGenreExistsClause(opts);
     const weekClause = yearWeek
         ? `c.chart_year_week = ?`
         : `c.chart_year_week = (SELECT MAX(chart_year_week) FROM \`${TABLE}\` WHERE chart_id = ?)`;
-    const params = [chartId, yearWeek || chartId];
+    const params = [chartId, yearWeek || chartId, ...genreParams];
 
     const [rows] = await MySQLWrapper.queryWithCache(
         `SELECT c.chart_position, c.chart_year_week, c.entry_artist, c.entry_title, c.entry_extra, ` +
-        `c.spotify_id, t.spotify_track_id ` +
+        `c.spotify_id, t.spotify_track_id, t.spotify_isrc ` +
         `FROM \`${TABLE}\` c ` +
         `LEFT JOIN \`nowplaying_spotify_tracks\` t ON c.spotify_id = t.spotify_id ` +
-        `WHERE c.chart_id = ? AND ${weekClause} ` +
+        `WHERE c.chart_id = ? AND ${weekClause}${genreSql} ` +
         `ORDER BY c.chart_position ASC`,
         params,
         300,
@@ -145,10 +164,12 @@ async function getChartEntries(chartId, yearWeek) {
     const [prevRows] = await MySQLWrapper.queryWithCache(
         `SELECT c.chart_position, c.spotify_id, c.entry_artist, c.entry_title ` +
         `FROM \`${TABLE}\` c ` +
+        `LEFT JOIN \`nowplaying_spotify_tracks\` t ON c.spotify_id = t.spotify_id ` +
         `WHERE c.chart_id = ? AND c.chart_year_week = ` +
-        `(SELECT MAX(chart_year_week) FROM \`${TABLE}\` WHERE chart_id = ? AND chart_year_week < ?) ` +
+        `(SELECT MAX(chart_year_week) FROM \`${TABLE}\` WHERE chart_id = ? AND chart_year_week < ?)` +
+        `${genreSql} ` +
         `ORDER BY c.chart_position ASC`,
-        [chartId, chartId, resolvedWeek],
+        [chartId, chartId, resolvedWeek, ...genreParams],
         300,
     );
 
@@ -161,7 +182,7 @@ async function getChartEntries(chartId, yearWeek) {
         prevByArtistTitle.set(`${r.entry_artist}|||${r.entry_title}`, r.chart_position);
     }
 
-    return rows.map(({ spotify_id, ...row }) => {
+    const enriched = rows.map(({ spotify_id, ...row }) => {
         let previous_position = null;
         if (spotify_id != null && prevBySpotifyId.has(spotify_id)) {
             previous_position = prevBySpotifyId.get(spotify_id);
@@ -172,6 +193,7 @@ async function getChartEntries(chartId, yearWeek) {
         const position_change = previous_position != null ? previous_position - row.chart_position : null;
         return { ...row, previous_position, position_change };
     });
+    return enriched;
 }
 
 /**

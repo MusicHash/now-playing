@@ -113,6 +113,26 @@ function stationWhereClause(opts) {
 }
 
 /**
+ * Filter to tracks that have a `nowplaying_spotify_track_genres` row for the label.
+ *
+ * @param {string} tableAlias Safe SQL alias for `nowplaying_spotify_tracks` (e.g. `spotify_tracks`, `t`).
+ * @param {{ genre?: string }} opts
+ */
+function genreExistsClause(tableAlias, opts) {
+    const g = typeof opts.genre === 'string' ? opts.genre.trim() : '';
+    if (!g || !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(tableAlias)) {
+        return { sql: '', params: [] };
+    }
+    return {
+        sql: ` AND EXISTS (
+            SELECT 1 FROM nowplaying_spotify_track_genres stg
+            WHERE stg.spotify_id = ${tableAlias}.spotify_id AND stg.genre = ?
+        )`,
+        params: [g],
+    };
+}
+
+/**
  * @param {{ days?: unknown, station?: string, stationLike?: string }} opts
  */
 export async function getPlaysByDay(opts = {}) {
@@ -183,16 +203,18 @@ export async function getPlaysByHourWeekday(opts = {}) {
 }
 
 /**
- * @param {{ days?: unknown, limit?: unknown, station?: string, stationLike?: string }} opts
+ * @param {{ days?: unknown, limit?: unknown, station?: string, stationLike?: string, genre?: string }} opts
  */
 export async function getMostPlayedTracks(opts = {}) {
     const days = clampInt(opts.days, DEFAULT_STATS_DAYS, MAX_STATS_DAYS);
     const limit = clampInt(opts.limit, DEFAULT_STATS_LIMIT, MAX_STATS_LIMIT);
     const { sql: extraWhere, params: extraParams } = stationWhereClause(opts);
+    const { sql: genreSql, params: genreParams } = genreExistsClause('spotify_tracks', opts);
 
     const sql = `
         SELECT
             spotify_tracks.spotify_track_id,
+            ANY_VALUE(spotify_tracks.spotify_isrc) AS spotify_isrc,
             spotify_tracks.spotify_artist_title,
             spotify_tracks.spotify_track_title,
             spotify_tracks.spotify_popularity,
@@ -204,7 +226,7 @@ export async function getMostPlayedTracks(opts = {}) {
             ON station_log.spotify_id = spotify_tracks.spotify_id
         WHERE
             station_log.log_datetime_played >= NOW() - INTERVAL ? DAY
-            ${extraWhere}
+            ${extraWhere}${genreSql}
         GROUP BY
             spotify_tracks.spotify_track_id,
             spotify_tracks.spotify_artist_title,
@@ -214,7 +236,11 @@ export async function getMostPlayedTracks(opts = {}) {
         LIMIT ?
     `;
 
-    const [rows] = await MySQLWrapper.query(sql, [days, ...extraParams, limit], CACHE_TTL_1_DAY);
+    const [rows] = await MySQLWrapper.query(
+        sql,
+        [days, ...extraParams, ...genreParams, limit],
+        CACHE_TTL_1_DAY,
+    );
     return rows;
 }
 
@@ -237,16 +263,18 @@ export function parsePlaylistSort(value) {
 /**
  * One row per Spotify track in the rolling window, ordered by most recent play time (distinct tracks).
  *
- * @param {{ days?: unknown, limit?: unknown, station?: string, stationLike?: string }} opts
+ * @param {{ days?: unknown, limit?: unknown, station?: string, stationLike?: string, genre?: string }} opts
  */
 export async function getDistinctTracksByRecentPlay(opts = {}) {
     const days = clampInt(opts.days, DEFAULT_STATS_DAYS, MAX_STATS_DAYS);
     const limit = clampInt(opts.limit, DEFAULT_STATS_LIMIT, MAX_STATS_LIMIT);
     const { sql: extraWhere, params: extraParams } = stationWhereClause(opts);
+    const { sql: genreSql, params: genreParams } = genreExistsClause('spotify_tracks', opts);
 
     const sql = `
         SELECT
             spotify_tracks.spotify_track_id,
+            ANY_VALUE(spotify_tracks.spotify_isrc) AS spotify_isrc,
             spotify_tracks.spotify_artist_title,
             spotify_tracks.spotify_track_title,
             spotify_tracks.spotify_popularity,
@@ -259,7 +287,7 @@ export async function getDistinctTracksByRecentPlay(opts = {}) {
             ON station_log.spotify_id = spotify_tracks.spotify_id
         WHERE
             station_log.log_datetime_played >= NOW() - INTERVAL ? DAY
-            ${extraWhere}
+            ${extraWhere}${genreSql}
         GROUP BY
             spotify_tracks.spotify_track_id,
             spotify_tracks.spotify_artist_title,
@@ -269,14 +297,18 @@ export async function getDistinctTracksByRecentPlay(opts = {}) {
         LIMIT ?
     `;
 
-    const [rows] = await MySQLWrapper.query(sql, [days, ...extraParams, limit], CACHE_TTL_1_HOUR);
+    const [rows] = await MySQLWrapper.query(
+        sql,
+        [days, ...extraParams, ...genreParams, limit],
+        CACHE_TTL_1_HOUR,
+    );
     return rows;
 }
 
 /**
  * Playlist candidate rows: either by play count or by distinct tracks ordered by last play time.
  *
- * @param {{ days?: unknown, limit?: unknown, station?: string, stationLike?: string, sort?: unknown }} opts
+ * @param {{ days?: unknown, limit?: unknown, station?: string, stationLike?: string, sort?: unknown, genre?: string }} opts
  */
 export async function getPlaylistTracks(opts = {}) {
     const sort = parsePlaylistSort(opts.sort);
@@ -399,6 +431,7 @@ export async function getTopTracksByMomentum(opts = {}) {
     const metaSql = `
         SELECT
             tr.spotify_track_id,
+            ANY_VALUE(tr.spotify_isrc) AS spotify_isrc,
             ANY_VALUE(tr.spotify_artist_title) AS spotify_artist_title,
             ANY_VALUE(tr.spotify_track_title) AS spotify_track_title,
             ANY_VALUE(tr.spotify_popularity) AS spotify_popularity,
@@ -420,7 +453,7 @@ export async function getTopTracksByMomentum(opts = {}) {
     /** @type {Map<string, Record<string, unknown>>} */
     const metaById = new Map(metaRows.map((r) => [String(r.spotify_track_id), r]));
 
-    return top.map((row) => {
+    const built = top.map((row) => {
         const tid = row.spotify_track_id;
         const meta = metaById.get(tid);
         const dayMap = byTrackDate.get(tid) ?? new Map();
@@ -435,6 +468,7 @@ export async function getTopTracksByMomentum(opts = {}) {
             daily_plays,
         };
     });
+    return built;
 }
 
 /**
@@ -667,6 +701,7 @@ export async function getRecentPlays(opts = {}) {
             station_log.log_artist,
             station_log.log_title,
             spotify_tracks.spotify_track_id,
+            spotify_tracks.spotify_isrc,
             spotify_tracks.spotify_artist_title,
             spotify_tracks.spotify_track_title,
             spotify_tracks.spotify_popularity
@@ -719,6 +754,7 @@ export function clampMagicalMinutes(value) {
  *       log_artist: string,
  *       log_title: string,
  *       spotify_track_id: string,
+ *       spotify_isrc: string | null,
  *       spotify_artist_title: string,
  *       spotify_track_title: string,
  *       spotify_popularity: number,
@@ -753,6 +789,7 @@ export async function getMagicalMoment(opts = {}) {
             station_log.log_artist,
             station_log.log_title,
             spotify_tracks.spotify_track_id,
+            spotify_tracks.spotify_isrc,
             spotify_tracks.spotify_artist_title,
             spotify_tracks.spotify_track_title,
             spotify_tracks.spotify_popularity
@@ -784,6 +821,7 @@ export async function getMagicalMoment(opts = {}) {
             log_artist: row.log_artist,
             log_title: row.log_title,
             spotify_track_id: row.spotify_track_id,
+            spotify_isrc: row.spotify_isrc,
             spotify_artist_title: row.spotify_artist_title,
             spotify_track_title: row.spotify_track_title,
             spotify_popularity: row.spotify_popularity,
