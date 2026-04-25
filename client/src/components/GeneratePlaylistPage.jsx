@@ -502,10 +502,21 @@ export default function GeneratePlaylistPage() {
         [tracks.length, patch],
     );
 
-    // Clear shuffled order whenever a fresh playlist is loaded.
+    /**
+     * A stable string that changes only when the playlist-determining params change
+     * (not when playtype/idx/device change). Used to detect genuinely new playlists
+     * and reset the shuffled order without being tricked by spurious re-fetches that
+     * give tracks a new array reference even though the content is the same.
+     */
+    const playlistIdentity = `${mode}|${days}|${limit}|${station}|${sort}|${genre}|${mood}|${decades.join(',')}|${chartId}|${String(chartWeek)}|${runFlag ? '1' : '0'}`;
+
+    // Clear shuffled order only when the playlist content itself changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         setShuffledOrder(null);
-    }, [tracks]);
+    // playlistIdentity is intentionally inlined — it's a primitive string, stable across
+    // URL changes that don't affect playlist content (e.g. playtype, idx, device).
+    }, [playlistIdentity]); // eslint-disable-line react-hooks/exhaustive-deps
 
     /** Fix shared links where idx is past the end of the loaded list. */
     useEffect(() => {
