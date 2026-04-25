@@ -119,17 +119,17 @@ function formatYearWeek(yw) {
 }
 
 /**
- * @param {number} n list length
- * @param {number} exclude index to avoid (if n > 1)
+ * Returns a Fisher-Yates shuffled array of indices [0..n-1].
+ * @param {number} n
+ * @returns {number[]}
  */
-function randomIndexExcept(n, exclude) {
-    if (n <= 0) return 0;
-    if (n === 1) return 0;
-    let j = exclude;
-    while (j === exclude) {
-        j = Math.floor(Math.random() * n);
+function shuffleIndices(n) {
+    const arr = Array.from({ length: n }, (_, i) => i);
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
     }
-    return j;
+    return arr;
 }
 
 function useSidebarChartWidth() {
@@ -180,8 +180,12 @@ export default function GeneratePlaylistPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [playerSession, setPlayerSession] = useState(0);
-    /** Stack of playlist indices visited before the current track (shuffle prev). */
-    const [shuffleHistory, setShuffleHistory] = useState([]);
+    /**
+     * When shuffle is active, holds a permutation of track indices that defines
+     * the shuffled order shown in the view and loaded into the Spotify queue.
+     * null = original order (regular mode).
+     */
+    const [shuffledOrder, setShuffledOrder] = useState(null);
 
     const urlPlaylistIndex = useMemo(() => parsePlaylistIndex(searchParams), [searchParams]);
 
@@ -219,19 +223,25 @@ export default function GeneratePlaylistPage() {
         localStorage.setItem(LS_PLAYER_PREF, type);
     }, []);
 
+    /** Tracks in display/queue order — shuffled when shuffle is active, original otherwise. */
+    const displayedTracks = useMemo(
+        () => (shuffledOrder ? shuffledOrder.map((i) => tracks[i]).filter(Boolean) : tracks),
+        [tracks, shuffledOrder],
+    );
+
     const uris = useMemo(
         () =>
-            tracks
+            displayedTracks
                 .map((row) => row.spotify_track_id)
                 .filter((id) => typeof id === 'string' && id.trim()),
-        [tracks],
+        [displayedTracks],
     );
 
     const activeSpotifyTrackId = useMemo(() => {
-        const row = tracks[activeIndex];
+        const row = displayedTracks[activeIndex];
         const id = row?.spotify_track_id;
         return typeof id === 'string' && id.trim() ? id.trim() : '';
-    }, [tracks, activeIndex]);
+    }, [displayedTracks, activeIndex]);
 
     // --- Plays-over-time for active track ---
     useEffect(() => {
@@ -461,58 +471,41 @@ export default function GeneratePlaylistPage() {
 
     const seekToPlaylistIndex = useCallback(
         (index) => {
-            setShuffleHistory([]);
             patch({ idx: index });
         },
         [patch],
     );
 
     const handleNavigateNext = useCallback(() => {
-        const n = uris.length;
-        if (n <= 1) return;
-        if (playType === PLAY_TYPE_SHUFFLE) {
-            setShuffleHistory((h) => [...h, activeIndex]);
-            patch({ idx: randomIndexExcept(n, activeIndex) });
-        } else {
-            if (activeIndex >= n - 1) return;
-            patch({ idx: activeIndex + 1 });
-        }
-    }, [playType, activeIndex, uris.length, patch]);
+        if (activeIndex >= uris.length - 1) return;
+        patch({ idx: activeIndex + 1 });
+    }, [activeIndex, uris.length, patch]);
 
     const handleNavigatePrevious = useCallback(() => {
-        const n = uris.length;
-        if (n === 0) return;
-        if (playType === PLAY_TYPE_SHUFFLE) {
-            setShuffleHistory((h) => {
-                if (h.length === 0) return h;
-                const next = [...h];
-                const prevIdx = next.pop();
-                patch({ idx: prevIdx });
-                return next;
-            });
-        } else {
-            if (activeIndex <= 0) return;
-            patch({ idx: activeIndex - 1 });
-        }
-    }, [playType, activeIndex, patch]);
+        if (activeIndex <= 0) return;
+        patch({ idx: activeIndex - 1 });
+    }, [activeIndex, patch]);
 
-    const canNavigateNext =
-        uris.length > 0 && (playType === PLAY_TYPE_SHUFFLE ? uris.length > 1 : activeIndex < uris.length - 1);
-
-    const canNavigatePrevious =
-        playType === PLAY_TYPE_SHUFFLE ? shuffleHistory.length > 0 : activeIndex > 0;
+    const canNavigateNext = uris.length > 0 && activeIndex < uris.length - 1;
+    const canNavigatePrevious = activeIndex > 0;
 
     const setPlayTypeParam = useCallback(
         (next) => {
-            setShuffleHistory([]);
-            patch({ playType: next });
+            if (next === PLAY_TYPE_SHUFFLE) {
+                const order = shuffleIndices(tracks.length);
+                setShuffledOrder(order);
+            } else {
+                setShuffledOrder(null);
+            }
+            patch({ playType: next, idx: 0 });
         },
-        [patch],
+        [tracks.length, patch],
     );
 
+    // Clear shuffled order whenever a fresh playlist is loaded.
     useEffect(() => {
-        setShuffleHistory([]);
-    }, [playerSession]);
+        setShuffledOrder(null);
+    }, [tracks]);
 
     /** Fix shared links where idx is past the end of the loaded list. */
     useEffect(() => {
@@ -1074,7 +1067,7 @@ export default function GeneratePlaylistPage() {
                     </p>
                 )}
                 <ol style={{ margin: 0, padding: 0, listStyle: 'none' }}>
-                    {tracks.map((row, i) => {
+                    {displayedTracks.map((row, i) => {
                         const title = String(row.spotify_track_title ?? row.entry_title ?? '');
                         const artist = String(row.spotify_artist_title ?? row.entry_artist ?? '');
                         const plays =
