@@ -104,6 +104,20 @@
     "vadAggressive": 2,
     "rmsSilenceDb": null
   },
+  "radio-kz": {
+    "streamUrl": "b64:aHR0cHM6Ly9renJhZGlvLm1lZGlhY2FzdC5jby5pbC9renJhZGlvX2xpdmUva3pyYWRpby9pY2VjYXN0LmF1ZGlv",
+    "enabled": true,
+    "intervalMs": null,
+    "vadAggressive": 2,
+    "rmsSilenceDb": null
+  },
+  "radio-beat": {
+    "streamUrl": "b64:aHR0cDovL2xpdmUucmFkaW8tYmVhdC5jb20vc3RyZWFtMS8=",
+    "enabled": true,
+    "intervalMs": null,
+    "vadAggressive": 2,
+    "rmsSilenceDb": null
+  },
   "24music-tv": {
     "streamUrl": "b64:aHR0cHM6Ly9tYWtvLXN0cmVhbWluZy5ha2FtYWl6ZWQubmV0L2RpcmVjdC9obHMvbGl2ZS8yMDM1MzQwL2NoMjRsaXZlL2luZGV4Lm0zdTg=",
     "enabled": false,

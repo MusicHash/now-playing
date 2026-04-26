@@ -1215,6 +1215,72 @@ const radioplusStations = {
     },
 };
 
+const radioKzStations = {
+    'radio_kz': {
+        spotify: {
+            playlist: 'https://spoti.fi/',
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zL3JhZGlvLWt6',
+        },
+
+        now_playing: {
+            title: 'RadioKZ - Radio Katze - Latest Tracks (#Music)',
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 35 * 1000,
+        },
+
+        parser: {
+            type: 'json',
+
+            options: {
+                limit: 1,
+            },
+
+            fields: {
+                artist: 'recognition.artist',
+                title: 'recognition.title',
+                provider: 'recognition.provider',
+            },
+        },
+    },
+};
+
+const radioBeatStations = {
+    'radio_beat': {
+        spotify: {
+            playlist: 'https://spoti.fi/',
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cDovL2xvY2FsaG9zdDozODQ3L3N0YXRpb25zL3JhZGlvLWJlYXQ=',
+        },
+
+        now_playing: {
+            title: 'Radio Beat - Latest Tracks (#Music)',
+            description: 'Last 200 Tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 35 * 1000,
+        },
+
+        parser: {
+            type: 'json',
+
+            options: {
+                limit: 1,
+            },
+
+            fields: {
+                artist: 'recognition.artist',
+                title: 'recognition.title',
+                provider: 'recognition.provider',
+            },
+        },
+    },
+};
+
 const makoStations = {
     '24music': {
         spotify: {
@@ -1442,6 +1508,8 @@ const stations = {
     ...fm103Stations,
     ...fm1075Stations,
     ...radioplusStations,
+    ...radioKzStations,
+    ...radioBeatStations,
     ...makoStations,
 
     // World
