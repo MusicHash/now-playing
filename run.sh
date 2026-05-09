@@ -21,6 +21,60 @@ green()  { printf '\e[32m%s\e[0m\n' "$*"; }
 yellow() { printf '\e[33m%s\e[0m\n' "$*"; }
 red()    { printf '\e[31m%s\e[0m\n' "$*"; }
 
+# REDIS_URI from same .env — abort if Redis is down (before restarting screen/build)
+
+redis_uri_from_env() {
+    grep -m1 '^REDIS_URI=' "$ENV_FILE" 2>/dev/null | sed 's/^REDIS_URI=//' | sed 's/[[:space:]]*$//' | sed 's/^["'\'']//' | sed 's/["'\'']$//' | tr -d '\r'
+}
+
+parse_redis_host_port() {
+    local uri="$1" r hp rest
+    case "$uri" in
+        redis://*) r="${uri#redis://}" ;;
+        rediss://*) r="${uri#rediss://}" ;;
+        *) return 1 ;;
+    esac
+    r="${r%%\?*}"
+    [[ "$r" == *"@"* ]] && hp="${r#*@}" || hp="$r"
+    hp="${hp%%/*}"
+    REDIS_CHK_HOST="${hp%%:*}"
+    rest="${hp#*:}"
+    if [[ "$rest" == "$hp" ]]; then
+        REDIS_CHK_PORT=6379
+    else
+        REDIS_CHK_PORT="$rest"
+    fi
+    return 0
+}
+
+redis_is_up() {
+    local uri="$1"
+    [[ -z "$uri" ]] && return 1
+    REDIS_CHK_HOST=""
+    REDIS_CHK_PORT=""
+    parse_redis_host_port "$uri" || return 1
+    if command -v redis-cli >/dev/null 2>&1; then
+        redis-cli -u "$uri" ping 2>/dev/null | grep -q PONG && return 0
+    fi
+    (echo >/dev/tcp/${REDIS_CHK_HOST}/${REDIS_CHK_PORT}) 2>/dev/null
+}
+
+if [[ ! -f "$ENV_FILE" ]]; then
+    red "✗ Env file not found: $ENV_FILE"
+    exit 1
+fi
+REDIS_URI_VAL="$(redis_uri_from_env)"
+if [[ -z "$REDIS_URI_VAL" ]]; then
+    red "✗ REDIS_URI is not set in $ENV_FILE"
+    exit 1
+fi
+if ! redis_is_up "$REDIS_URI_VAL"; then
+    parse_redis_host_port "$REDIS_URI_VAL" 2>/dev/null || true
+    red "✗ Redis is not reachable from REDIS_URI (${REDIS_CHK_HOST:-?}:${REDIS_CHK_PORT:-?}) — start Redis first."
+    yellow "  e.g. CONFIG=… $SCRIPT_DIR/scripts/run_redis.sh   (aligned with port in .env)"
+    exit 1
+fi
+
 is_screen_running() {
     screen -list | grep -q "\.${SCREEN_NAME}[[:space:]]"
 }
