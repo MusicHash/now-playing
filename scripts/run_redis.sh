@@ -7,6 +7,17 @@
 set -euo pipefail
 
 CONFIG="${CONFIG:-~/_REDIS/redis.conf}"
+
+# Bash does not expand ~ inside variables used with [[ -f "$CONFIG" ]]; normalize ~/…
+expand_leading_home() {
+    case "${1-}" in
+        '~/'*) printf '%s' "${HOME}/${1:2}" ;;
+        '~')   printf '%s' "${HOME}" ;;
+        *)     printf '%s' "${1-}" ;;
+    esac
+}
+CONFIG="$(expand_leading_home "$CONFIG")"
+
 REDIS_SERVER="${REDIS_SERVER:-/opt/local/sbin/redis/bin/redis-server}"
 REDIS_CLI="${REDIS_CLI:-$(dirname "$REDIS_SERVER")/redis-cli}"
 # Optional: set when Redis bind is not reachable via redis-cli default (127.0.0.1), e.g. REDIS_CLI_HOST=10.0.0.1
