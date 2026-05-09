@@ -1,4 +1,5 @@
 import express from 'express';
+import { attachSentryToExpress } from '../sentry.js';
 import { isoUtcToLocalOffsetIso } from '../lib/local_time.js';
 import { pingRedis } from '../lib/redis_store.js';
 
@@ -123,6 +124,8 @@ export function createHttpServer({ logger, store, stations }) {
             lastRun: lastRunWithLocalTime(state.lastRun),
         });
     });
+
+    attachSentryToExpress(app);
 
     return app;
 }

@@ -1,8 +1,8 @@
+import { Sentry, attachSentryToExpress, sentryEnabled } from './sentry.js';
 import http from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import express from 'express';
-
 import logger from './utils/logger.js';
 import redisWrapper from './utils/redis_wrapper.js';
 import MySQLWrapper from './utils/mysql_wrapper.js';
@@ -46,6 +46,7 @@ class NowPlaying {
             await this._createEventEmitter();
             this.app.use('/api', createRoutes(this.logger));
             this._serveClient();
+            attachSentryToExpress(this.app);
 
             await this._connectToRedis();
             await this._connectToMySQL();
@@ -74,6 +75,9 @@ class NowPlaying {
                 message: 'Failed to initialize application components',
                 error,
             });
+            if (sentryEnabled) {
+                Sentry.captureException(error);
+            }
         }
     }
 
@@ -175,6 +179,13 @@ class NowPlaying {
                 },
             });
 
+            if (sentryEnabled) {
+                Sentry.captureException(error, {
+                    tags: { handler: 'unhandledRejection' },
+                    extra: { promise: String(promise) },
+                });
+            }
+
             if (metricsWrapper) {
                 try {
                     metricsWrapper.report('unhandled_rejection', [
@@ -200,6 +211,10 @@ class NowPlaying {
                 error,
                 stack: error.stack,
             });
+
+            if (sentryEnabled) {
+                Sentry.captureException(error, { tags: { handler: 'uncaughtException' } });
+            }
 
             if (metricsWrapper) {
                 try {

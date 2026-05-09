@@ -1,3 +1,4 @@
+import { Sentry, sentryEnabled } from './sentry.js';
 import { createHttpServer } from './http/server.js';
 import logger from './logger.js';
 import { initRedisStore } from './lib/redis_store.js';
@@ -89,3 +90,17 @@ function shutdown() {
 
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
+
+if (sentryEnabled) {
+    process.on('unhandledRejection', (reason) => {
+        const err =
+            reason instanceof Error
+                ? reason
+                : new Error(typeof reason === 'string' ? reason : JSON.stringify(reason));
+        Sentry.captureException(err, { tags: { handler: 'unhandledRejection' } });
+    });
+
+    process.on('uncaughtException', (error) => {
+        Sentry.captureException(error, { tags: { handler: 'uncaughtException' } });
+    });
+}
