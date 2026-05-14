@@ -168,19 +168,35 @@ const getChartInfo = async function (chartID, props) {
 
 let crawlAllStationsInFlight = false;
 
+/** Updated while a full station crawl runs — used when overlapping ticks log diagnostics. */
+let crawlAllStationsProgress = {
+    startedAtMs: null,
+    currentStation: null,
+};
+
 const crawlAllStationsToNotifyTrackChanges = async function () {
     if (crawlAllStationsInFlight) {
+        const startedAt = crawlAllStationsProgress.startedAtMs;
         logger.warn({
             method: 'crawlAllStationsToNotifyTrackChanges',
             message:
                 'Skipping overlapping station crawl — previous run still in progress (scheduler is 45s, crawl may be slower)',
+            metadata: {
+                schedulerIntervalSec: 45,
+                runStartedAtMs: startedAt,
+                elapsedMsSinceRunStart: startedAt != null ? Date.now() - startedAt : null,
+                stationBlockingRun: crawlAllStationsProgress.currentStation,
+            },
         });
         return;
     }
 
     crawlAllStationsInFlight = true;
+    crawlAllStationsProgress.startedAtMs = Date.now();
+    crawlAllStationsProgress.currentStation = null;
     try {
         for (let station in stations) {
+            crawlAllStationsProgress.currentStation = station;
             let props = stations[station];
 
             try {
@@ -213,6 +229,8 @@ const crawlAllStationsToNotifyTrackChanges = async function () {
         }
     } finally {
         crawlAllStationsInFlight = false;
+        crawlAllStationsProgress.startedAtMs = null;
+        crawlAllStationsProgress.currentStation = null;
     }
 };
 
