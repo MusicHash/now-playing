@@ -1,6 +1,29 @@
 import newrelic from 'newrelic';
 import pino from 'pino';
 
+/** Pino internal: serialized child bindings (e.g. tickId from logger.child). */
+const chindingsSym = pino.symbols.chindingsSym;
+
+/**
+ * Pino stores `logger.child({ tickId })` bindings as a JSON fragment on the logger
+ * (`chindingsSym`), not in the arguments passed to `logMethod`.
+ *
+ * @param {import('pino').Logger} log
+ * @returns {Record<string, unknown>}
+ */
+function parsePinoChindings(log) {
+  const raw = log[chindingsSym];
+  if (!raw || typeof raw !== 'string' || raw.length < 2) {
+    return {};
+  }
+  try {
+    const inner = raw.startsWith(',') ? raw.slice(1) : raw;
+    return JSON.parse(`{${inner}}`);
+  } catch {
+    return {};
+  }
+}
+
 function nrForwardingEnabled() {
   return process.env.NEW_RELIC_ENABLED !== 'false' && Boolean(process.env.NEW_RELIC_LICENSE_KEY);
 }
@@ -42,6 +65,8 @@ function forwardLogToNewRelic(args, levelVal, log) {
   if (args.length === 0) {
     return;
   }
+
+  Object.assign(payload, nrPrimitiveAttrs(parsePinoChindings(log)));
 
   const [first, second] = args;
 
