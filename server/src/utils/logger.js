@@ -1,3 +1,4 @@
+import newrelic from 'newrelic';
 import pino from 'pino';
 
 import { isPlainObject, sanitizeLogValue } from './log_sanitize.js';
@@ -43,12 +44,20 @@ class Logger {
      * @param {String} level of the log that is expected to report.
      */
     constructor() {
-        this._loggerInstance = pino({
-            level: process.env.PINO_LOG_LEVEL || 'info',
-            transport: {
+        const level = process.env.PINO_LOG_LEVEL || 'info';
+        const usePrettyTransport =
+            process.env.NODE_ENV !== 'production' &&
+            process.env.PINO_PRETTY !== '0' &&
+            process.env.PINO_PRETTY !== 'false';
+
+        const opts = { level };
+        if (usePrettyTransport) {
+            opts.transport = {
                 target: 'pino-pretty',
-            },
-        });
+            };
+        }
+
+        this._loggerInstance = pino(opts);
     }
 
 
@@ -135,9 +144,123 @@ class Logger {
             return arg;
         });
 
-        this._loggerInstance[severity](...processed);
+        const pinoArgs = this._pinoArgsFromProcessed(processed);
+        this._loggerInstance[severity](...pinoArgs);
+        this._forwardLogToNewRelic(severity, pinoArgs);
 
         return this;
+    }
+
+    /**
+     * Pino needs a string `msg` when only a plain object is passed; otherwise
+     * `msg` is missing and decorators / pretty-print look wrong.
+     *
+     * @param {unknown[]} processed
+     * @returns {unknown[]}
+     */
+    _pinoArgsFromProcessed(processed) {
+        if (processed.length !== 1) {
+            return processed;
+        }
+
+        const sole = processed[0];
+
+        if (sole instanceof Error) {
+            return processed;
+        }
+
+        if (sole !== null && typeof sole === 'object' && !Array.isArray(sole) && isPlainObject(sole)) {
+            const fromMessage = typeof sole.message === 'string' ? sole.message.trim() : '';
+            const fromMethod = typeof sole.method === 'string' ? sole.method.trim() : '';
+            const msg = fromMessage || fromMethod || 'event';
+            const bindings = { ...sole };
+            if (fromMessage) {
+                delete bindings.message;
+            }
+            return [bindings, msg];
+        }
+
+        return processed;
+    }
+
+    _nrPrimitiveAttributes(obj) {
+        const out = {};
+        if (!isPlainObject(obj)) {
+            return out;
+        }
+        for (const [k, v] of Object.entries(obj)) {
+            if (k === 'severity' || k === 'msg' || k === 'message') {
+                continue;
+            }
+            if (v === null || typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
+                out[k] = v;
+            }
+        }
+        return out;
+    }
+
+    _forwardLogToNewRelic(severity, pinoArgs) {
+        if (process.env.NEW_RELIC_ENABLED === 'false' || !process.env.NEW_RELIC_LICENSE_KEY) {
+            return;
+        }
+
+        try {
+            const level = severity.toUpperCase();
+            const payload = this._newRelicLogPayload(pinoArgs, level);
+            if (payload && payload.message !== undefined && payload.message !== '') {
+                newrelic.recordLogEvent(payload);
+            }
+        } catch {
+            // NR unavailable in tests or during bootstrap edge cases
+        }
+    }
+
+    /**
+     * @param {unknown[]} pinoArgs
+     * @param {string} level
+     * @returns {Record<string, unknown>|null}
+     */
+    _newRelicLogPayload(pinoArgs, level) {
+        if (pinoArgs.length >= 2 && typeof pinoArgs[1] === 'string' && isPlainObject(pinoArgs[0])) {
+            return {
+                message: pinoArgs[1],
+                level,
+                ...this._nrPrimitiveAttributes(pinoArgs[0]),
+            };
+        }
+
+        if (pinoArgs.length === 1 && typeof pinoArgs[0] === 'string') {
+            return { message: pinoArgs[0], level };
+        }
+
+        if (pinoArgs.length === 1 && pinoArgs[0] instanceof Error) {
+            const err = pinoArgs[0];
+            return { message: err.message, level, error: err };
+        }
+
+        if (pinoArgs.length > 1) {
+            const message = pinoArgs
+                .map((a) => {
+                    if (a instanceof Error) {
+                        return a.message;
+                    }
+                    if (typeof a === 'string') {
+                        return a;
+                    }
+                    if (a && typeof a === 'object') {
+                        try {
+                            return JSON.stringify(a);
+                        } catch {
+                            return String(a);
+                        }
+                    }
+                    return String(a);
+                })
+                .join(' ');
+            return { message, level };
+        }
+
+        return { message: 'event', level };
     }
 
 

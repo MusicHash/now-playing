@@ -20,12 +20,19 @@ class ProcessMonitor {
     }
 
     spawnProcess() {
-        const appPath = join(__dirname, 'server', 'src', 'now_playing.js');
+        const serverDir = join(__dirname, 'server');
+        const appPath = join(serverDir, 'src', 'now_playing.js');
+
+        const nrOn = process.env.NEW_RELIC_ENABLED !== 'false' && Boolean(process.env.NEW_RELIC_LICENSE_KEY);
+        const nodeArgs = nrOn
+            ? ['--experimental-loader', 'newrelic/esm-loader.mjs', '-r', 'newrelic', '--experimental-specifier-resolution=node', appPath]
+            : ['--experimental-specifier-resolution=node', appPath];
 
         console.log(`Spawning process: ${appPath}`);
 
-        const child = spawn('node', [appPath], {
+        const child = spawn('node', nodeArgs, {
             stdio: 'inherit',
+            cwd: serverDir,
             env: { ...process.env, NODE_ENV: process.env.NODE_ENV || 'production' },
         });
 

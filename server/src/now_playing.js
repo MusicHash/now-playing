@@ -82,7 +82,7 @@ class NowPlaying {
     }
 
     async _connectToMetrics() {
-        metricsWrapper.init(this.logger, process.env.INFLUX_URL, process.env.INFLUX_TOKEN, process.env.INFLUX_ORG, process.env.INFLUX_BUCKET);
+        metricsWrapper.init(this.logger);
 
         return this;
     }

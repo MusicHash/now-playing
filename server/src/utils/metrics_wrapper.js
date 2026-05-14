@@ -1,82 +1,48 @@
-import { InfluxDB, Point, HttpError } from '@influxdata/influxdb-client';
+import newrelic from 'newrelic';
 import { hostname } from 'node:os';
 
 /**
- * Metrics Wrapper - influxdb v2
+ * Custom metrics and operational events via New Relic (replaces InfluxDB writes).
  */
 class MetricsWrapper {
-    _mericsInstance = null;
-    _mericsWrite = null;
-    _isEnabled = false;
-
     logger = null;
 
-    
-    init(Logger, url, token, org, bucket) {
+    init(Logger) {
         this.logger = Logger;
-
-        try {
-          this._initInfluxDB(url, token, org, bucket);
-        } catch (error) {
-          this.logger.error(error);
-        }
     }
 
+    _isNewRelicMetricsEnabled() {
+        return process.env.NEW_RELIC_ENABLED !== 'false' && Boolean(process.env.NEW_RELIC_LICENSE_KEY);
+    }
 
-    _initInfluxDB(url, token, org, bucket) {
-        if (!url || !token || !org || !bucket) {
-            this.logger.warn('InfluxDB is not configured');
+    /**
+     * Report a measurement previously sent to Influx as a custom event with attributes.
+     *
+     * @param {string} measurementId
+     * @param {{ type: string, key: string, value: string | number }[]} fields influx-style field list
+     */
+    report(measurementId, fields = []) {
+        if (!this._isNewRelicMetricsEnabled()) {
             return this;
         }
 
-        this.logger.info('InfluxDB is configured, initializing...');
-        this._isEnabled = true;
-
-        this._mericsInstance = new InfluxDB({ url, token });
-
-        /**
-         * Create a write client from the getWriteApi method.
-         * Provide your `org` and `bucket`.
-         **/
-        this._mericsWrite = this._mericsInstance.getWriteApi(org, bucket);
-
-
-        /**
-         * Flush pending writes and close writeApi.
-         **/
-        this._mericsWrite.close().then(() => {
-          this.logger.debug('InfluxDB WRITE FINISHED');
-        });
-
-        this._mericsWrite.useDefaultTags({
-          location: hostname()
-        });
-
+        try {
+            const attrs = {
+                measurement: measurementId,
+                host: hostname(),
+            };
+            for (const f of fields) {
+                attrs[f.key] = f.value;
+            }
+            newrelic.recordCustomEvent('ServerMetric', attrs);
+        } catch (err) {
+            this.logger?.warn?.({
+                message: 'New Relic custom metric failed',
+                measurementId,
+                err,
+            });
+        }
         return this;
-    }
-
-
-    report(measurement_id, fields = []) {
-      if (!this._isEnabled) {
-        console.log('InfluxDB report failed, not initilized yet. Args:' + arguments);
-        return;
-      }
-
-      /**
-       * Create a point and write it to the buffer.
-       **/
-      const pointData = new Point(measurement_id);
-
-      for (let i = 0; i < fields.length; i++) {
-        pointData[fields[i].type](fields[i].key, fields[i].value);
-      }
-      
-      console.log(`Metric Point inspection: ${pointData}`);
-
-      this._mericsWrite.writePoint(pointData);
-      this._mericsWrite.flush();
-
-      return this;
     }
 }
 

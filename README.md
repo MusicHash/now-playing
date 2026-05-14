@@ -8,7 +8,7 @@ A small dashboard for **radio play logs**. Explore how often tracks and artists 
 - **Generate playlist** — Turn what you’re seeing into playlists (with Spotify wired up).
 - **REST API** — The Express server exposes `/api` routes for health, stations, stats, playlists, and more.
 
-The UI is **React** (Vite); the backend is **Node** (Express) with optional **MySQL**, **Redis**, **InfluxDB**, and **Spotify** integration—configure what you need via a root `.env` file.
+The UI is **React** (Vite); the backend is **Node** (Express) with optional **MySQL**, **Redis**, **New Relic** (APM, custom metrics, log forwarding), and **Spotify** integration—configure what you need via a root `.env` file.
 
 ## Quick start
 
@@ -35,6 +35,19 @@ The client dev server proxies `/api` to the backend (default `http://localhost:9
 npm run build:client
 npm start
 ```
+
+## Observability (New Relic)
+
+The API uses the [Node.js agent](https://docs.newrelic.com/docs/apm/agents/nodejs-agent/installation-configuration/es-modules/) with the ESM loader (`NODE_OPTIONS` in `server`’s `start` / `debug` scripts). Set in `.env`:
+
+- `NEW_RELIC_APP_NAME` — application name in New Relic.
+- `NEW_RELIC_LICENSE_KEY` — ingest license key.
+- `NEW_RELIC_ENABLED` — `false` disables the agent (useful for local runs).
+- `NEW_RELIC_PROXY_URL` — optional `http://user:pass@host:port` HTTP CONNECT proxy for **collector traffic only**. **Unset** → `server/newrelic.cjs` reuses `PROXY_URI`. **Set empty** → no NR proxy even if `PROXY_URI` is set.
+
+`server/newrelic.cjs` turns on APM, distributed tracing, and **log forwarding**. Application logs are sent with `newrelic.recordLogEvent` from `server/src/utils/logger.js` (automatic Pino instrumentation is off—ESM/pino-pretty often skipped it). Custom measurements that used to go to Influx are **`ServerMetric`** custom events (`measurement` + fields).
+
+**Nothing showing in New Relic?** Open `server/newrelic_agent.log`. If you see `CERT_HAS_EXPIRED` when talking to the collector, your **system clock is wrong** (ahead of the collector certificate’s validity) or TLS is being intercepted—sync time with NTP / fix the proxy. Quick check: `npm run nr:diag -w server` (sends a `DiagTest` custom event; allow ~1–2 minutes in the UI).
 
 ## Scripts
 
