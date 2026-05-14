@@ -24,7 +24,8 @@ Environment:
     CHROME_PROXY_HTTP_TIMEOUT — Seconds for cloudscraper HTTP GET (default: 60).
     CHROME_PROXY_SERVER — Upstream proxy (both backends). Examples:
         http://proxy.example.com:8080  |  socks5://127.0.0.1:1080
-        Chrome: user:pass via nodriver forwarder. cloudscraper: standard requests proxy URL.
+        Chrome: user:pass via nodriver forwarder. cloudscraper: sets Session.proxies
+        (http + https) so all requests, including challenge passes, use the same URL.
     CHROME_PROXY_BYPASS_LIST — Chrome --proxy-bypass-list only (chrome backend).
 """
 
@@ -88,6 +89,18 @@ CHROME_PROXY_SERVER = os.environ.get("CHROME_PROXY_SERVER", "").strip()
 CHROME_PROXY_BYPASS_LIST = os.environ.get("CHROME_PROXY_BYPASS_LIST", "").strip()
 
 DEFAULT_FETCH_BACKEND = os.environ.get("CHROME_PROXY_FETCH_BACKEND", "chrome").strip().lower()
+
+
+def _proxy_upstream_log_label(proxy_url: str) -> str:
+    try:
+        p = urlparse(proxy_url)
+        if p.hostname:
+            port = f":{p.port}" if p.port else ""
+            return f"{p.hostname}{port}"
+    except Exception:
+        pass
+    return proxy_url.rsplit("@", 1)[-1]
+
 
 CACHE_TTL_SECONDS = 15
 PAGE_SETTLE_SECONDS = 2
@@ -154,10 +167,14 @@ class CloudscraperFetchProvider:
         import cloudscraper
 
         scraper = cloudscraper.create_scraper()
-        proxies = None
-        if CHROME_PROXY_SERVER:
-            proxies = {"http": CHROME_PROXY_SERVER, "https": CHROME_PROXY_SERVER}
-        r = scraper.get(url, timeout=CHROME_PROXY_HTTP_TIMEOUT, proxies=proxies)
+        proxy_url = CHROME_PROXY_SERVER.strip()
+        if proxy_url:
+            scraper.proxies = {"http": proxy_url, "https": proxy_url}
+            log.info(
+                "cloudscraper upstream proxy: %s",
+                _proxy_upstream_log_label(proxy_url),
+            )
+        r = scraper.get(url, timeout=CHROME_PROXY_HTTP_TIMEOUT)
         r.raise_for_status()
         text = r.text
         if _html_looks_like_cf_challenge(text):
@@ -225,17 +242,6 @@ class ChromeFetchProvider:
         except Exception:
             return False
 
-    @staticmethod
-    def _proxy_upstream_log_label(proxy_url: str) -> str:
-        try:
-            p = urlparse(proxy_url)
-            if p.hostname:
-                port = f":{p.port}" if p.port else ""
-                return f"{p.hostname}{port}"
-        except Exception:
-            pass
-        return proxy_url.rsplit("@", 1)[-1]
-
     async def _chrome_proxy_server_flag_value(self) -> str:
         uc = _nodriver()
         raw = CHROME_PROXY_SERVER.strip()
@@ -261,7 +267,7 @@ class ChromeFetchProvider:
             browser_args.append(f"--proxy-server={proxy_server_flag}")
             log.info(
                 "Chrome upstream proxy: %s",
-                self._proxy_upstream_log_label(CHROME_PROXY_SERVER),
+                _proxy_upstream_log_label(CHROME_PROXY_SERVER),
             )
         if CHROME_PROXY_BYPASS_LIST:
             browser_args.append(f"--proxy-bypass-list={CHROME_PROXY_BYPASS_LIST}")
