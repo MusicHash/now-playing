@@ -8,7 +8,7 @@ A small dashboard for **radio play logs**. Explore how often tracks and artists 
 - **Generate playlist** — Turn what you’re seeing into playlists (with Spotify wired up).
 - **REST API** — The Express server exposes `/api` routes for health, stations, stats, playlists, and more.
 
-The UI is **React** (Vite); the backend is **Node** (Express) with optional **MySQL**, **Redis**, **New Relic** (APM, custom metrics, log forwarding), and **Spotify** integration—configure what you need via a root `.env` file.
+The UI is **React** (Vite); the backend is **Node** (Express) with optional **MySQL**, **Redis**, **New Relic** (APM, custom metrics, log forwarding), and **Spotify** integration—configure what you need via a root `.env` file. The **stream-recognizer** workspace uses its own `.env` and `NEW_RELIC_APP_NAME` (default `stream-recognizer`); see [stream-recognizer/README.md](stream-recognizer/README.md).
 
 ## Quick start
 

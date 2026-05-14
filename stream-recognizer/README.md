@@ -25,11 +25,16 @@ On macOS: `brew install ffmpeg chromaprint`.
 ```bash
 cd stream-recognizer
 cp .env.example .env
-# Edit .env: REDIS_URI, HTTP_PORT (optional: HTTP_HOST to bind a specific IP)
+# Edit .env: REDIS_URI, HTTP_PORT. For New Relic, set NEW_RELIC_LICENSE_KEY (same as server)
+# and NEW_RELIC_APP_NAME=stream-recognizer (default). Optional: NEW_RELIC_PROXY_URL or PROXY_URI.
 # Edit config/stations.json: set streamUrl, id, enabled: true
 npm install
 npm start
 ```
+
+### New Relic
+
+Runs the Node agent with the same ESM flags as the API (`npm start` / `npm run dev`). Config lives in `newrelic.cjs`; defaults to app name **`stream-recognizer`**. Logs go through `newrelic.recordLogEvent` via `src/logger.js` (Pino auto-instrumentation is disabled). Quick connectivity check: `npm run nr:diag`.
 
 ## Troubleshooting
 
