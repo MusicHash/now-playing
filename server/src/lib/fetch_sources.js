@@ -9,9 +9,9 @@ import {
     getNewlyPlayedSongs,
     normalizeHistoryField,
     extractSpotifyTrackId,
+    historySongKey,
 } from './history_diff.js';
 import { DURATION } from '../constants/numbers.js';
-import { hash } from '../utils/crypt.js';
 import redisWrapper from '../utils/redis_wrapper.js';
 import eventEmitterWrapper from '../utils/event_emitter_wrapper.js';
 import { getMostPlayedSongsByStation } from './query_log/most_played_songs.js';
@@ -129,25 +129,26 @@ const crawlHistoryChartsToNotifyTrackChanges = async function () {
     }
 };
 
-// removes total from payload for cache, not needed
-// some vendors like hostingradio flikers with total field when a new song added
-const withoutTotalForCache = function (payload) {
-    if (payload?.result == null || typeof payload.result !== 'object' || !('total' in payload.result)) {
-        return payload;
-    }
-    const { total, ...result } = payload.result;
-    return { ...payload, result };
+/**
+ * Stable now-playing identity for deduping change notifications.
+ * Full scrape payloads (especially HTTP JSON) often include timestamps or other
+ * volatile keys — hashing the entire response caused false "changes" and duplicate
+ * station_log rows when crawls overlapped or vendors jittered metadata.
+ */
+const currentNowPlayingIdentityKey = function (payload) {
+    const first = payload?.result?.fields?.[0];
+    return first ? historySongKey(first) : '';
 };
 
 const didSourceChange = async function (station, response) {
     const hashKey = 'NOWPLAYNG:SORUCES:RECENT_CHANGE_BY_SOURCE';
     const hashField = station;
-    const previous = JSON.parse(await redisWrapper.getHash(hashKey, hashField));
+    const previousRaw = await redisWrapper.getHash(hashKey, hashField);
 
-    const next = withoutTotalForCache(response);
+    const nextKey = currentNowPlayingIdentityKey(response);
 
-    if (hash(withoutTotalForCache(previous)) !== hash(next)) {
-        await redisWrapper.addHash(hashKey, hashField, JSON.stringify(next), DURATION.OF_1_HOUR);
+    if ((previousRaw ?? '') !== nextKey) {
+        await redisWrapper.addHash(hashKey, hashField, nextKey, DURATION.OF_1_HOUR);
 
         return true;
     }
@@ -165,37 +166,53 @@ const getChartInfo = async function (chartID, props) {
     return chartInfo;
 };
 
+let crawlAllStationsInFlight = false;
+
 const crawlAllStationsToNotifyTrackChanges = async function () {
-    for (let station in stations) {
-        let props = stations[station];
+    if (crawlAllStationsInFlight) {
+        logger.warn({
+            method: 'crawlAllStationsToNotifyTrackChanges',
+            message:
+                'Skipping overlapping station crawl — previous run still in progress (scheduler is 45s, crawl may be slower)',
+        });
+        return;
+    }
 
-        try {
-            const tracks = await getCurrentTracks({
-                ID: station,
-                scraperProps: props.scraper,
-                parserProps: props.parser,
-            });
+    crawlAllStationsInFlight = true;
+    try {
+        for (let station in stations) {
+            let props = stations[station];
 
-            const payload = {
-                station: station,
-                result: tracks,
-            };
+            try {
+                const tracks = await getCurrentTracks({
+                    ID: station,
+                    scraperProps: props.scraper,
+                    parserProps: props.parser,
+                });
 
-            const shouldSendUpdate = await didSourceChange(station, payload);
+                const payload = {
+                    station: station,
+                    result: tracks,
+                };
 
-            if (shouldSendUpdate && payload?.result?.total > 0) {
-                await eventEmitterWrapper.emit(SYSTEM_EVENTS.ON_STATION_TRACK_UPDATED, payload);
+                const shouldSendUpdate = await didSourceChange(station, payload);
+
+                if (shouldSendUpdate && payload?.result?.total > 0) {
+                    await eventEmitterWrapper.emit(SYSTEM_EVENTS.ON_STATION_TRACK_UPDATED, payload);
+                }
+            } catch (error) {
+                logger.error({
+                    method: 'getCurrentTracks -> crawlAllStationsToNotifyTrackChanges',
+                    message: 'Failed to refresh station',
+                    error,
+                    metadata: {
+                        station,
+                    },
+                });
             }
-        } catch (error) {
-            logger.error({
-                method: 'getCurrentTracks -> crawlAllStationsToNotifyTrackChanges',
-                message: 'Failed to refresh station',
-                error,
-                metadata: {
-                    station,
-                },
-            });
         }
+    } finally {
+        crawlAllStationsInFlight = false;
     }
 };
 
