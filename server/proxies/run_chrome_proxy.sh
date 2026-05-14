@@ -54,14 +54,27 @@ fi
 # ── launch ────────────────────────────────────────────────────────────────────
 # With a real display (e.g. WSLg sets DISPLAY=:0), xvfb is unnecessary and often
 # breaks here (_XSERVTransSocketCreateListener) if /tmp/.X11-unix is not mode 1777.
-# Headless: xvfb-run -a picks a free server number.
+# Headless: xvfb-run -a picks a free server number (not needed for cloudscraper).
 
-if [[ -n "${DISPLAY:-}" ]]; then
-    PROXY_EXEC=( "$VENV_PYTHON" "$PROXY_SCRIPT" --host "$HOST" --port "$PORT" )
+BACKEND_ARGS=()
+if [[ -n "${CHROME_PROXY_FETCH_BACKEND:-}" ]]; then
+    BACKEND_ARGS=( --fetch-backend "$CHROME_PROXY_FETCH_BACKEND" )
+fi
+
+USE_CHROME=1
+if [[ "${CHROME_PROXY_FETCH_BACKEND:-}" == "cloudscraper" ]]; then
+    USE_CHROME=0
+fi
+
+if [[ "$USE_CHROME" -eq 1 && -n "${DISPLAY:-}" ]]; then
+    PROXY_EXEC=( "$VENV_PYTHON" "$PROXY_SCRIPT" --host "$HOST" --port "$PORT" "${BACKEND_ARGS[@]}" )
     echo "Starting chrome_proxy on ${HOST}:${PORT} (DISPLAY=${DISPLAY})…"
-else
-    PROXY_EXEC=( xvfb-run -a "$VENV_PYTHON" "$PROXY_SCRIPT" --host "$HOST" --port "$PORT" )
+elif [[ "$USE_CHROME" -eq 1 ]]; then
+    PROXY_EXEC=( xvfb-run -a "$VENV_PYTHON" "$PROXY_SCRIPT" --host "$HOST" --port "$PORT" "${BACKEND_ARGS[@]}" )
     echo "Starting chrome_proxy on ${HOST}:${PORT} (xvfb-run -a)…"
+else
+    PROXY_EXEC=( "$VENV_PYTHON" "$PROXY_SCRIPT" --host "$HOST" --port "$PORT" "${BACKEND_ARGS[@]}" )
+    echo "Starting chrome_proxy (cloudscraper) on ${HOST}:${PORT}…"
 fi
 
 cmd_q=$(printf '%q ' "${PROXY_EXEC[@]}")
