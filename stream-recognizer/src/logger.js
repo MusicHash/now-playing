@@ -1,11 +1,11 @@
 import newrelic from 'newrelic';
 import pino from 'pino';
 
-/** Pino internal: serialized child bindings (e.g. tickId from logger.child). */
+/** Pino internal: serialized child bindings (e.g. requestID from logger.child). */
 const chindingsSym = pino.symbols.chindingsSym;
 
 /**
- * Pino stores `logger.child({ tickId })` bindings as a JSON fragment on the logger
+ * Pino stores `logger.child({ requestID })` bindings as a JSON fragment on the logger
  * (`chindingsSym`), not in the arguments passed to `logMethod`.
  *
  * @param {import('pino').Logger} log

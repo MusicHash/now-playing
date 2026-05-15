@@ -46,7 +46,7 @@ CDN **DASH / `.livx`** URLs may be slow or unsuitable for a simple `ffmpeg -i �
 
 ### Audio recognition: no match — inspect the capture
 
-Logs include `capturePath`, `fingerprintPrefix`, and **`order`** (provider list). The temp capture is deleted after each tick unless **`DEBUG_CAPTURE_DIR`** is set and **`DEBUG_CAPTURE_ENABLED`** is not disabled (`1` by default). Copies use `{unixTime}-{stationId}-{tickId}-{label}.wav` (`unixTime` = seconds since Unix epoch): `no-match` when every provider fails; pre-recognition empty skips use `detected-empty-*`. Successful IDs are copied **only** when **Shazam ran and missed** and a **later** provider in `AUDIO_RECOGNITION_ORDER` matched (label `saved-<provider>-after-shazam-miss`). A Shazam win is never copied to `DEBUG_CAPTURE_DIR`.
+Logs include `capturePath`, `fingerprintPrefix`, and **`order`** (provider list). The temp capture is deleted after each tick unless **`DEBUG_CAPTURE_DIR`** is set and **`DEBUG_CAPTURE_ENABLED`** is not disabled (`1` by default). Copies use `{unixTime}-{stationId}-{requestID}-{label}.wav` (`unixTime` = seconds since Unix epoch): `no-match` when every provider fails; pre-recognition empty skips use `detected-empty-*`. Successful IDs are copied **only** when **Shazam ran and missed** and a **later** provider in `AUDIO_RECOGNITION_ORDER` matched (label `saved-<provider>-after-shazam-miss`). A Shazam win is never copied to `DEBUG_CAPTURE_DIR`.
 
 ## Configuration
 
@@ -77,7 +77,7 @@ Stations file: array of `{ "id", "streamUrl", "enabled", "intervalMs", "vadAggre
 - `GET /stations` — `{ stations: { [key]: { ... } } }`: keys are derived from each station `id` by dropping the substring from the first `-` onward, removing `.`, then replacing any remaining non‑`[a-zA-Z0-9_]` with `_`. Each value includes the real `id` plus config (`enabled`, `intervalMs`, `streamUrl`), **`recognition`** (last identified track, if any), and **`lastRun`** (most recent tick outcome for observability).
 - `GET /stations/:id` — `{ id, recognition, lastRun }` (`404` if the station id is unknown; `404` with `no data yet` if neither recognition nor last-run has been written to Redis).
 
-Per station, Redis stores one **HASH** at **`{prefix}:{stationId}`** (e.g. `stream-recognizer:v2:103fm`) with fields **`recognition`** (flat track JSON: `artist`, `title`, `provider`, `updatedAt`, `fingerprint`, optional `shazamKey`, …) and **`lastRun`** (latest tick: `outcome`, `at`, `tickId`, …). Writes use **`HSET`** via `RedisWrapper.addHash`. The `recognition` field is updated only when the identified track changes; **`lastRun`** updates every tick. Track change / duplicate detection uses **recognition only**, not `lastRun`.
+Per station, Redis stores one **HASH** at **`{prefix}:{stationId}`** (e.g. `stream-recognizer:v2:103fm`) with fields **`recognition`** (flat track JSON: `artist`, `title`, `provider`, `updatedAt`, `fingerprint`, optional `shazamKey`, …) and **`lastRun`** (latest tick: `outcome`, `at`, `requestID`, …). Writes use **`HSET`** via `RedisWrapper.addHash`. The `recognition` field is updated only when the identified track changes; **`lastRun`** updates every tick. Track change / duplicate detection uses **recognition only**, not `lastRun`.
 
 ## Behaviour
 

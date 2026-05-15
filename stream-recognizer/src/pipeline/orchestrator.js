@@ -113,14 +113,14 @@ function providerDisplayName(id) {
 /**
  * Observability only (Redis hash field `lastRun`); not used for track change detection.
  *
- * @param {string} tickId
+ * @param {string} requestID
  * @param {string} outcome
  * @param {Record<string, unknown>} [extra]
  */
-function lastRunRecord(tickId, outcome, extra = {}) {
+function lastRunRecord(requestID, outcome, extra = {}) {
     return {
         at: new Date().toISOString(),
-        tickId,
+        requestID,
         outcome,
         ...extra,
     };
@@ -128,11 +128,11 @@ function lastRunRecord(tickId, outcome, extra = {}) {
 
 /**
  * When DEBUG_CAPTURE_DIR is set and DEBUG_CAPTURE_ENABLED, copy WAV for offline analysis.
- * Filename: `{timestamp}-{stationId}-{tickId}-{label}.wav` (tickId and label sanitized for the filesystem).
+ * Filename: `{timestamp}-{stationId}-{requestID}-{label}.wav` (requestID and label sanitized for the filesystem).
  *
  * @param {string} wavPath
  * @param {string} stationId
- * @param {string} tickId
+ * @param {string} requestID
  * @param {import('pino').Logger} log
  * @param {string} label e.g. `detected-empty-peak_too_low`, `no-match`, `saved-<provider>-after-shazam-miss`
  * @param {{ artist: string; title: string }} [companionTrack] When set, also writes `{same-prefix}-{track}.txt` next to the .wav (e.g. after Shazam miss + later provider hit).
@@ -141,7 +141,7 @@ function lastRunRecord(tickId, outcome, extra = {}) {
 async function copyDebugWavIfEnabled(
     wavPath,
     stationId,
-    tickId,
+    requestID,
     log,
     label,
     companionTrack,
@@ -154,11 +154,11 @@ async function copyDebugWavIfEnabled(
     try {
         await mkdir(debugDir, { recursive: true });
         const fileStamp = nowLocalDebugFileStamp();
-        const safeTick = String(tickId).replace(/[^a-zA-Z0-9_-]+/g, '-');
+        const safeRequestId = String(requestID).replace(/[^a-zA-Z0-9_-]+/g, '-');
         const safe = String(label).replace(/[^a-zA-Z0-9_-]+/g, '-');
         const debugCopyPath = join(
             debugDir,
-            `${fileStamp}-${stationId}-${safeTick}-${safe}.wav`,
+            `${fileStamp}-${stationId}-${safeRequestId}-${safe}.wav`,
         );
         await copyFile(wavPath, debugCopyPath);
         let companionTxtPath;
@@ -172,7 +172,7 @@ async function copyDebugWavIfEnabled(
             );
             companionTxtPath = join(
                 debugDir,
-                `${fileStamp}-${stationId}-${safeTick}-${trackSeg}.txt`,
+                `${fileStamp}-${stationId}-${safeRequestId}-${trackSeg}.txt`,
             );
             const body = [companionTrack.artist, companionTrack.title]
                 .filter(Boolean)
@@ -203,19 +203,19 @@ async function copyDebugWavIfEnabled(
  * @param {import('../types.js').StationConfig} station
  * @param {import('../lib/redis_store.js').RedisStore} store
  * @param {import('pino').Logger} logger
- * @param {{ tickId?: string, recognitionBlacklist?: string[] }} [options] `recognitionBlacklist` from {@link ../config.js#loadRecognitionBlacklist}; omit to skip blacklist checks in tests.
+ * @param {{ requestID?: string, recognitionBlacklist?: string[] }} [options] `recognitionBlacklist` from {@link ../config.js#loadRecognitionBlacklist}; omit to skip blacklist checks in tests.
  */
 export async function runStationTick(station, store, logger, options = {}) {
     if (station.enabled === false) {
         return;
     }
 
-    const tickId =
-        typeof options.tickId === 'string' && options.tickId.trim() !== ''
-            ? options.tickId.trim()
+    const requestID =
+        typeof options.requestID === 'string' && options.requestID.trim() !== ''
+            ? options.requestID.trim()
             : randomUUID();
     const recognitionBlacklistPhrases = options.recognitionBlacklist;
-    const log = logger.child({ tickId });
+    const log = logger.child({ requestID });
     log.info(
         { station: station.id },
         'Station Tick: START',
@@ -342,7 +342,7 @@ export async function runStationTick(station, store, logger, options = {}) {
             log.debug({ station: station.id, meanDb: gates.meanDb }, 'skip: silence');
             await store.setLastRun(
                 station.id,
-                lastRunRecord(tickId, 'skipped_silence', {
+                lastRunRecord(requestID, 'skipped_silence', {
                     meanDb: gates.meanDb,
                 }),
             );
@@ -355,7 +355,7 @@ export async function runStationTick(station, store, logger, options = {}) {
             );
             await store.setLastRun(
                 station.id,
-                lastRunRecord(tickId, 'skipped_speech_heavy', {
+                lastRunRecord(requestID, 'skipped_speech_heavy', {
                     speechFrameRatio: gates.speechFrameRatio,
                 }),
             );
@@ -375,7 +375,7 @@ export async function runStationTick(station, store, logger, options = {}) {
             );
             await store.setLastRun(
                 station.id,
-                lastRunRecord(tickId, 'skipped_fingerprint_unchanged'),
+                lastRunRecord(requestID, 'skipped_fingerprint_unchanged'),
             );
             return;
         }
@@ -438,7 +438,7 @@ export async function runStationTick(station, store, logger, options = {}) {
             const debugCopy = await copyDebugWavIfEnabled(
                 wavPath,
                 station.id,
-                tickId,
+                requestID,
                 log,
                 'no-match',
             );
@@ -461,7 +461,7 @@ export async function runStationTick(station, store, logger, options = {}) {
             );
             await store.setLastRun(
                 station.id,
-                lastRunRecord(tickId, 'no_match', {
+                lastRunRecord(requestID, 'no_match', {
                     priorSteps,
                     order,
                 }),
@@ -493,7 +493,7 @@ export async function runStationTick(station, store, logger, options = {}) {
             );
             await store.setLastRun(
                 station.id,
-                lastRunRecord(tickId, 'blacklisted_skipped', {
+                lastRunRecord(requestID, 'blacklisted_skipped', {
                     provider: matchSource,
                     artist: match.artist,
                     title: match.title,
@@ -508,7 +508,7 @@ export async function runStationTick(station, store, logger, options = {}) {
             log.debug({ station: station.id }, 'same track key as Redis; skip write');
             await store.setLastRun(
                 station.id,
-                lastRunRecord(tickId, 'skipped_same_track_as_cache'),
+                lastRunRecord(requestID, 'skipped_same_track_as_cache'),
             );
             return;
         }
@@ -526,7 +526,7 @@ export async function runStationTick(station, store, logger, options = {}) {
         await store.setResult(station.id, payload);
         await store.setLastRun(
             station.id,
-            lastRunRecord(tickId, 'saved_audio', {
+            lastRunRecord(requestID, 'saved_audio', {
                 provider: matchSource,
                 priorSteps,
             }),
@@ -538,7 +538,7 @@ export async function runStationTick(station, store, logger, options = {}) {
             ? await copyDebugWavIfEnabled(
                   wavPath,
                   station.id,
-                  tickId,
+                  requestID,
                   log,
                   `saved-${matchSource}-after-shazam-miss`,
                   { artist: match.artist, title: match.title },
@@ -567,7 +567,7 @@ export async function runStationTick(station, store, logger, options = {}) {
         try {
             await store.setLastRun(
                 station.id,
-                lastRunRecord(tickId, 'error', {
+                lastRunRecord(requestID, 'error', {
                     error: String(e?.message || e),
                 }),
             );
