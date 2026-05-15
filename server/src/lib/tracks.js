@@ -5,6 +5,45 @@ import { resolveScraperHeaders } from '../utils/scraper_headers.js';
 
 setLogger(logger);
 
+/**
+ * After `lines` parsing, map each raw chart row into `{ artist, title }` (optional; configured per source).
+ */
+const applyChartLineParse = function (parsed, parserProps) {
+    const chartLineParse = parserProps?.options?.chartLineParse;
+    if (!chartLineParse || !parsed?.fields?.length) {
+        return parsed;
+    }
+
+    const ranked = chartLineParse.ranked instanceof RegExp
+        ? chartLineParse.ranked
+        : /^\d+:\s*(.+)\s+-\s+(.+)$/;
+    const judgment = chartLineParse.judgment instanceof RegExp
+        ? chartLineParse.judgment
+        : /^לשיפוטכם:\s*(.+)\s+-\s+(.+)$/;
+
+    const fields = [];
+    for (const row of parsed.fields) {
+        const line = String(row.raw ?? row.line ?? row.title ?? '').trim();
+        if (!line) continue;
+
+        const m = ranked.exec(line) || judgment.exec(line);
+        if (!m) {
+            continue;
+        }
+
+        fields.push({
+            artist: m[1].trim(),
+            title: m[2].trim(),
+        });
+    }
+
+    return {
+        ...parsed,
+        fields,
+        total: fields.length,
+    };
+};
+
 const getCurrentTracks = async function ({ ID, scraperProps, parserProps }) {
     const maxRetries = 3;
     const baseDelay = 1000; // 1 second base delay
@@ -36,6 +75,7 @@ const getCurrentTracks = async function ({ ID, scraperProps, parserProps }) {
                 url: decodedUrl,
                 type: scraperProps.type,
                 regExp: scraperProps.regExp,
+                replacements: scraperProps.replacements || [],
                 payload: scraperProps.payload || {},
                 ...(headers ? { headers } : {}),
                 ...proxy,
@@ -72,6 +112,8 @@ const getCurrentTracks = async function ({ ID, scraperProps, parserProps }) {
                 fields: parserProps.fields,
                 options: parserProps.options,
             });
+
+            parsed = applyChartLineParse(parsed, parserProps);
 
             logger.info({
                 method: 'getCurrentTracks',
