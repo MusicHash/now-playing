@@ -6,13 +6,13 @@
       "name": "Stations",
       "widgets": [
         {
-          "title": "Station Scrape Latency P95 (ms)",
+          "title": "Station Scrape Latency P95 (s)",
           "layout": { "column": 1, "row": 1, "width": 8, "height": 3 },
           "visualization": { "id": "viz.line" },
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
             "legend": { "enabled": true },
-            "nrqlQueries": [{ "accountId": 0, "query": "SELECT percentile(durationMs, 95) FROM ServerMetric WHERE measurement = 'SourceScrape' FACET sourceId TIMESERIES AUTO LIMIT 50" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT percentile(durationMs / 1000, 95) FROM ServerMetric WHERE measurement = 'SourceScrape' FACET sourceId TIMESERIES AUTO LIMIT 50" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
@@ -38,12 +38,12 @@
           }
         },
         {
-          "title": "Station Crawl Cycle Duration (ms)",
+          "title": "Station Crawl Cycle Duration (s)",
           "layout": { "column": 9, "row": 4, "width": 4, "height": 3 },
           "visualization": { "id": "viz.line" },
           "rawConfiguration": {
             "legend": { "enabled": true },
-            "nrqlQueries": [{ "accountId": 0, "query": "SELECT average(durationMs) AS 'avg', max(durationMs) AS 'max' FROM ServerMetric WHERE measurement = 'StationCrawlCycle' TIMESERIES AUTO" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT average(durationMs / 1000) AS 'avg_s', max(durationMs / 1000) AS 'max_s' FROM ServerMetric WHERE measurement = 'StationCrawlCycle' TIMESERIES AUTO" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
@@ -85,13 +85,13 @@
       "name": "Spotify API",
       "widgets": [
         {
-          "title": "Spotify API Latency P95 per Method (ms)",
+          "title": "Spotify API Latency P95 per Method (s)",
           "layout": { "column": 1, "row": 1, "width": 8, "height": 3 },
           "visualization": { "id": "viz.line" },
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
             "legend": { "enabled": true },
-            "nrqlQueries": [{ "accountId": 0, "query": "SELECT percentile(durationMs, 95) FROM ServerMetric WHERE measurement = 'SpotifyApiCall' FACET method TIMESERIES AUTO LIMIT 20" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT percentile(durationMs / 1000, 95) FROM ServerMetric WHERE measurement = 'SpotifyApiCall' FACET method TIMESERIES AUTO LIMIT 20" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
@@ -136,23 +136,23 @@
           }
         },
         {
-          "title": "Cache Lookup Latency – Hit vs Miss (ms)",
+          "title": "Cache Lookup Latency – Hit vs Miss (s)",
           "layout": { "column": 1, "row": 7, "width": 6, "height": 3 },
           "visualization": { "id": "viz.line" },
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
             "legend": { "enabled": true },
-            "nrqlQueries": [{ "accountId": 0, "query": "SELECT average(durationMs) FROM ServerMetric WHERE measurement = 'SpotifySearchCache' FACET cases(WHERE hit = 1 AS 'Hit', WHERE hit = 0 AS 'Miss') TIMESERIES AUTO" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT average(durationMs / 1000) FROM ServerMetric WHERE measurement = 'SpotifySearchCache' FACET cases(WHERE hit = 1 AS 'Hit', WHERE hit = 0 AS 'Miss') TIMESERIES AUTO" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
         {
-          "title": "Spotify API Avg Latency per Method (ms)",
+          "title": "Spotify API Avg Latency per Method (s)",
           "layout": { "column": 7, "row": 7, "width": 6, "height": 3 },
           "visualization": { "id": "viz.bar" },
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
-            "nrqlQueries": [{ "accountId": 0, "query": "SELECT average(durationMs) FROM ServerMetric WHERE measurement = 'SpotifyApiCall' FACET method SINCE 1 hour ago LIMIT 20" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT average(durationMs / 1000) FROM ServerMetric WHERE measurement = 'SpotifyApiCall' FACET method SINCE 1 hour ago LIMIT 20" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         }
@@ -162,13 +162,13 @@
       "name": "Charts",
       "widgets": [
         {
-          "title": "Chart Collection Latency (ms)",
+          "title": "Chart Collection Latency (s)",
           "layout": { "column": 1, "row": 1, "width": 8, "height": 3 },
           "visualization": { "id": "viz.line" },
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
             "legend": { "enabled": true },
-            "nrqlQueries": [{ "accountId": 0, "query": "SELECT average(durationMs) FROM ServerMetric WHERE measurement = 'ChartCollection' FACET chartKey TIMESERIES AUTO LIMIT 30" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT average(durationMs / 1000) FROM ServerMetric WHERE measurement = 'ChartCollection' FACET chartKey TIMESERIES AUTO LIMIT 30" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
@@ -203,13 +203,13 @@
           }
         },
         {
-          "title": "Chart Spotify Sync Latency (ms)",
+          "title": "Chart Spotify Sync Latency (s)",
           "layout": { "column": 1, "row": 7, "width": 8, "height": 3 },
           "visualization": { "id": "viz.line" },
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
             "legend": { "enabled": true },
-            "nrqlQueries": [{ "accountId": 0, "query": "SELECT average(durationMs) FROM ServerMetric WHERE measurement = 'ChartSpotifySync' FACET chartKey TIMESERIES AUTO LIMIT 30" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT average(durationMs / 1000) FROM ServerMetric WHERE measurement = 'ChartSpotifySync' FACET chartKey TIMESERIES AUTO LIMIT 30" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },

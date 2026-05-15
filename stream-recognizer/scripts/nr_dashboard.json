@@ -6,7 +6,7 @@
       "name": "Station ticks",
       "widgets": [
         {
-          "title": "Tick duration P95 (ms)",
+          "title": "Tick duration P95 (s)",
           "layout": { "column": 1, "row": 1, "width": 8, "height": 3 },
           "visualization": { "id": "viz.line" },
           "rawConfiguration": {
@@ -15,7 +15,7 @@
             "nrqlQueries": [
               {
                 "accountId": 0,
-                "query": "SELECT percentile(durationMs, 95) FROM ServerMetric WHERE appName = 'stream-recognizer' AND measurement = 'StreamRecognizerTick' FACET station TIMESERIES AUTO LIMIT 50"
+                "query": "SELECT percentile(durationMs / 1000, 95) FROM ServerMetric WHERE appName = 'stream-recognizer' AND measurement = 'StreamRecognizerTick' FACET station TIMESERIES AUTO LIMIT 50"
               }
             ],
             "platformOptions": { "ignoreTimeRange": false }
@@ -67,7 +67,7 @@
           }
         },
         {
-          "title": "Avg tick duration by outcome (ms)",
+          "title": "Avg tick duration by outcome (s)",
           "layout": { "column": 1, "row": 7, "width": 12, "height": 3 },
           "visualization": { "id": "viz.bar" },
           "rawConfiguration": {
@@ -75,7 +75,7 @@
             "nrqlQueries": [
               {
                 "accountId": 0,
-                "query": "SELECT average(durationMs) FROM ServerMetric WHERE appName = 'stream-recognizer' AND measurement = 'StreamRecognizerTick' FACET outcome SINCE 6 hours ago LIMIT 30"
+                "query": "SELECT average(durationMs / 1000) FROM ServerMetric WHERE appName = 'stream-recognizer' AND measurement = 'StreamRecognizerTick' FACET outcome SINCE 6 hours ago LIMIT 30"
               }
             ],
             "platformOptions": { "ignoreTimeRange": false }
@@ -87,7 +87,7 @@
       "name": "Capture & fingerprint",
       "widgets": [
         {
-          "title": "FFmpeg capture latency P95 (ms)",
+          "title": "FFmpeg capture latency P95 (s)",
           "layout": { "column": 1, "row": 1, "width": 8, "height": 3 },
           "visualization": { "id": "viz.line" },
           "rawConfiguration": {
@@ -96,7 +96,7 @@
             "nrqlQueries": [
               {
                 "accountId": 0,
-                "query": "SELECT percentile(durationMs, 95) FROM ServerMetric WHERE appName = 'stream-recognizer' AND measurement = 'StreamRecognizerCapture' AND success = 1 FACET station TIMESERIES AUTO LIMIT 50"
+                "query": "SELECT percentile(durationMs / 1000, 95) FROM ServerMetric WHERE appName = 'stream-recognizer' AND measurement = 'StreamRecognizerCapture' AND success = 1 FACET station TIMESERIES AUTO LIMIT 50"
               }
             ],
             "platformOptions": { "ignoreTimeRange": false }
@@ -134,7 +134,7 @@
           }
         },
         {
-          "title": "Decode (PCM) latency P95 (ms)",
+          "title": "Decode (PCM) latency P95 (s)",
           "layout": { "column": 7, "row": 4, "width": 6, "height": 3 },
           "visualization": { "id": "viz.line" },
           "rawConfiguration": {
@@ -143,14 +143,14 @@
             "nrqlQueries": [
               {
                 "accountId": 0,
-                "query": "SELECT percentile(durationMs, 95) FROM ServerMetric WHERE appName = 'stream-recognizer' AND measurement = 'StreamRecognizerDecode' AND success = 1 FACET station TIMESERIES AUTO LIMIT 50"
+                "query": "SELECT percentile(durationMs / 1000, 95) FROM ServerMetric WHERE appName = 'stream-recognizer' AND measurement = 'StreamRecognizerDecode' AND success = 1 FACET station TIMESERIES AUTO LIMIT 50"
               }
             ],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
         {
-          "title": "Chromaprint fingerprint latency P95 (ms)",
+          "title": "Chromaprint fingerprint latency P95 (s)",
           "layout": { "column": 1, "row": 7, "width": 6, "height": 3 },
           "visualization": { "id": "viz.line" },
           "rawConfiguration": {
@@ -159,7 +159,7 @@
             "nrqlQueries": [
               {
                 "accountId": 0,
-                "query": "SELECT percentile(durationMs, 95) FROM ServerMetric WHERE appName = 'stream-recognizer' AND measurement = 'StreamRecognizerFingerprint' AND success = 1 FACET station TIMESERIES AUTO LIMIT 50"
+                "query": "SELECT percentile(durationMs / 1000, 95) FROM ServerMetric WHERE appName = 'stream-recognizer' AND measurement = 'StreamRecognizerFingerprint' AND success = 1 FACET station TIMESERIES AUTO LIMIT 50"
               }
             ],
             "platformOptions": { "ignoreTimeRange": false }
@@ -187,7 +187,7 @@
       "name": "Providers",
       "widgets": [
         {
-          "title": "Provider call latency P95 (ms)",
+          "title": "Provider call latency P95 (s)",
           "layout": { "column": 1, "row": 1, "width": 8, "height": 3 },
           "visualization": { "id": "viz.line" },
           "rawConfiguration": {
@@ -196,7 +196,7 @@
             "nrqlQueries": [
               {
                 "accountId": 0,
-                "query": "SELECT percentile(durationMs, 95) FROM ServerMetric WHERE appName = 'stream-recognizer' AND measurement = 'StreamRecognizerProviderCall' FACET provider TIMESERIES AUTO LIMIT 20"
+                "query": "SELECT percentile(durationMs / 1000, 95) FROM ServerMetric WHERE appName = 'stream-recognizer' AND measurement = 'StreamRecognizerProviderCall' FACET provider TIMESERIES AUTO LIMIT 20"
               }
             ],
             "platformOptions": { "ignoreTimeRange": false }
