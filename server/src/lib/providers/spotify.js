@@ -264,12 +264,26 @@ class Spotify {
                     { key: 'durationMs', value: Date.now() - cacheStart },
                 ]);
 
+                const items = searchTracks?.tracks?.items ?? [];
+                const top = items[0];
                 logger.debug({
                     method: 'searchTracksWithCache',
                     message: 'Cache hit for query, fetching from Redis instead of API call',
                     metadata: {
-                        args: [...arguments],
-                        searchTracks,
+                        cacheKey,
+                        normalizedQuery,
+                        limit,
+                        query: String(query ?? ''),
+                        redisGetMs: Date.now() - cacheStart,
+                        cachedTrackCount: items.length,
+                        cachedTopResult:
+                            top != null
+                                ? {
+                                      id: top.id,
+                                      name: top.name,
+                                      artists: top.artists?.map((a) => a.name).join(', ') || undefined,
+                                  }
+                                : null,
                     },
                 });
             } else {
@@ -282,8 +296,11 @@ class Spotify {
                     method: 'searchTracksWithCache',
                     message: 'Cache miss for query',
                     metadata: {
-                        args: [...arguments],
-                        searchTracks,
+                        cacheKey,
+                        normalizedQuery,
+                        limit,
+                        query: String(query ?? ''),
+                        redisGetMs: Date.now() - cacheStart,
                     },
                 });
 
