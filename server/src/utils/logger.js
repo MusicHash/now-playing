@@ -187,28 +187,28 @@ class Logger {
     }
 
     /**
-     * Adds `requestId` from HTTP AsyncLocalStorage to every emitted log line when inside a request.
+     * Adds `requestID` from HTTP AsyncLocalStorage to every emitted log line when inside a request.
      *
      * @param {unknown[]} processed
      */
     _mergeRequestContextIntoProcessed(processed) {
-        const rid = getRequestContextStore()?.requestId;
+        const rid = getRequestContextStore()?.requestID;
         if (!rid || typeof rid !== 'string') {
             return;
         }
 
         const attachToPlainObject = (obj) => {
-            if (!isPlainObject(obj) || ('requestId' in obj && obj.requestId !== undefined)) {
+            if (!isPlainObject(obj) || ('requestID' in obj && obj.requestID !== undefined)) {
                 return;
             }
-            obj.requestId = rid;
+            obj.requestID = rid;
         };
 
         const sole = processed[0];
 
         if (processed.length === 1) {
             if (typeof sole === 'string' || sole instanceof Error) {
-                processed.unshift({ requestId: rid });
+                processed.unshift({ requestID: rid });
                 return;
             }
             attachToPlainObject(sole);
@@ -225,7 +225,7 @@ class Logger {
             if (firstIsBindings) {
                 attachToPlainObject(first);
             } else {
-                processed.unshift({ requestId: rid });
+                processed.unshift({ requestID: rid });
             }
         }
     }

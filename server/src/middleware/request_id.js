@@ -1,28 +1,28 @@
 import { sentryEnabled, Sentry } from '../sentry.js';
 import {
-    resolveRequestIdForHttpRequest,
+    resolveRequestIDForHttpRequest,
     runWithRequestContext,
 } from '../utils/request_context.js';
 
 /**
- * Assigns {@link import('express').Request#requestId}, sets {@code X-Request-Id} on the response,
- * and binds {@code requestId} in AsyncLocalStorage so {@link ../utils/logger.js} can append it to every log line.
+ * Assigns {@link import('express').Request#requestID}, sets {@code X-Request-Id} on the response,
+ * and binds {@code requestID} in AsyncLocalStorage so {@link ../utils/logger.js} can append it to every log line.
  */
-export default function requestIdMiddleware() {
+export default function requestIDMiddleware() {
     return (req, res, next) => {
-        const requestId = resolveRequestIdForHttpRequest(req);
-        req.requestId = requestId;
-        res.setHeader('X-Request-Id', requestId);
+        const requestID = resolveRequestIDForHttpRequest(req);
+        req.requestID = requestID;
+        res.setHeader('X-Request-Id', requestID);
 
         if (sentryEnabled) {
             try {
-                Sentry.getCurrentScope().setTag('request_id', requestId);
+                Sentry.getCurrentScope().setTag('requestID', requestID);
             } catch {
                 // Sentry not ready in some test/bootstrap paths
             }
         }
 
-        runWithRequestContext({ requestId }, () => {
+        runWithRequestContext({ requestID }, () => {
             next();
         });
     };

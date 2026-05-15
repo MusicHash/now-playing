@@ -10,12 +10,12 @@ export function getRequestContextStore() {
     return storage.getStore();
 }
 
-/** @param {{ requestId: string }} ctx */
+/** @param {{ requestID: string }} ctx */
 export function runWithRequestContext(ctx, fn) {
     return storage.run(ctx, fn);
 }
 
-function normalizeIncomingRequestId(raw) {
+function normalizeIncomingRequestID(raw) {
     if (raw == null) {
         return null;
     }
@@ -28,16 +28,16 @@ function normalizeIncomingRequestId(raw) {
 }
 
 /** @param {import('express').Request} req */
-export function resolveRequestIdForHttpRequest(req) {
-    const fromQuery = normalizeIncomingRequestId(
+export function resolveRequestIDForHttpRequest(req) {
+    const fromQuery = normalizeIncomingRequestID(
         req.query?.requestID ?? req.query?.requestId ?? req.query?.request_id,
     );
     if (fromQuery) {
         return fromQuery;
     }
     const fromHeader =
-        normalizeIncomingRequestId(req.get?.('x-request-id')) ??
-        normalizeIncomingRequestId(req.get?.('x-correlation-id'));
+        normalizeIncomingRequestID(req.get?.('x-request-id')) ??
+        normalizeIncomingRequestID(req.get?.('x-correlation-id'));
     if (fromHeader) {
         return fromHeader;
     }
