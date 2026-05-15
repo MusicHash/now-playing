@@ -611,7 +611,6 @@ const kzCharts = {
             },
 
             fields: {
-                artist: '',
                 title: '{Iterator}',
             },
         },
