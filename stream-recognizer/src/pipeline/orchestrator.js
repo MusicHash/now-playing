@@ -279,6 +279,7 @@ export async function runStationTick(station, store, logger, options = {}) {
             try {
                 log.info(
                     {
+                        method: 'runStationTick',
                         metadata: {
                             stationID: station.id,
                             captureSec,
@@ -486,6 +487,7 @@ export async function runStationTick(station, store, logger, options = {}) {
                     : `${name} did not identify (${sh.reason}).`;
                 log.info(
                     {
+                        method: 'runStationTick',
                         metadata: {
                             stationID: station.id,
                             provider: id,
