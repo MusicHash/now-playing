@@ -158,7 +158,18 @@ class StationLoggerActor {
                 'log_timestamp_played': Math.floor(new Date().getTime() / 1000),
             });
 
-            this.logger.info(`ADDED NEW SONG (${logID}) TO STATION '${station}' for QUERY '${searchQuery}', SPOTIFY data | LOCAL_SPOTIFY_ID: '${spotifyID}', SONG: '${track?.artists[0]?.name} - ${track.name}' | SPOTIFY_TRACK_ID: '${track.id}'`);
+            this.logger.info({
+                method: '_logTrack',
+                message: 'Added New Song',
+                metadata: {
+                    logId: logID,
+                    station,
+                    searchQuery,
+                    spotifyID,
+                    song: `${track?.artists[0]?.name} - ${track.name}`,
+                    trackID: track.id,
+                },
+            });
         } catch (error) {
             this.logger.error({
                 method: '_logTrack',

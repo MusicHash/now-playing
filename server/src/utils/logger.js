@@ -239,6 +239,14 @@ class Logger {
             if (k === 'severity' || k === 'msg' || k === 'message') {
                 continue;
             }
+            if (k === 'metadata' && isPlainObject(v)) {
+                for (const [mk, mv] of Object.entries(v)) {
+                    if (mv === null || typeof mv === 'string' || typeof mv === 'number' || typeof mv === 'boolean') {
+                        out[`metadata.${mk}`] = mv;
+                    }
+                }
+                continue;
+            }
             if (v === null || typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
                 out[k] = v;
             }
