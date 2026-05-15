@@ -596,6 +596,7 @@ const kzCharts = {
             replacements: [
                 [/<br\s*\/?>\s*/gi, '\n'],
                 [/^\d+[:.]\s+/gm, ''],
+                [/^\s*לשיפוטכם:\s*/gm, ''],
                 [/^\s+/, ''],
                 [/\s+$/, ''],
             ]
@@ -607,6 +608,7 @@ const kzCharts = {
             options: {
                 limit: 20,
                 reverse: true,
+                chartLineParse: {},
             },
 
             fields: {
