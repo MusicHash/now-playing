@@ -23,6 +23,7 @@ import {
     parseHttpProxyList,
 } from '../lib/http_proxy.js';
 import { nowLocalDebugFileStamp } from '../lib/local_time.js';
+import metrics from '../lib/metrics.js';
 
 /**
  * @param {number} ms
@@ -221,6 +222,10 @@ export async function runStationTick(station, store, logger, options = {}) {
         'Station Tick: START',
     );
 
+    const tickStart = Date.now();
+    /** @type {string | null} */
+    let tickOutcome = null;
+
     const ffmpegBin = process.env.FFMPEG_BIN || 'ffmpeg';
     const fpcalcBin = process.env.FPCALC_BIN || 'fpcalc';
     const captureSec = envInt('CAPTURE_SECONDS', 10);
@@ -253,6 +258,7 @@ export async function runStationTick(station, store, logger, options = {}) {
         const captureProxiesTried = [];
         /** @type {unknown} */
         let lastCaptureErr;
+        const captureWallStart = Date.now();
         for (let cAttempt = 0; cAttempt < captureMaxAttempts; cAttempt++) {
             const httpProxy =
                 cAttempt === 0
@@ -279,6 +285,15 @@ export async function runStationTick(station, store, logger, options = {}) {
                     { httpProxy },
                 );
                 captureHttpProxy = httpProxy;
+                metrics.report('StreamRecognizerCapture', [
+                    {
+                        key: 'durationMs',
+                        value: Date.now() - captureWallStart,
+                    },
+                    { key: 'success', value: 1 },
+                    { key: 'attempts', value: cAttempt + 1 },
+                    { key: 'station', value: station.id },
+                ]);
                 if (cAttempt > 0) {
                     log.info(
                         {
@@ -295,6 +310,15 @@ export async function runStationTick(station, store, logger, options = {}) {
                 lastCaptureErr = e;
                 const retryable = isRetryableFfmpegStreamError(e);
                 if (!retryable || cAttempt === captureMaxAttempts - 1) {
+                    metrics.report('StreamRecognizerCapture', [
+                        {
+                            key: 'durationMs',
+                            value: Date.now() - captureWallStart,
+                        },
+                        { key: 'success', value: 0 },
+                        { key: 'attempts', value: cAttempt + 1 },
+                        { key: 'station', value: station.id },
+                    ]);
                     log.error(
                         {
                             err: e,
@@ -330,7 +354,11 @@ export async function runStationTick(station, store, logger, options = {}) {
                 : new Error('ffmpeg capture exhausted attempts');
         }
 
-        const pcm = await fileToPcm16kMono(ffmpegBin, wavPath);
+        const pcm = await metrics.timeIt(
+            'StreamRecognizerDecode',
+            async () => fileToPcm16kMono(ffmpegBin, wavPath),
+            { station: station.id },
+        );
         const gates = analyzePcmGates(pcm, {
             silenceDb: rmsSilenceDb,
             speechRatioSkip,
@@ -340,6 +368,7 @@ export async function runStationTick(station, store, logger, options = {}) {
 
         if (gates.silence) {
             log.debug({ station: station.id, meanDb: gates.meanDb }, 'skip: silence');
+            tickOutcome = 'skipped_silence';
             await store.setLastRun(
                 station.id,
                 lastRunRecord(requestID, 'skipped_silence', {
@@ -353,6 +382,7 @@ export async function runStationTick(station, store, logger, options = {}) {
                 { station: station.id, speechFrameRatio: gates.speechFrameRatio },
                 'skip: speech-heavy',
             );
+            tickOutcome = 'skipped_speech_heavy';
             await store.setLastRun(
                 station.id,
                 lastRunRecord(requestID, 'skipped_speech_heavy', {
@@ -362,10 +392,10 @@ export async function runStationTick(station, store, logger, options = {}) {
             return;
         }
 
-        const { fingerprint, duration } = await chromaprintFingerprintFromPcm(
-            fpcalcBin,
-            ffmpegBin,
-            pcm,
+        const { fingerprint, duration } = await metrics.timeIt(
+            'StreamRecognizerFingerprint',
+            async () => chromaprintFingerprintFromPcm(fpcalcBin, ffmpegBin, pcm),
+            { station: station.id },
         );
 
         if (prevFp && fingerprint === prevFp) {
@@ -373,6 +403,7 @@ export async function runStationTick(station, store, logger, options = {}) {
                 { station: station.id },
                 'fingerprint unchanged; skip audio recognition APIs and Redis',
             );
+            tickOutcome = 'skipped_fingerprint_unchanged';
             await store.setLastRun(
                 station.id,
                 lastRunRecord(requestID, 'skipped_fingerprint_unchanged'),
@@ -407,6 +438,7 @@ export async function runStationTick(station, store, logger, options = {}) {
                 }
                 const sh = await shazamIdentifyFromFile(wavPath, log, {
                     httpProxy: captureHttpProxy,
+                    stationId: station.id,
                 });
                 if (sh.ok && (sh.artist || sh.title)) {
                     match = {
@@ -459,6 +491,7 @@ export async function runStationTick(station, store, logger, options = {}) {
                     ? `audio recognition: no provider identified a track. Steps: ${priorSteps.join(' ')}`
                     : 'audio recognition: no provider identified a track (nothing in AUDIO_RECOGNITION_ORDER was runnable).',
             );
+            tickOutcome = 'no_match';
             await store.setLastRun(
                 station.id,
                 lastRunRecord(requestID, 'no_match', {
@@ -491,6 +524,7 @@ export async function runStationTick(station, store, logger, options = {}) {
                 },
                 'recognition matched global blacklist phrase; not updating recognition',
             );
+            tickOutcome = 'blacklisted_skipped';
             await store.setLastRun(
                 station.id,
                 lastRunRecord(requestID, 'blacklisted_skipped', {
@@ -506,6 +540,7 @@ export async function runStationTick(station, store, logger, options = {}) {
 
         if (prevKey === key) {
             log.debug({ station: station.id }, 'same track key as Redis; skip write');
+            tickOutcome = 'skipped_same_track_as_cache';
             await store.setLastRun(
                 station.id,
                 lastRunRecord(requestID, 'skipped_same_track_as_cache'),
@@ -550,6 +585,7 @@ export async function runStationTick(station, store, logger, options = {}) {
         const displayName = [match.artist, match.title].filter(Boolean).join(' — ');
         const winner = providerDisplayName(matchSource);
 
+        tickOutcome = 'saved_audio';
         log.info({
             station: station.id,
             provider: matchSource,
@@ -563,6 +599,7 @@ export async function runStationTick(station, store, logger, options = {}) {
             sampleTrackTxtPath,
         });
     } catch (e) {
+        tickOutcome = 'error';
         log.error({ err: e, station: station.id }, 'station tick failed');
         try {
             await store.setLastRun(
@@ -575,6 +612,17 @@ export async function runStationTick(station, store, logger, options = {}) {
             /* ignore redis errors */
         }
     } finally {
+        if (tickOutcome !== null) {
+            metrics.report('StreamRecognizerTick', [
+                {
+                    key: 'durationMs',
+                    value: Date.now() - tickStart,
+                },
+                { key: 'station', value: station.id },
+                { key: 'outcome', value: tickOutcome },
+                { key: 'success', value: tickOutcome === 'error' ? 0 : 1 },
+            ]);
+        }
         if (wavPath) {
             await cleanupCapturePath(wavPath);
         }

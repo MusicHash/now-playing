@@ -13,6 +13,7 @@ import {
     proxyHostForLog,
     parseHttpProxyList,
 } from '../lib/http_proxy.js';
+import metrics from '../lib/metrics.js';
 import { SHAZAM_USER_AGENTS } from './shazam_user_agents.js';
 
 const require = createRequire(import.meta.url);
@@ -523,12 +524,32 @@ function buildSearchBody(uri, samplems) {
  *
  * @param {string} wavPath
  * @param {import('pino').Logger} logger
- * @param {{ httpProxy?: string }} [options] If `httpProxy` is present (including `undefined`), use it as the first discovery attempt; otherwise pick from `HTTP_PROXY`. Further attempts use `SHAZAM_DISCOVERY_MAX_ATTEMPTS` / `SHAZAM_DISCOVERY_RETRY_MS` and rotate the proxy pool. Pass the same value as ffmpeg for a given tick.
+ * @param {{ httpProxy?: string; stationId?: string }} [options] If `httpProxy` is present (including `undefined`), use it as the first discovery attempt; otherwise pick from `HTTP_PROXY`. Further attempts use `SHAZAM_DISCOVERY_MAX_ATTEMPTS` / `SHAZAM_DISCOVERY_RETRY_MS` and rotate the proxy pool. Pass the same value as ffmpeg for a given tick. `stationId` is attached to New Relic metrics only.
  * @returns {Promise<ShazamOk | ShazamFail>}
  */
 export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
+    const wallStart = Date.now();
+    const stationField =
+        options && typeof options === 'object' && options.stationId != null
+            ? [{ key: 'station', value: String(options.stationId) }]
+            : [];
+
+    const report = (/** @type {{ key: string; value: string | number }[]} */ attrs) => {
+        metrics.report('StreamRecognizerProviderCall', [
+            { key: 'durationMs', value: Date.now() - wallStart },
+            { key: 'provider', value: 'shazam' },
+            ...stationField,
+            ...attrs,
+        ]);
+    };
+
     if (!isShazamEnabled()) {
         logger.debug('shazam: skipped (SHAZAM_DISABLED=1)');
+        report([
+            { key: 'success', value: 1 },
+            { key: 'matched', value: 0 },
+            { key: 'reason', value: 'disabled' },
+        ]);
         return { ok: false, reason: 'disabled', detail: {} };
     }
 
@@ -542,6 +563,11 @@ export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
         buffer = await readFile(wavPath);
     } catch (e) {
         logger.error({ err: e, wavPath }, 'shazam: failed to read audio file');
+        report([
+            { key: 'success', value: 0 },
+            { key: 'matched', value: 0 },
+            { key: 'reason', value: 'read_file_failed' },
+        ]);
         return {
             ok: false,
             reason: 'read_file_failed',
@@ -556,6 +582,11 @@ export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
         signatures = recognizeBytes(bytes);
     } catch (e) {
         logger.error({ err: e }, 'shazam: recognizeBytes failed');
+        report([
+            { key: 'success', value: 0 },
+            { key: 'matched', value: 0 },
+            { key: 'reason', value: 'recognize_bytes_failed' },
+        ]);
         return {
             ok: false,
             reason: 'recognize_bytes_failed',
@@ -565,6 +596,11 @@ export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
 
     if (!Array.isArray(signatures) || signatures.length === 0) {
         logger.info({}, 'shazam: no signatures from recognizeBytes');
+        report([
+            { key: 'success', value: 1 },
+            { key: 'matched', value: 0 },
+            { key: 'reason', value: 'no_signatures' },
+        ]);
         return { ok: false, reason: 'no_signatures', detail: {} };
     }
 
@@ -639,6 +675,12 @@ export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
         const track = parseTrack(data);
         if (track && (track.artist || track.title)) {
             freeRest(i + 1);
+            report([
+                { key: 'success', value: 1 },
+                { key: 'matched', value: 1 },
+                { key: 'reason', value: 'ok' },
+                { key: 'segmentIndex', value: i },
+            ]);
             return { ok: true, ...track };
         }
         logNoMatch(logger, data, `segment_${i}_unparsed`);
@@ -647,11 +689,17 @@ export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
     const allSegmentsDiscoveryFailed =
         discoveryRequestFailures > 0 &&
         discoveryRequestFailures === signatures.length;
+    const reason = allSegmentsDiscoveryFailed
+        ? 'all_segments_discovery_failed'
+        : 'no_usable_track_any_segment';
+    report([
+        { key: 'success', value: allSegmentsDiscoveryFailed ? 0 : 1 },
+        { key: 'matched', value: 0 },
+        { key: 'reason', value: reason },
+    ]);
     return {
         ok: false,
-        reason: allSegmentsDiscoveryFailed
-            ? 'all_segments_discovery_failed'
-            : 'no_usable_track_any_segment',
+        reason,
         detail: {
             segmentCount: signatures.length,
             discoveryRequestFailures,

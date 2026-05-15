@@ -1,7 +1,7 @@
 import { Sentry, sentryEnabled } from './sentry.js';
 import { createHttpServer } from './http/server.js';
-import newrelic from 'newrelic';
 import logger from './logger.js';
+import metrics from './lib/metrics.js';
 import { initRedisStore } from './lib/redis_store.js';
 import {
     loadStations,
@@ -12,6 +12,8 @@ import {
 } from './config.js';
 import { runStationTick } from './pipeline/orchestrator.js';
 import { probeBinary, missingBinaryHint } from './lib/binaries.js';
+
+metrics.init(logger);
 
 const prefix = process.env.REDIS_KEY_PREFIX || 'stream-recognizer:v2';
 const store = initRedisStore(logger, prefix);
@@ -36,17 +38,10 @@ function onListen() {
         listenHost ? { port, host: listenHost } : { port },
         'stream-recognizer HTTP listening',
     );
-    if (process.env.NEW_RELIC_ENABLED !== 'false' && process.env.NEW_RELIC_LICENSE_KEY) {
-        try {
-            newrelic.recordCustomEvent('ServerMetric', {
-                measurement: 'stream_recognizer_started',
-                started: 1,
-                port,
-            });
-        } catch {
-            /* ignore */
-        }
-    }
+    metrics.report('StreamRecognizerStarted', [
+        { key: 'started', value: 1 },
+        { key: 'port', value: port },
+    ]);
     if (anyStationEnabled) {
         if (!probeBinary(ffmpegBin)) {
             logger.warn(
