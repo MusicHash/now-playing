@@ -4,6 +4,7 @@ import { updatePlayList, replacePlayList, _getPlaylistID, updatePlaylistMetadata
 import { stations, charts, historyCharts } from '../../config/sources.js';
 
 import logger from '../utils/logger.js';
+import metricsWrapper from '../utils/metrics_wrapper.js';
 import { SYSTEM_EVENTS } from '../constants/events.js';
 import {
     getNewlyPlayedSongs,
@@ -117,6 +118,13 @@ const crawlHistoryChartsToNotifyTrackChanges = async function () {
                 });
             }
 
+            if (newSongs.length > 0) {
+                metricsWrapper.report('HistoryChartNewTracks', [
+                    { key: 'station', value: station },
+                    { key: 'newTrackCount', value: newSongs.length },
+                ]);
+            }
+
             await saveHistorySnapshot(station, currentList, fetchedAt);
         } catch (error) {
             logger.error({
@@ -192,8 +200,14 @@ const crawlAllStationsToNotifyTrackChanges = async function () {
     }
 
     crawlAllStationsInFlight = true;
-    crawlAllStationsProgress.startedAtMs = Date.now();
+    const cycleStart = Date.now();
+    crawlAllStationsProgress.startedAtMs = cycleStart;
     crawlAllStationsProgress.currentStation = null;
+
+    let successCount = 0;
+    let errorCount = 0;
+    let updatedCount = 0;
+
     try {
         for (let station in stations) {
             crawlAllStationsProgress.currentStation = station;
@@ -215,7 +229,11 @@ const crawlAllStationsToNotifyTrackChanges = async function () {
 
                 if (shouldSendUpdate && payload?.result?.total > 0) {
                     await eventEmitterWrapper.emit(SYSTEM_EVENTS.ON_STATION_TRACK_UPDATED, payload);
+                    metricsWrapper.increment('StationTrackUpdated', { station });
+                    updatedCount++;
                 }
+
+                successCount++;
             } catch (error) {
                 logger.error({
                     method: 'getCurrentTracks -> crawlAllStationsToNotifyTrackChanges',
@@ -225,9 +243,18 @@ const crawlAllStationsToNotifyTrackChanges = async function () {
                         station,
                     },
                 });
+                errorCount++;
             }
         }
     } finally {
+        metricsWrapper.report('StationCrawlCycle', [
+            { key: 'durationMs', value: Date.now() - cycleStart },
+            { key: 'totalStations', value: Object.keys(stations).length },
+            { key: 'successCount', value: successCount },
+            { key: 'errorCount', value: errorCount },
+            { key: 'updatedCount', value: updatedCount },
+        ]);
+
         crawlAllStationsInFlight = false;
         crawlAllStationsProgress.startedAtMs = null;
         crawlAllStationsProgress.currentStation = null;
@@ -343,6 +370,7 @@ const collectChartData = async function (chartKey) {
     }
 
     const yearWeek = getYearWeek();
+    const collectStart = Date.now();
 
     try {
         const exists = await doesChartWeekExist(chartKey, yearWeek);
@@ -352,6 +380,7 @@ const collectChartData = async function (chartKey) {
                 method: 'collectChartData',
                 message: `Chart ${chartKey} already collected for week ${yearWeek}, skipping`,
             });
+            metricsWrapper.increment('ChartCollectionSkipped', { chartKey, yearWeek });
             return;
         }
 
@@ -376,6 +405,16 @@ const collectChartData = async function (chartKey) {
         }
 
         await insertChartEntries(chartKey, yearWeek, enrichedFields);
+
+        const spotifyResolvedCount = enrichedFields.filter((f) => f.spotifyId).length;
+
+        metricsWrapper.report('ChartCollection', [
+            { key: 'chartKey', value: chartKey },
+            { key: 'durationMs', value: Date.now() - collectStart },
+            { key: 'trackCount', value: enrichedFields.length },
+            { key: 'spotifyResolvedCount', value: spotifyResolvedCount },
+            { key: 'success', value: 1 },
+        ]);
     } catch (error) {
         logger.error({
             method: 'collectChartData',
@@ -383,6 +422,14 @@ const collectChartData = async function (chartKey) {
             error: error instanceof Error ? error.message : JSON.stringify(error, null, 2),
             metadata: { chartKey, yearWeek },
         });
+
+        metricsWrapper.report('ChartCollection', [
+            { key: 'chartKey', value: chartKey },
+            { key: 'durationMs', value: Date.now() - collectStart },
+            { key: 'trackCount', value: 0 },
+            { key: 'spotifyResolvedCount', value: 0 },
+            { key: 'success', value: 0 },
+        ]);
     }
 };
 
@@ -418,6 +465,8 @@ const syncChartToSpotify = async function (chartKey) {
         return;
     }
 
+    const syncStart = Date.now();
+
     try {
         const entries = await getLatestChartEntries(chartKey);
 
@@ -449,6 +498,13 @@ const syncChartToSpotify = async function (chartKey) {
             method: 'syncChartToSpotify',
             message: `Synced ${trackURIs.length} tracks to Spotify for ${chartKey} (week ${entries[0].chart_year_week})`,
         });
+
+        metricsWrapper.report('ChartSpotifySync', [
+            { key: 'chartKey', value: chartKey },
+            { key: 'durationMs', value: Date.now() - syncStart },
+            { key: 'trackCount', value: trackURIs.length },
+            { key: 'success', value: 1 },
+        ]);
     } catch (error) {
         logger.error({
             method: 'syncChartToSpotify',
@@ -456,6 +512,13 @@ const syncChartToSpotify = async function (chartKey) {
             error: error instanceof Error ? error.message : JSON.stringify(error, null, 2),
             metadata: { chartKey },
         });
+
+        metricsWrapper.report('ChartSpotifySync', [
+            { key: 'chartKey', value: chartKey },
+            { key: 'durationMs', value: Date.now() - syncStart },
+            { key: 'trackCount', value: 0 },
+            { key: 'success', value: 0 },
+        ]);
     }
 };
 

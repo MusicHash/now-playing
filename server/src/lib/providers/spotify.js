@@ -9,62 +9,40 @@ import metricsWrapper from '../../utils/metrics_wrapper.js';
 
 const scopes = ['playlist-read-private', 'playlist-modify-private', 'playlist-modify-public'];
 
+/**
+ * Proxy every SpotifyWebApi method to record latency and success/failure
+ * as a `SpotifyApiCall` custom event in New Relic.
+ */
 const wrapSpotifyApi = function (spotifyApi) {
-    const logMetric = function (functionName, duration, success) {
-        return metricsWrapper.report('Spotify', [
-            {
-                type: 'intField',
-                key: 'duration',
-                value: duration,
-            },
-            {
-                type: 'stringField',
-                key: 'function',
-                value: functionName,
-            },
-            {
-                type: 'intField',
-                key: 'success',
-                value: success,
-            },
-        ]);
-    };
-
     const wrapper = Object.create(Object.getPrototypeOf(spotifyApi));
 
-    // Get all method names of the SpotifyWebApi prototype
     const excludedMethods = ['constructor'];
-    const apiMethods = Object.getOwnPropertyNames(Object.getPrototypeOf(spotifyApi)).filter((name) => typeof spotifyApi[name] === 'function' && !excludedMethods.includes(name));
+    const apiMethods = Object.getOwnPropertyNames(Object.getPrototypeOf(spotifyApi)).filter(
+        (name) => typeof spotifyApi[name] === 'function' && !excludedMethods.includes(name),
+    );
 
     apiMethods.forEach((methodName) => {
         wrapper[methodName] = async function (...args) {
-            console.log(methodName);
             const start = Date.now();
-
             try {
                 const result = await spotifyApi[methodName].apply(spotifyApi, args);
-                const end = Date.now();
-                const duration = end - start;
-
-                console.log(`Spotify API call to ${methodName} took ${duration}ms`);
-
-                logMetric(methodName, duration, 1);
-
+                metricsWrapper.report('SpotifyApiCall', [
+                    { key: 'method', value: methodName },
+                    { key: 'durationMs', value: Date.now() - start },
+                    { key: 'success', value: 1 },
+                ]);
                 return result;
             } catch (error) {
-                const end = Date.now();
-                const duration = end - start;
-
-                console.log(`Spotify API call to ${methodName} failed after ${duration}ms:`, error);
-
-                logMetric(methodName, duration, 0);
-
+                metricsWrapper.report('SpotifyApiCall', [
+                    { key: 'method', value: methodName },
+                    { key: 'durationMs', value: Date.now() - start },
+                    { key: 'success', value: 0 },
+                ]);
                 throw error;
             }
         };
     });
 
-    // Copy over any non-function properties
     Object.keys(spotifyApi).forEach((key) => {
         if (typeof spotifyApi[key] !== 'function') {
             wrapper[key] = spotifyApi[key];
@@ -86,7 +64,7 @@ class Spotify {
             redirectUri: process.env.SPOTIFY_CALLBACK_ENDPOINT,
         });
 
-        //this.api = wrapSpotifyApi(this.api);
+        this.api = wrapSpotifyApi(this.api);
     }
 
     /**
@@ -279,10 +257,16 @@ class Spotify {
         let searchTracks = null;
 
         try {
+            const cacheStart = Date.now();
             searchTracks = await redisWrapper.get(cacheKey);
 
             if (searchTracks) {
                 searchTracks = JSON.parse(searchTracks);
+
+                metricsWrapper.report('SpotifySearchCache', [
+                    { key: 'hit', value: 1 },
+                    { key: 'durationMs', value: Date.now() - cacheStart },
+                ]);
 
                 logger.debug({
                     method: 'searchTracksWithCache',
@@ -293,6 +277,11 @@ class Spotify {
                     },
                 });
             } else {
+                metricsWrapper.report('SpotifySearchCache', [
+                    { key: 'hit', value: 0 },
+                    { key: 'durationMs', value: Date.now() - cacheStart },
+                ]);
+
                 logger.debug({
                     method: 'searchTracksWithCache',
                     message: 'Cache miss for query',

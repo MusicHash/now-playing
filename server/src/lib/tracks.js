@@ -2,12 +2,14 @@ import { scrape, parse, setLogger } from 'scrapa';
 import logger from '../utils/logger.js';
 import { interpolateUrl } from '../utils/url_template.js';
 import { resolveScraperHeaders } from '../utils/scraper_headers.js';
+import metricsWrapper from '../utils/metrics_wrapper.js';
 
 setLogger(logger);
 
 const getCurrentTracks = async function ({ ID, scraperProps, parserProps }) {
     const maxRetries = 3;
     const baseDelay = 1000; // 1 second base delay
+    const overallStart = Date.now();
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
@@ -83,6 +85,14 @@ const getCurrentTracks = async function ({ ID, scraperProps, parserProps }) {
                 },
             });
 
+            metricsWrapper.report('SourceScrape', [
+                { key: 'sourceId', value: ID },
+                { key: 'durationMs', value: Date.now() - overallStart },
+                { key: 'success', value: 1 },
+                { key: 'attempts', value: attempt },
+                { key: 'trackCount', value: parsed?.fields?.length ?? 0 },
+            ]);
+
             return parsed;
         } catch (error) {
             logger.error({
@@ -110,6 +120,15 @@ const getCurrentTracks = async function ({ ID, scraperProps, parserProps }) {
                         url: decodedUrl,
                     },
                 });
+
+                metricsWrapper.report('SourceScrape', [
+                    { key: 'sourceId', value: ID },
+                    { key: 'durationMs', value: Date.now() - overallStart },
+                    { key: 'success', value: 0 },
+                    { key: 'attempts', value: attempt },
+                    { key: 'trackCount', value: 0 },
+                ]);
+
                 throw error;
             }
 
