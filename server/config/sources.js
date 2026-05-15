@@ -608,7 +608,6 @@ const kzCharts = {
             options: {
                 limit: 20,
                 reverse: true,
-                chartLineParse: {},
             },
 
             fields: {
