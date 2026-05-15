@@ -18,7 +18,7 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
         method: 'updatePlayList',
         message: 'Starting playlist update flow',
         metadata: {
-            sourceID: playlist,
+            stationID: playlist,
             firstSongOnly,
         },
     });
@@ -35,7 +35,7 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
             method: 'updatePlayList',
             message: 'Minimum length is below threshold, skipping spotify api call',
             metadata: {
-                sourceID: playlist,
+                stationID: playlist,
                 playlistID,
                 query,
             },
@@ -54,7 +54,7 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
                 method: 'updatePlayList',
                 message: 'Found track, takes first',
                 metadata: {
-                    sourceID: playlist,
+                    stationID: playlist,
                     playlistID,
                     songID,
                     query,
@@ -68,7 +68,7 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
                 method: 'updatePlayList',
                 message: 'Track was not found, playlist didnt update',
                 metadata: {
-                    sourceID: playlist,
+                    stationID: playlist,
                     query,
                     playlistID,
                 },
@@ -80,7 +80,7 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
             message: 'updatePlayList failed, exception',
             error,
             metadata: {
-                sourceID: playlist,
+                stationID: playlist,
                 query,
                 playlistID,
             },
@@ -93,7 +93,7 @@ const replacePlayList = async function (playlist, tracks) {
         method: 'replacePlayList',
         message: 'Starting to replace all tracks in a given playlist',
         metadata: {
-            sourceID: playlist,
+            stationID: playlist,
         },
     });
 
@@ -109,7 +109,7 @@ const replacePlayList = async function (playlist, tracks) {
                 method: 'extractURI -> replacePlayList',
                 message: 'Found a track for query',
                 metadata: {
-                    sourceID: playlist,
+                    stationID: playlist,
                     playlistID,
                     query,
                     songID,
@@ -124,7 +124,7 @@ const replacePlayList = async function (playlist, tracks) {
                 method: 'extractURI -> replacePlayList',
                 message: 'Track not found for query',
                 metadata: {
-                    sourceID: playlist,
+                    stationID: playlist,
                     playlistID,
                     query,
                 },
@@ -152,7 +152,7 @@ const replacePlayList = async function (playlist, tracks) {
                     method: 'replacePlayList',
                     message: 'tracksFound request failed, not tracks found',
                     metadata: {
-                        sourceID: playlist,
+                        stationID: playlist,
                         playlistID,
                         query,
                         tracksResolved: tracksList.length,
@@ -169,7 +169,7 @@ const replacePlayList = async function (playlist, tracks) {
             message: 'replacePlayList failed',
             error,
             metadata: {
-                sourceID: playlist,
+                stationID: playlist,
                 playlistID,
             },
         });
@@ -194,7 +194,7 @@ const updatePlaylistMetadata = async function (playlist) {
             message: 'updatePlaylistMetadata failed',
             error,
             metadata: {
-                sourceID: playlist,
+                stationID: playlist,
                 playlistID,
             },
         });
@@ -213,7 +213,7 @@ const slicePlaylist = async function (playlist, limit) {
             message: 'slicePlaylist exception',
             error,
             metadata: {
-                sourceID: playlist,
+                stationID: playlist,
                 playlistID,
                 limit,
             },

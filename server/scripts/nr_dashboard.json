@@ -12,7 +12,7 @@
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
             "legend": { "enabled": true },
-            "nrqlQueries": [{ "accountId": 0, "query": "SELECT percentile(durationMs / 1000, 95) FROM ServerMetric WHERE measurement = 'SourceScrape' FACET sourceID TIMESERIES AUTO LIMIT 50" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT percentile(durationMs / 1000, 95) FROM ServerMetric WHERE measurement = 'SourceScrape' FACET stationID TIMESERIES AUTO LIMIT 50" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
@@ -22,7 +22,7 @@
           "visualization": { "id": "viz.bar" },
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
-            "nrqlQueries": [{ "accountId": 0, "query": "SELECT percentage(count(*), WHERE success = 0) AS 'Error %' FROM ServerMetric WHERE measurement = 'SourceScrape' FACET sourceID SINCE 1 hour ago LIMIT 50" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT percentage(count(*), WHERE success = 0) AS 'Error %' FROM ServerMetric WHERE measurement = 'SourceScrape' FACET stationID SINCE 1 hour ago LIMIT 50" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
@@ -64,7 +64,7 @@
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
             "legend": { "enabled": true },
-            "nrqlQueries": [{ "accountId": 0, "query": "SELECT average(attempts) FROM ServerMetric WHERE measurement = 'SourceScrape' FACET sourceID TIMESERIES AUTO LIMIT 50" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT average(attempts) FROM ServerMetric WHERE measurement = 'SourceScrape' FACET stationID TIMESERIES AUTO LIMIT 50" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },

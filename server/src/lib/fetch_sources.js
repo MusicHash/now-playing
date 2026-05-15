@@ -66,7 +66,7 @@ const crawlHistoryChartsToNotifyTrackChanges = async function () {
 
         try {
             const tracks = await getCurrentTracks({
-                sourceID: station,
+                stationID: station,
                 scraperProps: props.scraper,
                 parserProps: props.parser,
             });
@@ -166,7 +166,7 @@ const didSourceChange = async function (station, response) {
 
 const getChartInfo = async function (chartID, props) {
     const chartInfo = await getCurrentTracks({
-        sourceID: chartID,
+        stationID: chartID,
         scraperProps: props.scraper,
         parserProps: props.parser,
     });
@@ -215,7 +215,7 @@ const crawlAllStationsToNotifyTrackChanges = async function () {
 
             try {
                 const tracks = await getCurrentTracks({
-                    sourceID: station,
+                    stationID: station,
                     scraperProps: props.scraper,
                     parserProps: props.parser,
                 });
@@ -384,7 +384,7 @@ const collectChartData = async function (chartKey) {
         }
 
         const tracks = await getCurrentTracks({
-            sourceID: chartKey,
+            stationID: chartKey,
             scraperProps: chart.scraper,
             parserProps: chart.parser,
         });
@@ -576,7 +576,7 @@ const refreshChartRemote = async function (chartKey) {
 
     try {
         const tracks = await getCurrentTracks({
-            sourceID: chartKey,
+            stationID: chartKey,
             scraperProps: chart.scraper,
             parserProps: chart.parser,
         });

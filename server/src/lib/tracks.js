@@ -6,7 +6,7 @@ import metricsWrapper from '../utils/metrics_wrapper.js';
 
 setLogger(logger);
 
-const getCurrentTracks = async function ({ sourceID, scraperProps, parserProps }) {
+const getCurrentTracks = async function ({ stationID, scraperProps, parserProps }) {
     const maxRetries = 3;
     const baseDelay = 1000; // 1 second base delay
     const overallStart = Date.now();
@@ -24,7 +24,7 @@ const getCurrentTracks = async function ({ sourceID, scraperProps, parserProps }
                 method: 'getCurrentTracks',
                 message: 'Scrape attempt',
                 metadata: {
-                    sourceID,
+                    stationID,
                     attempt,
                     maxRetries,
                     url: decodedUrl,
@@ -67,7 +67,7 @@ const getCurrentTracks = async function ({ sourceID, scraperProps, parserProps }
                 method: 'getCurrentTracks',
                 message: 'Scraped body ready, parsing',
                 metadata: {
-                    sourceID,
+                    stationID,
                     bodyLength: body.length,
                     bodyPreview: body.substring(0, 200),
                 },
@@ -84,7 +84,7 @@ const getCurrentTracks = async function ({ sourceID, scraperProps, parserProps }
                 method: 'getCurrentTracks',
                 message: 'Successfully parsed tracks data',
                 metadata: {
-                    sourceID,
+                    stationID,
                     url: decodedUrl,
                     scraperType: scraperProps.type,
                     parserType: parserProps.type,
@@ -95,7 +95,7 @@ const getCurrentTracks = async function ({ sourceID, scraperProps, parserProps }
             });
 
             metricsWrapper.report('SourceScrape', [
-                { key: 'sourceID', value: sourceID },
+                { key: 'stationID', value: stationID },
                 { key: 'durationMs', value: Date.now() - overallStart },
                 { key: 'success', value: 1 },
                 { key: 'attempts', value: attempt },
@@ -109,7 +109,7 @@ const getCurrentTracks = async function ({ sourceID, scraperProps, parserProps }
                 message: `Scrape attempt ${attempt}/${maxRetries} failed`,
                 error,
                 metadata: {
-                    sourceID,
+                    stationID,
                     attempt,
                     maxRetries,
                     url: decodedUrl,
@@ -124,14 +124,14 @@ const getCurrentTracks = async function ({ sourceID, scraperProps, parserProps }
                     message: 'All scrape attempts failed, giving up',
                     error,
                     metadata: {
-                        sourceID,
+                        stationID,
                         totalAttempts: maxRetries,
                         url: decodedUrl,
                     },
                 });
 
                 metricsWrapper.report('SourceScrape', [
-                    { key: 'sourceID', value: sourceID },
+                    { key: 'stationID', value: stationID },
                     { key: 'durationMs', value: Date.now() - overallStart },
                     { key: 'success', value: 0 },
                     { key: 'attempts', value: attempt },
@@ -147,7 +147,7 @@ const getCurrentTracks = async function ({ sourceID, scraperProps, parserProps }
                 method: 'getCurrentTracks',
                 message: `Retrying in ${delay}ms...`,
                 metadata: {
-                    sourceID,
+                    stationID,
                     nextAttempt: attempt + 1,
                     delayMs: delay,
                 },
