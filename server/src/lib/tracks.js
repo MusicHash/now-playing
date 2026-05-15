@@ -6,25 +6,29 @@ import metricsWrapper from '../utils/metrics_wrapper.js';
 
 setLogger(logger);
 
-const getCurrentTracks = async function ({ ID, scraperProps, parserProps }) {
+const getCurrentTracks = async function ({ sourceID, scraperProps, parserProps }) {
     const maxRetries = 3;
     const baseDelay = 1000; // 1 second base delay
     const overallStart = Date.now();
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        let decodedUrl = '';
+
         try {
-            const decodedUrl = interpolateUrl(
+            decodedUrl = interpolateUrl(
                 Buffer.from(scraperProps.url, 'base64').toString('ascii'),
                 scraperProps.timezone,
             );
 
             logger.info({
                 method: 'getCurrentTracks',
-                message: `Attempting to scrape data (attempt ${attempt}/${maxRetries})`,
+                message: 'Scrape attempt',
                 metadata: {
-                    ID,
+                    sourceID,
+                    attempt,
+                    maxRetries,
                     url: decodedUrl,
-                    type: scraperProps.type,
+                    scraperType: scraperProps.type,
                 },
             });
 
@@ -61,9 +65,9 @@ const getCurrentTracks = async function ({ ID, scraperProps, parserProps }) {
 
             logger.debug({
                 method: 'getCurrentTracks',
-                message: 'Successfully scraped data, parsing response',
+                message: 'Scraped body ready, parsing',
                 metadata: {
-                    ID,
+                    sourceID,
                     bodyLength: body.length,
                     bodyPreview: body.substring(0, 200),
                 },
@@ -80,7 +84,7 @@ const getCurrentTracks = async function ({ ID, scraperProps, parserProps }) {
                 method: 'getCurrentTracks',
                 message: 'Successfully parsed tracks data',
                 metadata: {
-                    ID,
+                    sourceID,
                     url: decodedUrl,
                     scraperType: scraperProps.type,
                     parserType: parserProps.type,
@@ -91,7 +95,7 @@ const getCurrentTracks = async function ({ ID, scraperProps, parserProps }) {
             });
 
             metricsWrapper.report('SourceScrape', [
-                { key: 'sourceId', value: ID },
+                { key: 'sourceID', value: sourceID },
                 { key: 'durationMs', value: Date.now() - overallStart },
                 { key: 'success', value: 1 },
                 { key: 'attempts', value: attempt },
@@ -105,11 +109,11 @@ const getCurrentTracks = async function ({ ID, scraperProps, parserProps }) {
                 message: `Scrape attempt ${attempt}/${maxRetries} failed`,
                 error,
                 metadata: {
-                    ID,
+                    sourceID,
                     attempt,
                     maxRetries,
                     url: decodedUrl,
-                    type: scraperProps.type,
+                    scraperType: scraperProps.type,
                 },
             });
 
@@ -120,14 +124,14 @@ const getCurrentTracks = async function ({ ID, scraperProps, parserProps }) {
                     message: 'All scrape attempts failed, giving up',
                     error,
                     metadata: {
-                        ID,
+                        sourceID,
                         totalAttempts: maxRetries,
                         url: decodedUrl,
                     },
                 });
 
                 metricsWrapper.report('SourceScrape', [
-                    { key: 'sourceId', value: ID },
+                    { key: 'sourceID', value: sourceID },
                     { key: 'durationMs', value: Date.now() - overallStart },
                     { key: 'success', value: 0 },
                     { key: 'attempts', value: attempt },
@@ -143,9 +147,9 @@ const getCurrentTracks = async function ({ ID, scraperProps, parserProps }) {
                 method: 'getCurrentTracks',
                 message: `Retrying in ${delay}ms...`,
                 metadata: {
-                    ID,
+                    sourceID,
                     nextAttempt: attempt + 1,
-                    delay,
+                    delayMs: delay,
                 },
             });
 

@@ -182,8 +182,8 @@ async function copyDebugWavIfEnabled(
                 await writeFile(companionTxtPath, `${body}\n`, 'utf8');
             } catch (e) {
                 log.warn(
-                    { err: e, companionTxtPath, station: stationId },
-                    'DEBUG_CAPTURE_DIR companion .txt write failed',
+                    { err: e, companionTxtPath, stationID: stationId },
+                    'Debug capture companion txt write failed',
                 );
                 companionTxtPath = undefined;
             }
@@ -193,8 +193,8 @@ async function copyDebugWavIfEnabled(
             : { wavPath: debugCopyPath };
     } catch (e) {
         log.warn(
-            { err: e, station: stationId, debugDir },
-            'DEBUG_CAPTURE_DIR copy failed',
+            { err: e, stationID: stationId, debugDir },
+            'Debug capture WAV copy failed',
         );
         return undefined;
     }
@@ -216,10 +216,10 @@ export async function runStationTick(station, store, logger, options = {}) {
             ? options.requestID.trim()
             : randomUUID();
     const recognitionBlacklistPhrases = options.recognitionBlacklist;
-    const log = logger.child({ requestID });
+    const log = logger.child({ requestID, component: 'orchestrator' });
     log.info(
-        { station: station.id },
-        'Station Tick: START',
+        { stationID: station.id },
+        'Station tick started',
     );
 
     const tickStart = Date.now();
@@ -270,13 +270,13 @@ export async function runStationTick(station, store, logger, options = {}) {
             try {
                 log.info(
                     {
-                        station: station.id,
+                        stationID: station.id,
                         captureSec,
                         captureAttempt: cAttempt + 1,
                         captureMaxAttempts,
                         httpProxy: proxyHostForLog(httpProxy),
                     },
-                    'Station Tick: FFMPEG Capture Started',
+                    'Station tick: ffmpeg capture started',
                 );
                 wavPath = await captureStreamToWav(
                     ffmpegBin,
@@ -292,12 +292,12 @@ export async function runStationTick(station, store, logger, options = {}) {
                     },
                     { key: 'success', value: 1 },
                     { key: 'attempts', value: cAttempt + 1 },
-                    { key: 'station', value: station.id },
+                    { key: 'stationID', value: station.id },
                 ]);
                 if (cAttempt > 0) {
                     log.info(
                         {
-                            station: station.id,
+                            stationID: station.id,
                             captureAttempt: cAttempt + 1,
                             httpProxy: proxyHostForLog(httpProxy),
                             captureProxiesTried,
@@ -317,12 +317,12 @@ export async function runStationTick(station, store, logger, options = {}) {
                         },
                         { key: 'success', value: 0 },
                         { key: 'attempts', value: cAttempt + 1 },
-                        { key: 'station', value: station.id },
+                        { key: 'stationID', value: station.id },
                     ]);
                     log.error(
                         {
                             err: e,
-                            station: station.id,
+                            stationID: station.id,
                             captureAttempt: cAttempt + 1,
                             captureMaxAttempts,
                             captureProxiesTried,
@@ -335,7 +335,7 @@ export async function runStationTick(station, store, logger, options = {}) {
                 log.warn(
                     {
                         err: e,
-                        station: station.id,
+                        stationID: station.id,
                         captureAttempt: cAttempt + 1,
                         captureMaxAttempts,
                         httpProxy: proxyHostForLog(httpProxy),
@@ -357,7 +357,7 @@ export async function runStationTick(station, store, logger, options = {}) {
         const pcm = await metrics.timeIt(
             'StreamRecognizerDecode',
             async () => fileToPcm16kMono(ffmpegBin, wavPath),
-            { station: station.id },
+            { stationID: station.id },
         );
         const gates = analyzePcmGates(pcm, {
             silenceDb: rmsSilenceDb,
@@ -367,7 +367,7 @@ export async function runStationTick(station, store, logger, options = {}) {
         });
 
         if (gates.silence) {
-            log.debug({ station: station.id, meanDb: gates.meanDb }, 'skip: silence');
+            log.debug({ stationID: station.id, meanDb: gates.meanDb }, 'skip: silence');
             tickOutcome = 'skipped_silence';
             await store.setLastRun(
                 station.id,
@@ -379,7 +379,7 @@ export async function runStationTick(station, store, logger, options = {}) {
         }
         if (gates.speechHeavy) {
             log.debug(
-                { station: station.id, speechFrameRatio: gates.speechFrameRatio },
+                { stationID: station.id, speechFrameRatio: gates.speechFrameRatio },
                 'skip: speech-heavy',
             );
             tickOutcome = 'skipped_speech_heavy';
@@ -395,12 +395,12 @@ export async function runStationTick(station, store, logger, options = {}) {
         const { fingerprint, duration } = await metrics.timeIt(
             'StreamRecognizerFingerprint',
             async () => chromaprintFingerprintFromPcm(fpcalcBin, ffmpegBin, pcm),
-            { station: station.id },
+            { stationID: station.id },
         );
 
         if (prevFp && fingerprint === prevFp) {
             log.debug(
-                { station: station.id },
+                { stationID: station.id },
                 'fingerprint unchanged; skip audio recognition APIs and Redis',
             );
             tickOutcome = 'skipped_fingerprint_unchanged';
@@ -430,7 +430,7 @@ export async function runStationTick(station, store, logger, options = {}) {
                 if (!isShazamEnabled()) {
                     const msg = `${name} was not used (SHAZAM_DISABLED=1).`;
                     log.info(
-                        { station: station.id, provider: id, outcome: 'skipped' },
+                        { stationID: station.id, provider: id, outcome: 'skipped' },
                         `audio recognition: ${msg}`,
                     );
                     priorSteps.push(msg);
@@ -455,7 +455,7 @@ export async function runStationTick(station, store, logger, options = {}) {
                     : `${name} did not identify (${sh.reason}).`;
                 log.info(
                     {
-                        station: station.id,
+                        stationID: station.id,
                         provider: id,
                         outcome: 'no_match',
                         reason: sh.ok ? undefined : sh.reason,
@@ -477,7 +477,7 @@ export async function runStationTick(station, store, logger, options = {}) {
             const debugCopyPath = debugCopy?.wavPath;
             log.info(
                 {
-                    station: station.id,
+                    stationID: station.id,
                     capturePath: wavPath,
                     debugCopyPath,
                     captureDurationSec: duration,
@@ -514,7 +514,7 @@ export async function runStationTick(station, store, logger, options = {}) {
                 .join(' — ');
             log.info(
                 {
-                    station: station.id,
+                    stationID: station.id,
                     provider: matchSource,
                     outcome: 'blacklisted_skipped',
                     blacklistMatch: blacklistHit,
@@ -539,7 +539,7 @@ export async function runStationTick(station, store, logger, options = {}) {
         }
 
         if (prevKey === key) {
-            log.debug({ station: station.id }, 'same track key as Redis; skip write');
+            log.debug({ stationID: station.id }, 'same track key as Redis; skip write');
             tickOutcome = 'skipped_same_track_as_cache';
             await store.setLastRun(
                 station.id,
@@ -586,21 +586,24 @@ export async function runStationTick(station, store, logger, options = {}) {
         const winner = providerDisplayName(matchSource);
 
         tickOutcome = 'saved_audio';
-        log.info({
-            station: station.id,
-            provider: matchSource,
-            outcome: 'saved',
-            winner,
-            priorSteps,
-            artist: match.artist,
-            title: match.title,
-            displayName,
-            sampleWavCopyPath,
-            sampleTrackTxtPath,
-        });
+        log.info(
+            {
+                stationID: station.id,
+                provider: matchSource,
+                outcome: 'saved',
+                winner,
+                priorSteps,
+                artist: match.artist,
+                title: match.title,
+                displayName,
+                sampleWavCopyPath,
+                sampleTrackTxtPath,
+            },
+            'Recognition saved to Redis',
+        );
     } catch (e) {
         tickOutcome = 'error';
-        log.error({ err: e, station: station.id }, 'station tick failed');
+        log.error({ err: e, stationID: station.id }, 'Station tick failed');
         try {
             await store.setLastRun(
                 station.id,
@@ -618,7 +621,7 @@ export async function runStationTick(station, store, logger, options = {}) {
                     key: 'durationMs',
                     value: Date.now() - tickStart,
                 },
-                { key: 'station', value: station.id },
+                { key: 'stationID', value: station.id },
                 { key: 'outcome', value: tickOutcome },
                 { key: 'success', value: tickOutcome === 'error' ? 0 : 1 },
             ]);

@@ -27,11 +27,11 @@ export default function stationRoutes(logger) {
 
 async function triggerCrawlAllStationsToNotifyTrackChanges(logger) {
     try {
-        let res = await crawlAllStationsToNotifyTrackChanges();
+        await crawlAllStationsToNotifyTrackChanges();
 
         logger.info({
             method: 'triggerCrawlAllStationsToNotifyTrackChanges',
-            message: res,
+            message: 'Manual station crawl completed',
         });
     } catch (error) {
         logger.error({
@@ -44,11 +44,11 @@ async function triggerCrawlAllStationsToNotifyTrackChanges(logger) {
 
 async function triggerUpdatePlaylistContentForAllStations(logger) {
     try {
-        let res = await updatePlaylistContentForAllStations();
+        await updatePlaylistContentForAllStations();
 
         logger.info({
             method: 'triggerUpdatePlaylistContentForAllStations',
-            message: res,
+            message: 'Manual playlist updates queued',
         });
     } catch (error) {
         logger.error({
@@ -61,12 +61,12 @@ async function triggerUpdatePlaylistContentForAllStations(logger) {
 
 async function triggerRefreshChartRemote(logger, chart) {
     try {
-        let res = await refreshChartRemote(chart);
+        await refreshChartRemote(chart);
 
         logger.info({
             method: 'triggerRefreshChartRemote',
-            message: res,
-            args: [chart],
+            message: 'Manual chart refresh completed',
+            metadata: { chartID: chart },
         });
     } catch (error) {
         logger.error({
@@ -74,7 +74,7 @@ async function triggerRefreshChartRemote(logger, chart) {
             message: 'Could not refresh chart',
             error,
             metadata: {
-                args: [chart],
+                chartID: chart,
             },
         });
     }

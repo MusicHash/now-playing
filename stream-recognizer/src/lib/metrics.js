@@ -35,11 +35,13 @@ class MetricsWrapper {
             }
             newrelic.recordCustomEvent('ServerMetric', attrs);
         } catch (err) {
-            this.logger?.warn?.({
-                message: 'New Relic custom metric failed',
-                measurementId,
-                err,
-            });
+            this.logger?.warn?.(
+                {
+                    err,
+                    metadata: { measurementId },
+                },
+                'New Relic custom metric failed',
+            );
         }
         return this;
     }

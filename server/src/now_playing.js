@@ -70,7 +70,10 @@ class NowPlaying {
                 },
             ]);
 
-            this.logger.info('Application initialized successfully');
+            this.logger.info({
+                method: 'NowPlaying._initializeComponents',
+                message: 'Application initialized successfully',
+            });
         } catch (error) {
             this.logger.error({
                 method: '_initializeComponents',
@@ -90,11 +93,17 @@ class NowPlaying {
     }
 
     async _createEventEmitter() {
-        this.logger.info('Creating EventEmitter...');
+        this.logger.info({
+            method: 'NowPlaying._createEventEmitter',
+            message: 'Creating event emitter',
+        });
 
         await eventEmitterWrapper.init(this.logger).create();
 
-        this.logger.info('Created to EventEmitter!');
+        this.logger.info({
+            method: 'NowPlaying._createEventEmitter',
+            message: 'Event emitter ready',
+        });
 
         return this;
     }
@@ -105,13 +114,22 @@ class NowPlaying {
         redisWrapper.init(this.logger, redisURI);
 
         if (redisURI) {
-            this.logger.info('Connecting to Redis...');
+            this.logger.info({
+                method: 'NowPlaying._connectToRedis',
+                message: 'Connecting to Redis',
+            });
 
             await redisWrapper.connect();
 
-            this.logger.info('Connected to Redis!');
+            this.logger.info({
+                method: 'NowPlaying._connectToRedis',
+                message: 'Connected to Redis',
+            });
         } else {
-            this.logger.warn('REDIS_URI is not defined, Redis will not be connected');
+            this.logger.warn({
+                method: 'NowPlaying._connectToRedis',
+                message: 'REDIS_URI not set, Redis disabled',
+            });
         }
 
         return this;
@@ -121,13 +139,22 @@ class NowPlaying {
         const MySQL_URI = process.env.MYSQL_URI;
 
         if (MySQL_URI) {
-            this.logger.info('Connecting to MySQL...');
+            this.logger.info({
+                method: 'NowPlaying._connectToMySQL',
+                message: 'Connecting to MySQL',
+            });
 
             await MySQLWrapper.init(this.logger, MySQL_URI).connect();
 
-            this.logger.info('Connected to MySQL!');
+            this.logger.info({
+                method: 'NowPlaying._connectToMySQL',
+                message: 'Connected to MySQL',
+            });
         } else {
-            this.logger.warn('MYSQL_URI is not defined, MySQL will not be connected');
+            this.logger.warn({
+                method: 'NowPlaying._connectToMySQL',
+                message: 'MYSQL_URI not set, MySQL disabled',
+            });
         }
 
         return this;
@@ -148,12 +175,15 @@ class NowPlaying {
             .createServer(app)
             .listen(process.env.HTTP_PORT, () =>
                 this.logger.info({
-                    message: `HTTP Server up. Now go to http://localhost:${process.env.HTTP_PORT}/login in your browser`,
+                    method: 'NowPlaying._getExpressServer',
+                    message: 'HTTP server listening',
+                    metadata: { port: process.env.HTTP_PORT },
                 }),
             )
             .on('close', () =>
                 this.logger.info({
-                    message: 'Closed HTTP Server!',
+                    method: 'NowPlaying._getExpressServer',
+                    message: 'HTTP server closed',
                 }),
             );
     }
@@ -174,10 +204,10 @@ class NowPlaying {
         process.on('unhandledRejection', (error, promise) => {
             this.logger.error({
                 method: 'unhandledRejection',
-                message: 'Caught Unhandled Promise Rejection',
+                message: 'Unhandled promise rejection',
                 error,
                 metadata: {
-                    promise: promise.toString(),
+                    promise: String(promise),
                 },
             });
 
@@ -209,9 +239,8 @@ class NowPlaying {
         process.on('uncaughtException', (error) => {
             this.logger.error({
                 method: 'uncaughtException',
-                message: 'Caught Uncaught Exception',
+                message: 'Uncaught exception',
                 error,
-                stack: error.stack,
             });
 
             if (sentryEnabled) {
@@ -241,7 +270,11 @@ class NowPlaying {
         });
 
         process.on('warning', (warning) => {
-            this.logger.warn('Process warning:', warning);
+            this.logger.warn({
+                method: 'process.warning',
+                message: 'Process emitted warning',
+                metadata: { warningMessage: warning?.message ?? String(warning) },
+            });
         });
 
         ['SIGTERM', 'SIGINT', 'SIGUSR1', 'SIGUSR2', 'SIGHUP'].forEach((eventType) => {
@@ -255,7 +288,8 @@ class NowPlaying {
         try {
             await Spotify.connect();
             this.logger.info({
-                message: 'Spotify initialized successfully',
+                method: 'NowPlaying._spotifyConnect',
+                message: 'Spotify client ready',
             });
         } catch (error) {
             this.logger.error({

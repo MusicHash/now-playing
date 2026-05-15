@@ -12,7 +12,7 @@
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
             "legend": { "enabled": true },
-            "nrqlQueries": [{ "accountId": 0, "query": "SELECT percentile(durationMs / 1000, 95) FROM ServerMetric WHERE measurement = 'SourceScrape' FACET sourceId TIMESERIES AUTO LIMIT 50" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT percentile(durationMs / 1000, 95) FROM ServerMetric WHERE measurement = 'SourceScrape' FACET sourceID TIMESERIES AUTO LIMIT 50" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
@@ -22,7 +22,7 @@
           "visualization": { "id": "viz.bar" },
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
-            "nrqlQueries": [{ "accountId": 0, "query": "SELECT percentage(count(*), WHERE success = 0) AS 'Error %' FROM ServerMetric WHERE measurement = 'SourceScrape' FACET sourceId SINCE 1 hour ago LIMIT 50" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT percentage(count(*), WHERE success = 0) AS 'Error %' FROM ServerMetric WHERE measurement = 'SourceScrape' FACET sourceID SINCE 1 hour ago LIMIT 50" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
@@ -33,7 +33,7 @@
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
             "legend": { "enabled": true },
-            "nrqlQueries": [{ "accountId": 0, "query": "SELECT count(*) FROM ServerMetric WHERE measurement = 'StationTrackUpdated' FACET station TIMESERIES AUTO LIMIT 50" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT count(*) FROM ServerMetric WHERE measurement = 'StationTrackUpdated' FACET stationID TIMESERIES AUTO LIMIT 50" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
@@ -64,7 +64,7 @@
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
             "legend": { "enabled": true },
-            "nrqlQueries": [{ "accountId": 0, "query": "SELECT average(attempts) FROM ServerMetric WHERE measurement = 'SourceScrape' FACET sourceId TIMESERIES AUTO LIMIT 50" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT average(attempts) FROM ServerMetric WHERE measurement = 'SourceScrape' FACET sourceID TIMESERIES AUTO LIMIT 50" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
@@ -75,7 +75,7 @@
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
             "legend": { "enabled": true },
-            "nrqlQueries": [{ "accountId": 0, "query": "SELECT sum(newTrackCount) FROM ServerMetric WHERE measurement = 'HistoryChartNewTracks' FACET station TIMESERIES AUTO LIMIT 50" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT sum(newTrackCount) FROM ServerMetric WHERE measurement = 'HistoryChartNewTracks' FACET stationID TIMESERIES AUTO LIMIT 50" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         }
@@ -168,7 +168,7 @@
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
             "legend": { "enabled": true },
-            "nrqlQueries": [{ "accountId": 0, "query": "SELECT average(durationMs / 1000) FROM ServerMetric WHERE measurement = 'ChartCollection' FACET chartKey TIMESERIES AUTO LIMIT 30" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT average(durationMs / 1000) FROM ServerMetric WHERE measurement = 'ChartCollection' FACET chartID TIMESERIES AUTO LIMIT 30" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
@@ -178,7 +178,7 @@
           "visualization": { "id": "viz.bar" },
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
-            "nrqlQueries": [{ "accountId": 0, "query": "SELECT percentage(count(*), WHERE success = 1) AS 'Success %' FROM ServerMetric WHERE measurement = 'ChartCollection' FACET chartKey SINCE 7 days ago LIMIT 30" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT percentage(count(*), WHERE success = 1) AS 'Success %' FROM ServerMetric WHERE measurement = 'ChartCollection' FACET chartID SINCE 7 days ago LIMIT 30" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
@@ -188,7 +188,7 @@
           "visualization": { "id": "viz.bar" },
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
-            "nrqlQueries": [{ "accountId": 0, "query": "SELECT sum(trackCount) AS 'Total Tracks', sum(spotifyResolvedCount) AS 'Spotify Resolved' FROM ServerMetric WHERE measurement = 'ChartCollection' FACET chartKey SINCE 30 days ago LIMIT 30" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT sum(trackCount) AS 'Total Tracks', sum(spotifyResolvedCount) AS 'Spotify Resolved' FROM ServerMetric WHERE measurement = 'ChartCollection' FACET chartID SINCE 30 days ago LIMIT 30" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
@@ -198,7 +198,7 @@
           "visualization": { "id": "viz.bar" },
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
-            "nrqlQueries": [{ "accountId": 0, "query": "SELECT sum(spotifyResolvedCount) / sum(trackCount) * 100 AS 'Resolution %' FROM ServerMetric WHERE measurement = 'ChartCollection' AND trackCount > 0 FACET chartKey SINCE 30 days ago LIMIT 30" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT sum(spotifyResolvedCount) / sum(trackCount) * 100 AS 'Resolution %' FROM ServerMetric WHERE measurement = 'ChartCollection' AND trackCount > 0 FACET chartID SINCE 30 days ago LIMIT 30" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
@@ -209,7 +209,7 @@
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
             "legend": { "enabled": true },
-            "nrqlQueries": [{ "accountId": 0, "query": "SELECT average(durationMs / 1000) FROM ServerMetric WHERE measurement = 'ChartSpotifySync' FACET chartKey TIMESERIES AUTO LIMIT 30" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT average(durationMs / 1000) FROM ServerMetric WHERE measurement = 'ChartSpotifySync' FACET chartID TIMESERIES AUTO LIMIT 30" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
@@ -219,7 +219,7 @@
           "visualization": { "id": "viz.bar" },
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
-            "nrqlQueries": [{ "accountId": 0, "query": "SELECT latest(trackCount) AS 'Tracks Synced' FROM ServerMetric WHERE measurement = 'ChartSpotifySync' AND success = 1 FACET chartKey SINCE 7 days ago LIMIT 30" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT latest(trackCount) AS 'Tracks Synced' FROM ServerMetric WHERE measurement = 'ChartSpotifySync' AND success = 1 FACET chartID SINCE 7 days ago LIMIT 30" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
@@ -230,7 +230,7 @@
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
             "legend": { "enabled": true },
-            "nrqlQueries": [{ "accountId": 0, "query": "SELECT count(*) FROM ServerMetric WHERE measurement = 'ChartCollectionSkipped' FACET chartKey TIMESERIES AUTO LIMIT 30" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT count(*) FROM ServerMetric WHERE measurement = 'ChartCollectionSkipped' FACET chartID TIMESERIES AUTO LIMIT 30" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
@@ -241,7 +241,7 @@
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
             "legend": { "enabled": true },
-            "nrqlQueries": [{ "accountId": 0, "query": "SELECT count(*) FROM ServerMetric WHERE measurement = 'ChartSpotifySync' AND success = 0 FACET chartKey TIMESERIES AUTO LIMIT 30" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT count(*) FROM ServerMetric WHERE measurement = 'ChartSpotifySync' AND success = 0 FACET chartID TIMESERIES AUTO LIMIT 30" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         }

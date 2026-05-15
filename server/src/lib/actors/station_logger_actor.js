@@ -61,7 +61,10 @@ class StationLoggerActor {
 
 
     init() {
-        this.logger.info('StationLoggerActor Initialized');
+        this.logger.info({
+            method: 'StationLoggerActor.init',
+            message: 'Actor initialized',
+        });
         this._subscriptions();
     }
 
@@ -81,8 +84,8 @@ class StationLoggerActor {
                     message: 'Error logging track update',
                     error,
                     metadata: {
-                        station: payload.station,
-                        resultKeys: payload.result ? Object.keys(payload.result) : 'no result'
+                        stationID: payload.station,
+                        resultKeys: payload.result ? Object.keys(payload.result).join(',') : 'no result',
                     }
                 });
                 // Don't re-throw to prevent cascading failures
@@ -98,12 +101,20 @@ class StationLoggerActor {
         const searchQuery = cleanNames([artist, title].join(' '));
 
         if ('' === searchQuery) {
-            this.logger.warn(`Empty search query for STATION '${station}', skipping.`);
+            this.logger.warn({
+                method: '_logTrack',
+                message: 'Empty search query, skipping',
+                metadata: { stationID: station },
+            });
             return;
         }
 
         if ('' === artist || '' === title) {
-            this.logger.warn(`Invalid entry for STATION '${station}' | ARTIST: '${artist}' or TITLE: '${title}' or blacklisted item. Probably an commercial, skipping.`);
+            this.logger.warn({
+                method: '_logTrack',
+                message: 'Invalid artist or title, skipping',
+                metadata: { stationID: station, artist, title },
+            });
             return;
         }
 
@@ -111,19 +122,30 @@ class StationLoggerActor {
             existsInArray(artist, this.blacklistTracks) ||
             existsInArray(title, this.blacklistTracks)
         ) {
-            this.logger.warn(`Invalid blacklisted TITLE '${title}' or ARTIST '${artist}' found in STATION '${station}'. Probably a commercial, skipping.`);
+            this.logger.warn({
+                method: '_logTrack',
+                message: 'Blacklisted artist or title, skipping',
+                metadata: { stationID: station, artist, title },
+            });
             return;
         }
 
-        this.logger.info(`QUERY: ${searchQuery}`);
+        this.logger.debug({
+            method: '_logTrack',
+            message: 'Spotify search query',
+            metadata: { stationID: station, searchQuery },
+        });
 
         try {
             let search = await Spotify.searchTracksWithCache(searchQuery);
             const track = search?.tracks?.items[0];
 
             if (undefined === track?.id) {
-                // nothing found, log
-                this.logger.warn(`_logTrack failed to insert, no track found on station ${station} for query '${searchQuery}'`);
+                this.logger.warn({
+                    method: '_logTrack',
+                    message: 'No Spotify track for query',
+                    metadata: { stationID: station, searchQuery },
+                });
                 return false;
             }
 
@@ -162,8 +184,8 @@ class StationLoggerActor {
                 method: '_logTrack',
                 message: 'Added New Song',
                 metadata: {
-                    logId: logID,
-                    station,
+                    logID: logID,
+                    stationID: station,
                     searchQuery,
                     spotifyID,
                     song: `${track?.artists[0]?.name} - ${track.name}`,
@@ -176,10 +198,10 @@ class StationLoggerActor {
                 message: 'Failed to log track to database',
                 error,
                 metadata: {
-                    station,
+                    stationID: station,
                     searchQuery,
                     artist: tracks?.fields[0]?.artist,
-                    title: tracks?.fields[0]?.title
+                    title: tracks?.fields[0]?.title,
                 }
             });
             throw error; // Re-throw so the event emitter wrapper can catch it

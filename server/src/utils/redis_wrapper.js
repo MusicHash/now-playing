@@ -19,7 +19,10 @@ class RedisWrapper {
 
     async connect() {
         if (!this._isEnabled()) {
-            this.logger.warn('Redis is not enabled');
+            this.logger.warn({
+                method: 'Redis.connect',
+                message: 'Redis disabled, skipping connect',
+            });
             return Promise.resolve();
         }
 
@@ -29,11 +32,19 @@ class RedisWrapper {
 
         const redis = new Redis(this.redisURI, {
             retryStrategy: (times) => {
-                this.logger.warn(`Redis reconnecting attempt: ${times}`);
+                this.logger.warn({
+                    method: 'Redis.retryStrategy',
+                    message: 'Redis reconnecting',
+                    metadata: { attempt: times },
+                });
                 
                 // Stop retrying after 10 attempts
                 if (times > 10) {
-                    this.logger.error('Redis: Maximum retry attempts reached, giving up');
+                    this.logger.error({
+                        method: 'Redis.retryStrategy',
+                        message: 'Redis max retries reached',
+                        metadata: { maxAttempts: 10 },
+                    });
                     return null;
                 }
 
@@ -53,14 +64,23 @@ class RedisWrapper {
         });
 
         redis.on('reconnecting', () => {
-            this.logger.info('Redis reconnecting...');
+            this.logger.info({
+                method: 'Redis.connect',
+                message: 'Reconnecting to Redis',
+            });
         });
 
         redis.on('connect', () => {
-            this.logger.info('Redis connected successfully');
+            this.logger.info({
+                method: 'Redis.connect',
+                message: 'Redis connected',
+            });
         });
 
-        this.logger.info('Redis Initialized');
+        this.logger.info({
+            method: 'Redis.connect',
+            message: 'Redis client initialized',
+        });
 
         this._redisInstance = redis;
 

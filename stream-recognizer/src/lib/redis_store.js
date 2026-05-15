@@ -167,7 +167,10 @@ export async function pingRedis(logger) {
         await RedisWrapper.get('__stream_recognizer_health__');
         return { ok: true };
     } catch (e) {
-        logger.error({ err: e }, 'redis ping failed');
+        logger.error(
+            { err: e, component: 'redis', operation: 'ping' },
+            'Redis ping failed',
+        );
         return { ok: false, reason: String(e?.message || e) };
     }
 }

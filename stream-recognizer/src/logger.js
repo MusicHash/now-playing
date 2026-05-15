@@ -28,6 +28,19 @@ function nrForwardingEnabled() {
   return process.env.NEW_RELIC_ENABLED !== 'false' && Boolean(process.env.NEW_RELIC_LICENSE_KEY);
 }
 
+/** @param {unknown} value */
+function isPlainObject(value) {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
+/**
+ * Flat attributes for New Relic `recordLogEvent` (primitives only).
+ * Nested `metadata` is flattened as `metadata.<key>` (same convention as server).
+ */
 function nrPrimitiveAttrs(o) {
   const out = {};
   if (!o || typeof o !== 'object' || Array.isArray(o)) {
@@ -35,6 +48,19 @@ function nrPrimitiveAttrs(o) {
   }
   for (const [k, v] of Object.entries(o)) {
     if (k === 'msg' || k === 'message') {
+      continue;
+    }
+    if (k === 'metadata' && isPlainObject(v)) {
+      for (const [mk, mv] of Object.entries(v)) {
+        if (
+          mv === null ||
+          typeof mv === 'string' ||
+          typeof mv === 'number' ||
+          typeof mv === 'boolean'
+        ) {
+          out[`metadata.${mk}`] = mv;
+        }
+      }
       continue;
     }
     if (v === null || typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
@@ -73,7 +99,10 @@ function forwardLogToNewRelic(args, levelVal, log) {
   if (typeof first === 'string') {
     message = args.length > 1 ? args.join(' ') : first;
   } else if (first && typeof first === 'object' && !Array.isArray(first)) {
-    errObj = first.err instanceof Error ? first.err : undefined;
+    {
+      const errRaw = first.err ?? first.error;
+      errObj = errRaw instanceof Error ? errRaw : undefined;
+    }
     if (typeof second === 'string') {
       message = second;
       Object.assign(payload, nrPrimitiveAttrs(first));

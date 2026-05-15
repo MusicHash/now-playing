@@ -72,7 +72,7 @@ async function insertChartEntries(chartId, yearWeek, fields) {
         logger.warn({
             method: 'insertChartEntries',
             message: 'No fields to insert',
-            metadata: { chartId, yearWeek },
+            metadata: { chartID: chartId, yearWeek },
         });
         return;
     }
@@ -110,7 +110,12 @@ async function insertChartEntries(chartId, yearWeek, fields) {
 
     logger.info({
         method: 'insertChartEntries',
-        message: `Inserted ${fields.length} entries for ${chartId} week ${yearWeek}`,
+        message: 'Chart rows inserted',
+        metadata: {
+            chartID: chartId,
+            yearWeek,
+            rowCount: fields.length,
+        },
     });
 }
 

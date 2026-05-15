@@ -17,7 +17,10 @@ class SpotifyActor {
 
 
     init() {
-        this.logger.info('SpotifyActor Initialized');
+        this.logger.info({
+            method: 'SpotifyActor.init',
+            message: 'Actor initialized',
+        });
         this._subscriptions();
     }
 
@@ -33,7 +36,16 @@ class SpotifyActor {
             const spotifyPlaylistID = payload.spotifyPlaylistID;
             const spotifyTracksList = payload.spotifyTracksList;
 
-            this.logger.info(`UPDATING SPOTIFY PLAYLIST_ID (${spotifyPlaylistID}) for station ('${stationKey}') | SPOTIFY_TRACKS_LIST: '${spotifyTracksList}'`);
+            const trackURIs = Array.isArray(spotifyTracksList) ? spotifyTracksList : [];
+            this.logger.info({
+                method: 'SpotifyActor._onTrackUpdated',
+                message: 'Replacing Spotify playlist from station data',
+                metadata: {
+                    stationID: stationKey,
+                    playlistID: spotifyPlaylistID,
+                    trackCount: trackURIs.length,
+                },
+            });
 
             Spotify.replaceTracksInPlaylist(spotifyPlaylistID, spotifyTracksList);
         });

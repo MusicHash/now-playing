@@ -524,15 +524,20 @@ function buildSearchBody(uri, samplems) {
  *
  * @param {string} wavPath
  * @param {import('pino').Logger} logger
- * @param {{ httpProxy?: string; stationId?: string }} [options] If `httpProxy` is present (including `undefined`), use it as the first discovery attempt; otherwise pick from `HTTP_PROXY`. Further attempts use `SHAZAM_DISCOVERY_MAX_ATTEMPTS` / `SHAZAM_DISCOVERY_RETRY_MS` and rotate the proxy pool. Pass the same value as ffmpeg for a given tick. `stationId` is attached to New Relic metrics only.
+ * @param {{ httpProxy?: string; stationId?: string }} [options] If `httpProxy` is present (including `undefined`), use it as the first discovery attempt; otherwise pick from `HTTP_PROXY`. Further attempts use `SHAZAM_DISCOVERY_MAX_ATTEMPTS` / `SHAZAM_DISCOVERY_RETRY_MS` and rotate the proxy pool. Pass the same value as ffmpeg for a given tick. `stationId` sets `stationID` on logs and metrics.
  * @returns {Promise<ShazamOk | ShazamFail>}
  */
 export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
     const wallStart = Date.now();
     const stationField =
         options && typeof options === 'object' && options.stationId != null
-            ? [{ key: 'station', value: String(options.stationId) }]
+            ? [{ key: 'stationID', value: String(options.stationId) }]
             : [];
+
+    const log =
+        options && typeof options === 'object' && options.stationId != null
+            ? logger.child({ stationID: String(options.stationId), component: 'shazam' })
+            : logger.child({ component: 'shazam' });
 
     const report = (/** @type {{ key: string; value: string | number }[]} */ attrs) => {
         metrics.report('StreamRecognizerProviderCall', [
@@ -544,7 +549,7 @@ export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
     };
 
     if (!isShazamEnabled()) {
-        logger.debug('shazam: skipped (SHAZAM_DISABLED=1)');
+        log.debug('shazam: skipped (SHAZAM_DISABLED=1)');
         report([
             { key: 'success', value: 1 },
             { key: 'matched', value: 0 },
@@ -562,7 +567,7 @@ export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
     try {
         buffer = await readFile(wavPath);
     } catch (e) {
-        logger.error({ err: e, wavPath }, 'shazam: failed to read audio file');
+        log.error({ err: e, wavPath }, 'shazam: failed to read audio file');
         report([
             { key: 'success', value: 0 },
             { key: 'matched', value: 0 },
@@ -581,7 +586,7 @@ export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
     try {
         signatures = recognizeBytes(bytes);
     } catch (e) {
-        logger.error({ err: e }, 'shazam: recognizeBytes failed');
+        log.error({ err: e }, 'shazam: recognizeBytes failed');
         report([
             { key: 'success', value: 0 },
             { key: 'matched', value: 0 },
@@ -595,7 +600,7 @@ export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
     }
 
     if (!Array.isArray(signatures) || signatures.length === 0) {
-        logger.info({}, 'shazam: no signatures from recognizeBytes');
+        log.info({}, 'shazam: no signatures from recognizeBytes');
         report([
             { key: 'success', value: 1 },
             { key: 'matched', value: 0 },
@@ -643,7 +648,7 @@ export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
         /** @type {unknown} */
         let data;
         try {
-            data = await postDiscovery(url, body, logger, proxyUrl, i);
+            data = await postDiscovery(url, body, log, proxyUrl, i);
         } catch (e) {
             discoveryRequestFailures += 1;
             const meta =
@@ -651,7 +656,7 @@ export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
                     ? /** @type {{ discoveryMeta?: Record<string, unknown> }} */ (e)
                           .discoveryMeta
                     : undefined;
-            logger.error(
+            log.error(
                 {
                     err: e,
                     segmentIndex: i,
@@ -668,7 +673,7 @@ export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
             ? /** @type {Record<string, unknown>} */ (data).matches
             : null;
         if (Array.isArray(matches) && matches.length === 0) {
-            logNoMatch(logger, data, `segment_${i}_empty_matches`);
+            logNoMatch(log, data, `segment_${i}_empty_matches`);
             continue;
         }
 
@@ -683,7 +688,7 @@ export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
             ]);
             return { ok: true, ...track };
         }
-        logNoMatch(logger, data, `segment_${i}_unparsed`);
+        logNoMatch(log, data, `segment_${i}_unparsed`);
     }
 
     const allSegmentsDiscoveryFailed =

@@ -35,8 +35,10 @@ const server = listenHost
 
 function onListen() {
     logger.info(
-        listenHost ? { port, host: listenHost } : { port },
-        'stream-recognizer HTTP listening',
+        listenHost
+            ? { port, host: listenHost, component: 'bootstrap' }
+            : { port, component: 'bootstrap' },
+        'HTTP listening',
     );
     metrics.report('StreamRecognizerStarted', [
         { key: 'started', value: 1 },
@@ -45,13 +47,13 @@ function onListen() {
     if (anyStationEnabled) {
         if (!probeBinary(ffmpegBin)) {
             logger.warn(
-                { bin: ffmpegBin },
+                { bin: ffmpegBin, component: 'bootstrap' },
                 `ffmpeg not found. ${missingBinaryHint('ffmpeg', 'FFMPEG_BIN')}`,
             );
         }
         if (!probeBinary(fpcalcBin)) {
             logger.warn(
-                { bin: fpcalcBin },
+                { bin: fpcalcBin, component: 'bootstrap' },
                 `fpcalc not found. ${missingBinaryHint('fpcalc', 'FPCALC_BIN')}`,
             );
         }
@@ -74,13 +76,19 @@ for (const station of stations) {
         runStationTick(station, store, logger, {
             recognitionBlacklist,
         }).catch((e) => {
-            logger.error({ err: e, station: station.id }, 'initial tick failed');
+            logger.error(
+                { err: e, stationID: station.id, component: 'bootstrap' },
+                'Initial station tick failed',
+            );
         });
         const t = setInterval(() => {
             runStationTick(station, store, logger, {
                 recognitionBlacklist,
             }).catch((e) => {
-                logger.error({ err: e, station: station.id }, 'tick failed');
+                logger.error(
+                    { err: e, stationID: station.id, component: 'bootstrap' },
+                    'Scheduled station tick failed',
+                );
             });
         }, ms);
         timers.push(t);
@@ -88,7 +96,7 @@ for (const station of stations) {
 }
 
 function shutdown() {
-    logger.info('shutting down');
+    logger.info({ component: 'bootstrap' }, 'Shutting down');
     for (const t of timers) {
         clearInterval(t);
     }

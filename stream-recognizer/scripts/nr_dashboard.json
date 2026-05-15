@@ -15,7 +15,7 @@
             "nrqlQueries": [
               {
                 "accountId": 0,
-                "query": "SELECT percentile(durationMs / 1000, 95) FROM ServerMetric WHERE appName = 'stream-recognizer' AND measurement = 'StreamRecognizerTick' FACET station TIMESERIES AUTO LIMIT 50"
+                "query": "SELECT percentile(durationMs / 1000, 95) FROM ServerMetric WHERE appName = 'stream-recognizer' AND measurement = 'StreamRecognizerTick' FACET stationID TIMESERIES AUTO LIMIT 50"
               }
             ],
             "platformOptions": { "ignoreTimeRange": false }
@@ -60,7 +60,7 @@
             "nrqlQueries": [
               {
                 "accountId": 0,
-                "query": "SELECT count(*) FROM ServerMetric WHERE appName = 'stream-recognizer' AND measurement = 'StreamRecognizerTick' FACET station, outcome SINCE 1 hour ago LIMIT 100"
+                "query": "SELECT count(*) FROM ServerMetric WHERE appName = 'stream-recognizer' AND measurement = 'StreamRecognizerTick' FACET stationID, outcome SINCE 1 hour ago LIMIT 100"
               }
             ],
             "platformOptions": { "ignoreTimeRange": false }
@@ -96,7 +96,7 @@
             "nrqlQueries": [
               {
                 "accountId": 0,
-                "query": "SELECT percentile(durationMs / 1000, 95) FROM ServerMetric WHERE appName = 'stream-recognizer' AND measurement = 'StreamRecognizerCapture' AND success = 1 FACET station TIMESERIES AUTO LIMIT 50"
+                "query": "SELECT percentile(durationMs / 1000, 95) FROM ServerMetric WHERE appName = 'stream-recognizer' AND measurement = 'StreamRecognizerCapture' AND success = 1 FACET stationID TIMESERIES AUTO LIMIT 50"
               }
             ],
             "platformOptions": { "ignoreTimeRange": false }
@@ -111,7 +111,7 @@
             "nrqlQueries": [
               {
                 "accountId": 0,
-                "query": "SELECT percentage(count(*), WHERE success = 0) AS 'Fail %' FROM ServerMetric WHERE appName = 'stream-recognizer' AND measurement = 'StreamRecognizerCapture' FACET station SINCE 1 hour ago LIMIT 50"
+                "query": "SELECT percentage(count(*), WHERE success = 0) AS 'Fail %' FROM ServerMetric WHERE appName = 'stream-recognizer' AND measurement = 'StreamRecognizerCapture' FACET stationID SINCE 1 hour ago LIMIT 50"
               }
             ],
             "platformOptions": { "ignoreTimeRange": false }
@@ -127,7 +127,7 @@
             "nrqlQueries": [
               {
                 "accountId": 0,
-                "query": "SELECT average(attempts) FROM ServerMetric WHERE appName = 'stream-recognizer' AND measurement = 'StreamRecognizerCapture' AND success = 1 FACET station TIMESERIES AUTO LIMIT 50"
+                "query": "SELECT average(attempts) FROM ServerMetric WHERE appName = 'stream-recognizer' AND measurement = 'StreamRecognizerCapture' AND success = 1 FACET stationID TIMESERIES AUTO LIMIT 50"
               }
             ],
             "platformOptions": { "ignoreTimeRange": false }
@@ -143,7 +143,7 @@
             "nrqlQueries": [
               {
                 "accountId": 0,
-                "query": "SELECT percentile(durationMs / 1000, 95) FROM ServerMetric WHERE appName = 'stream-recognizer' AND measurement = 'StreamRecognizerDecode' AND success = 1 FACET station TIMESERIES AUTO LIMIT 50"
+                "query": "SELECT percentile(durationMs / 1000, 95) FROM ServerMetric WHERE appName = 'stream-recognizer' AND measurement = 'StreamRecognizerDecode' AND success = 1 FACET stationID TIMESERIES AUTO LIMIT 50"
               }
             ],
             "platformOptions": { "ignoreTimeRange": false }
@@ -159,7 +159,7 @@
             "nrqlQueries": [
               {
                 "accountId": 0,
-                "query": "SELECT percentile(durationMs / 1000, 95) FROM ServerMetric WHERE appName = 'stream-recognizer' AND measurement = 'StreamRecognizerFingerprint' AND success = 1 FACET station TIMESERIES AUTO LIMIT 50"
+                "query": "SELECT percentile(durationMs / 1000, 95) FROM ServerMetric WHERE appName = 'stream-recognizer' AND measurement = 'StreamRecognizerFingerprint' AND success = 1 FACET stationID TIMESERIES AUTO LIMIT 50"
               }
             ],
             "platformOptions": { "ignoreTimeRange": false }
@@ -271,7 +271,7 @@
             "nrqlQueries": [
               {
                 "accountId": 0,
-                "query": "SELECT percentage(count(*), WHERE matched = 1) AS 'Match %' FROM ServerMetric WHERE appName = 'stream-recognizer' AND measurement = 'StreamRecognizerProviderCall' AND provider = 'shazam' FACET station SINCE 6 hours ago LIMIT 50"
+                "query": "SELECT percentage(count(*), WHERE matched = 1) AS 'Match %' FROM ServerMetric WHERE appName = 'stream-recognizer' AND measurement = 'StreamRecognizerProviderCall' AND provider = 'shazam' FACET stationID SINCE 6 hours ago LIMIT 50"
               }
             ],
             "platformOptions": { "ignoreTimeRange": false }

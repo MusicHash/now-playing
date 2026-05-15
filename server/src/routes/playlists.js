@@ -39,11 +39,11 @@ export default function playlistRoutes(logger) {
 
 async function triggerRefreshChartAll(logger) {
     try {
-        let res = await refreshChartAll();
+        await refreshChartAll();
 
         logger.info({
             method: 'triggerRefreshChartAll',
-            message: res,
+            message: 'Manual refresh queued for all charts',
         });
     } catch (error) {
         logger.error({
@@ -56,11 +56,11 @@ async function triggerRefreshChartAll(logger) {
 
 async function triggerCollectChartDataAll(logger) {
     try {
-        let res = await collectChartDataAll();
+        await collectChartDataAll();
 
         logger.info({
             method: 'triggerCollectChartDataAll',
-            message: res,
+            message: 'Manual chart collection queued',
         });
     } catch (error) {
         logger.error({
@@ -73,11 +73,11 @@ async function triggerCollectChartDataAll(logger) {
 
 async function triggerSyncAllChartsToSpotify(logger) {
     try {
-        let res = await syncAllChartsToSpotify();
+        await syncAllChartsToSpotify();
 
         logger.info({
             method: 'triggerSyncAllChartsToSpotify',
-            message: res,
+            message: 'Manual Spotify chart sync queued',
         });
     } catch (error) {
         logger.error({
@@ -90,16 +90,16 @@ async function triggerSyncAllChartsToSpotify(logger) {
 
 async function triggerSliceAllPlaylist(logger) {
     try {
-        let res = await sliceAllPlaylists();
+        await sliceAllPlaylists();
 
         logger.info({
             method: 'triggerSliceAllPlaylist',
-            message: res,
+            message: 'Manual playlist slice queued for all stations',
         });
     } catch (error) {
         logger.error({
             method: 'triggerSliceAllPlaylist',
-            message: 'Could not slice chart',
+            message: 'Could not slice playlists',
             error,
         });
     }

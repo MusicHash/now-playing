@@ -18,7 +18,10 @@ class EventEmitterWrapper {
             return this._EventEmitterInstance;
         }
 
-        this.logger.info('EventWrapper Initialized');
+        this.logger.info({
+            method: 'EventEmitterWrapper.create',
+            message: 'Event emitter ready',
+        });
 
         this._EventEmitterInstance = new EventEmitter();
 
@@ -42,12 +45,12 @@ class EventEmitterWrapper {
                 await listener(...args);
             } catch (error) {
                 this.logger.error({
-                    method: 'emit',
-                    message: `Error in event listener for event: ${event}`,
+                    method: 'EventEmitterWrapper.emit',
+                    message: 'Event listener threw',
                     error,
                     metadata: {
-                        event,
-                        args,
+                        event: String(event),
+                        argCount: args.length,
                     },
                 });
                 // Don't re-throw to prevent cascading failures

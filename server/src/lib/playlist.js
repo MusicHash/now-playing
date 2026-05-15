@@ -18,7 +18,8 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
         method: 'updatePlayList',
         message: 'Starting playlist update flow',
         metadata: {
-            args: [...arguments],
+            sourceID: playlist,
+            firstSongOnly,
         },
     });
 
@@ -34,7 +35,7 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
             method: 'updatePlayList',
             message: 'Minimum length is below threshold, skipping spotify api call',
             metadata: {
-                args: [...arguments],
+                sourceID: playlist,
                 playlistID,
                 query,
             },
@@ -53,11 +54,10 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
                 method: 'updatePlayList',
                 message: 'Found track, takes first',
                 metadata: {
-                    args: [...arguments],
+                    sourceID: playlist,
                     playlistID,
                     songID,
                     query,
-                    search,
                 },
             });
 
@@ -68,7 +68,7 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
                 method: 'updatePlayList',
                 message: 'Track was not found, playlist didnt update',
                 metadata: {
-                    args: [...arguments],
+                    sourceID: playlist,
                     query,
                     playlistID,
                 },
@@ -80,7 +80,7 @@ const updatePlayList = async function (playlist, tracks, firstSongOnly) {
             message: 'updatePlayList failed, exception',
             error,
             metadata: {
-                args: [...arguments],
+                sourceID: playlist,
                 query,
                 playlistID,
             },
@@ -93,7 +93,7 @@ const replacePlayList = async function (playlist, tracks) {
         method: 'replacePlayList',
         message: 'Starting to replace all tracks in a given playlist',
         metadata: {
-            args: [...arguments],
+            sourceID: playlist,
         },
     });
 
@@ -109,7 +109,7 @@ const replacePlayList = async function (playlist, tracks) {
                 method: 'extractURI -> replacePlayList',
                 message: 'Found a track for query',
                 metadata: {
-                    args: [...arguments],
+                    sourceID: playlist,
                     playlistID,
                     query,
                     songID,
@@ -124,7 +124,7 @@ const replacePlayList = async function (playlist, tracks) {
                 method: 'extractURI -> replacePlayList',
                 message: 'Track not found for query',
                 metadata: {
-                    args: [...arguments],
+                    sourceID: playlist,
                     playlistID,
                     query,
                 },
@@ -152,11 +152,10 @@ const replacePlayList = async function (playlist, tracks) {
                     method: 'replacePlayList',
                     message: 'tracksFound request failed, not tracks found',
                     metadata: {
-                        args: [...arguments],
+                        sourceID: playlist,
                         playlistID,
                         query,
-                        tracksFound,
-                        tracksList,
+                        tracksResolved: tracksList.length,
                     },
                 });
             }
@@ -166,10 +165,11 @@ const replacePlayList = async function (playlist, tracks) {
         await updatePlaylistMetadata(playlist);
     } catch (error) {
         logger.error({
+            method: 'replacePlayList',
             message: 'replacePlayList failed',
             error,
             metadata: {
-                args: [...arguments],
+                sourceID: playlist,
                 playlistID,
             },
         });
@@ -194,7 +194,8 @@ const updatePlaylistMetadata = async function (playlist) {
             message: 'updatePlaylistMetadata failed',
             error,
             metadata: {
-                args: [...arguments],
+                sourceID: playlist,
+                playlistID,
             },
         });
     }
@@ -212,7 +213,9 @@ const slicePlaylist = async function (playlist, limit) {
             message: 'slicePlaylist exception',
             error,
             metadata: {
-                args: [...arguments],
+                sourceID: playlist,
+                playlistID,
+                limit,
             },
         });
     }
@@ -230,8 +233,13 @@ const sliceAllPlaylists = async function (limit = 200) {
         }, delayBySeconds * 1000);
 
         logger.debug({
-            args: [...arguments],
-            message: `Queued station ${station} for slice in ${delayBySeconds}s`,
+            method: 'sliceAllPlaylists',
+            message: 'Queued playlist slice',
+            metadata: {
+                stationID: station,
+                delaySeconds: delayBySeconds,
+                limit,
+            },
         });
 
         chartEnumeration++;

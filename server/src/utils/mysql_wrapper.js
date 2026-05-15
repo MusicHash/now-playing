@@ -25,7 +25,10 @@ class MySQLWrapper {
 
     async connect() {
         if (!this._isEnabled()) {
-            this.logger.info('MySQL is not enabled');
+            this.logger.info({
+                method: 'MySQL.connect',
+                message: 'MySQL disabled, skipping connect',
+            });
             return Promise.resolve();
         }
 
@@ -47,7 +50,11 @@ class MySQLWrapper {
 
         // Add error handlers
         pool.on('connection', (connection) => {
-            this.logger.debug(`MySQL connection ${connection.threadId} established`);
+            this.logger.debug({
+                method: 'MySQL.pool.connection',
+                message: 'Connection established',
+                metadata: { threadID: connection.threadId },
+            });
         });
 
         pool.on('error', (error) => {
@@ -58,7 +65,10 @@ class MySQLWrapper {
             });
         });
 
-        this.logger.info('MySQL Initialized');
+        this.logger.info({
+            method: 'MySQL.connect',
+            message: 'MySQL pool initialized',
+        });
 
         this._MySQLInstance = pool;
 
@@ -284,7 +294,11 @@ class MySQLWrapper {
             if (error.code === 'PROTOCOL_CONNECTION_LOST' || 
                 error.code === 'ECONNRESET' || 
                 error.code === 'ETIMEDOUT') {
-                this.logger.warn('MySQL connection lost, resetting connection instance');
+                this.logger.warn({
+                    method: 'MySQL._execute',
+                    message: 'Connection lost, pool will reconnect',
+                    metadata: { errorCode: error.code },
+                });
                 this._MySQLInstance = null; // Force reconnection on next call
             }
             

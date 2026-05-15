@@ -66,7 +66,7 @@ const crawlHistoryChartsToNotifyTrackChanges = async function () {
 
         try {
             const tracks = await getCurrentTracks({
-                ID: station,
+                sourceID: station,
                 scraperProps: props.scraper,
                 parserProps: props.parser,
             });
@@ -77,7 +77,7 @@ const crawlHistoryChartsToNotifyTrackChanges = async function () {
                 logger.warn({
                     method: 'crawlHistoryChartsToNotifyTrackChanges',
                     message: 'No history tracks returned, skipping',
-                    metadata: { station },
+                    metadata: { stationID: station },
                 });
                 continue;
             }
@@ -120,19 +120,19 @@ const crawlHistoryChartsToNotifyTrackChanges = async function () {
 
             if (newSongs.length > 0) {
                 metricsWrapper.report('HistoryChartNewTracks', [
-                    { key: 'station', value: station },
+                    { key: 'stationID', value: station },
                     { key: 'newTrackCount', value: newSongs.length },
                 ]);
             }
 
             await saveHistorySnapshot(station, currentList, fetchedAt);
         } catch (error) {
-            logger.error({
-                method: 'crawlHistoryChartsToNotifyTrackChanges',
-                message: 'Failed to refresh history chart station',
-                error,
-                metadata: { station },
-            });
+                logger.error({
+                    method: 'crawlHistoryChartsToNotifyTrackChanges',
+                    message: 'Failed to refresh history chart station',
+                    error,
+                    metadata: { stationID: station },
+                });
         }
     }
 };
@@ -166,7 +166,7 @@ const didSourceChange = async function (station, response) {
 
 const getChartInfo = async function (chartID, props) {
     const chartInfo = await getCurrentTracks({
-        ID: chartID,
+        sourceID: chartID,
         scraperProps: props.scraper,
         parserProps: props.parser,
     });
@@ -193,7 +193,7 @@ const crawlAllStationsToNotifyTrackChanges = async function () {
                 schedulerIntervalSec: 45,
                 runStartedAtMs: startedAt,
                 elapsedMsSinceRunStart: startedAt != null ? Date.now() - startedAt : null,
-                stationBlockingRun: crawlAllStationsProgress.currentStation,
+                blockingStationID: crawlAllStationsProgress.currentStation,
             },
         });
         return;
@@ -215,7 +215,7 @@ const crawlAllStationsToNotifyTrackChanges = async function () {
 
             try {
                 const tracks = await getCurrentTracks({
-                    ID: station,
+                    sourceID: station,
                     scraperProps: props.scraper,
                     parserProps: props.parser,
                 });
@@ -229,18 +229,18 @@ const crawlAllStationsToNotifyTrackChanges = async function () {
 
                 if (shouldSendUpdate && payload?.result?.total > 0) {
                     await eventEmitterWrapper.emit(SYSTEM_EVENTS.ON_STATION_TRACK_UPDATED, payload);
-                    metricsWrapper.increment('StationTrackUpdated', { station });
+                    metricsWrapper.increment('StationTrackUpdated', { stationID: station });
                     updatedCount++;
                 }
 
                 successCount++;
             } catch (error) {
                 logger.error({
-                    method: 'getCurrentTracks -> crawlAllStationsToNotifyTrackChanges',
+                    method: 'crawlAllStationsToNotifyTrackChanges',
                     message: 'Failed to refresh station',
                     error,
                     metadata: {
-                        station,
+                        stationID: station,
                     },
                 });
                 errorCount++;
@@ -269,8 +269,7 @@ const updatePlaylistContentForStationLocal = async function (stationKey) {
             method: 'updatePlaylistContentForStationLocal',
             message: 'Station not found',
             metadata: {
-                stationKey,
-                args: [...arguments],
+                stationID: stationKey,
             },
         });
 
@@ -279,11 +278,9 @@ const updatePlaylistContentForStationLocal = async function (stationKey) {
 
     logger.debug({
         method: 'updatePlaylistContentForStationLocal',
-        error: 'Starting station update for a single station',
+        message: 'Starting single station playlist update',
         metadata: {
-            stationKey,
-            station,
-            args: [...arguments],
+            stationID: stationKey,
         },
     });
 
@@ -300,12 +297,10 @@ const updatePlaylistContentForStationLocal = async function (stationKey) {
     } catch (error) {
         logger.error({
             method: 'updatePlaylistContentForStationLocal',
-            message: 'Failed to update a station',
-            error: error instanceof Error ? error.message : JSON.stringify(error, null, 2),
+            message: 'Failed to update station playlist',
+            error: error instanceof Error ? error : new Error(String(error)),
             metadata: {
-                stationKey,
-                station,
-                args: [...arguments],
+                stationID: stationKey,
             },
         });
     }
@@ -350,8 +345,11 @@ const _resolveSpotifyId = async function (artist, title) {
     } catch (error) {
         logger.warn({
             method: '_resolveSpotifyId',
-            message: `Spotify resolution failed for "${query}", storing entry without link`,
-            error: error instanceof Error ? error.message : String(error),
+            message: 'Spotify resolution failed, storing entry without link',
+            metadata: {
+                searchQuery: query,
+                errorMessage: error instanceof Error ? error.message : String(error),
+            },
         });
         return null;
     }
@@ -364,7 +362,7 @@ const collectChartData = async function (chartKey) {
         logger.error({
             method: 'collectChartData',
             message: 'Chart not found',
-            metadata: { chartKey },
+            metadata: { chartID: chartKey },
         });
         return;
     }
@@ -378,14 +376,15 @@ const collectChartData = async function (chartKey) {
         if (exists) {
             logger.info({
                 method: 'collectChartData',
-                message: `Chart ${chartKey} already collected for week ${yearWeek}, skipping`,
+                message: 'Chart week already collected, skipping',
+                metadata: { chartID: chartKey, yearWeek },
             });
-            metricsWrapper.increment('ChartCollectionSkipped', { chartKey, yearWeek });
+            metricsWrapper.increment('ChartCollectionSkipped', { chartID: chartKey, yearWeek });
             return;
         }
 
         const tracks = await getCurrentTracks({
-            ID: chartKey,
+            sourceID: chartKey,
             scraperProps: chart.scraper,
             parserProps: chart.parser,
         });
@@ -393,7 +392,8 @@ const collectChartData = async function (chartKey) {
         if (!tracks?.fields?.length) {
             logger.warn({
                 method: 'collectChartData',
-                message: `No tracks returned for chart ${chartKey}, skipping insert`,
+                message: 'No tracks returned for chart',
+                metadata: { chartID: chartKey },
             });
             return;
         }
@@ -409,7 +409,7 @@ const collectChartData = async function (chartKey) {
         const spotifyResolvedCount = enrichedFields.filter((f) => f.spotifyId).length;
 
         metricsWrapper.report('ChartCollection', [
-            { key: 'chartKey', value: chartKey },
+            { key: 'chartID', value: chartKey },
             { key: 'durationMs', value: Date.now() - collectStart },
             { key: 'trackCount', value: enrichedFields.length },
             { key: 'spotifyResolvedCount', value: spotifyResolvedCount },
@@ -419,12 +419,12 @@ const collectChartData = async function (chartKey) {
         logger.error({
             method: 'collectChartData',
             message: 'Failed to collect chart data',
-            error: error instanceof Error ? error.message : JSON.stringify(error, null, 2),
-            metadata: { chartKey, yearWeek },
+            error: error instanceof Error ? error : new Error(String(error)),
+            metadata: { chartID: chartKey, yearWeek },
         });
 
         metricsWrapper.report('ChartCollection', [
-            { key: 'chartKey', value: chartKey },
+            { key: 'chartID', value: chartKey },
             { key: 'durationMs', value: Date.now() - collectStart },
             { key: 'trackCount', value: 0 },
             { key: 'spotifyResolvedCount', value: 0 },
@@ -446,7 +446,8 @@ const collectChartDataAll = async function () {
 
         logger.info({
             method: 'collectChartDataAll',
-            message: `Queued chart ${chartKey} for collection in ${delayBySeconds}s`,
+            message: 'Queued chart collection',
+            metadata: { chartID: chartKey, delaySeconds: delayBySeconds },
         });
 
         chartEnumeration++;
@@ -460,7 +461,7 @@ const syncChartToSpotify = async function (chartKey) {
         logger.error({
             method: 'syncChartToSpotify',
             message: 'Chart not found',
-            metadata: { chartKey },
+            metadata: { chartID: chartKey },
         });
         return;
     }
@@ -473,7 +474,8 @@ const syncChartToSpotify = async function (chartKey) {
         if (!entries || entries.length === 0) {
             logger.warn({
                 method: 'syncChartToSpotify',
-                message: `No chart entries in DB for ${chartKey}, skipping Spotify sync`,
+                message: 'No chart entries in database',
+                metadata: { chartID: chartKey },
             });
             return;
         }
@@ -485,7 +487,8 @@ const syncChartToSpotify = async function (chartKey) {
         if (trackURIs.length === 0) {
             logger.warn({
                 method: 'syncChartToSpotify',
-                message: `No Spotify-linked entries for ${chartKey}, skipping sync`,
+                message: 'No Spotify-linked chart entries',
+                metadata: { chartID: chartKey },
             });
             return;
         }
@@ -496,11 +499,16 @@ const syncChartToSpotify = async function (chartKey) {
 
         logger.info({
             method: 'syncChartToSpotify',
-            message: `Synced ${trackURIs.length} tracks to Spotify for ${chartKey} (week ${entries[0].chart_year_week})`,
+            message: 'Synced chart to Spotify playlist',
+            metadata: {
+                chartID: chartKey,
+                trackCount: trackURIs.length,
+                yearWeek: entries[0].chart_year_week,
+            },
         });
 
         metricsWrapper.report('ChartSpotifySync', [
-            { key: 'chartKey', value: chartKey },
+            { key: 'chartID', value: chartKey },
             { key: 'durationMs', value: Date.now() - syncStart },
             { key: 'trackCount', value: trackURIs.length },
             { key: 'success', value: 1 },
@@ -509,12 +517,12 @@ const syncChartToSpotify = async function (chartKey) {
         logger.error({
             method: 'syncChartToSpotify',
             message: 'Failed to sync chart to Spotify',
-            error: error instanceof Error ? error.message : JSON.stringify(error, null, 2),
-            metadata: { chartKey },
+            error: error instanceof Error ? error : new Error(String(error)),
+            metadata: { chartID: chartKey },
         });
 
         metricsWrapper.report('ChartSpotifySync', [
-            { key: 'chartKey', value: chartKey },
+            { key: 'chartID', value: chartKey },
             { key: 'durationMs', value: Date.now() - syncStart },
             { key: 'trackCount', value: 0 },
             { key: 'success', value: 0 },
@@ -535,7 +543,8 @@ const syncAllChartsToSpotify = async function () {
 
         logger.info({
             method: 'syncAllChartsToSpotify',
-            message: `Queued chart ${chartKey} for Spotify sync in ${delayBySeconds}s`,
+            message: 'Queued Spotify chart sync',
+            metadata: { chartID: chartKey, delaySeconds: delayBySeconds },
         });
 
         chartEnumeration++;
@@ -550,8 +559,7 @@ const refreshChartRemote = async function (chartKey) {
             method: 'refreshChartRemote',
             message: 'Chart not found',
             metadata: {
-                chart,
-                args: [...arguments],
+                chartID: chartKey,
             },
         });
 
@@ -560,16 +568,15 @@ const refreshChartRemote = async function (chartKey) {
 
     logger.debug({
         method: 'refreshChartRemote',
-        error: 'Starting chart refreshing for a single chart',
+        message: 'Starting single chart refresh',
         metadata: {
-            chart,
-            args: [...arguments],
+            chartID: chartKey,
         },
     });
 
     try {
         const tracks = await getCurrentTracks({
-            ID: chartKey,
+            sourceID: chartKey,
             scraperProps: chart.scraper,
             parserProps: chart.parser,
         });
@@ -578,11 +585,10 @@ const refreshChartRemote = async function (chartKey) {
     } catch (error) {
         logger.error({
             method: 'refreshChartRemote',
-            message: 'Failed to refresh a chart',
-            error: error instanceof Error ? error.message : JSON.stringify(error, null, 2),
+            message: 'Failed to refresh chart',
+            error: error instanceof Error ? error : new Error(String(error)),
             metadata: {
-                chart,
-                args: [...arguments],
+                chartID: chartKey,
             },
         });
     }
@@ -601,7 +607,8 @@ const refreshChartAll = async function () {
 
         logger.info({
             method: 'refreshChartAll',
-            message: `Queued chart ${chartKey} for update in ${delayBySeconds}s`,
+            message: 'Queued chart refresh',
+            metadata: { chartID: chartKey, delaySeconds: delayBySeconds },
         });
 
         chartEnumeration++;
@@ -621,7 +628,8 @@ const updatePlaylistContentForAllStations = async function () {
 
         logger.info({
             method: 'updatePlaylistContentForAllStations',
-            message: `Queued chart ${stationKey} for update in ${delayBySeconds}s`,
+            message: 'Queued station playlist update',
+            metadata: { stationID: stationKey, delaySeconds: delayBySeconds },
         });
 
         stationEnumeration++;

@@ -85,11 +85,9 @@ class Spotify {
             this.#isConnected = true;
         } catch (error) {
             logger.error({
-                message: 'Failed retrieving an access token',
+                method: 'Spotify.connect',
+                message: 'Client credentials grant failed',
                 error,
-                metadata: {
-                    token,
-                },
             });
         }
     }
@@ -101,9 +99,9 @@ class Spotify {
     async auth(code, error, res) {
         if (error) {
             logger.error({
-                method: 'auth',
-                message: 'Callback Error',
-                error,
+                method: 'Spotify.auth',
+                message: 'OAuth callback reported error',
+                metadata: { oauthError: String(error) },
             });
 
             res.send(`Callback Error: ${error}`);
@@ -111,12 +109,13 @@ class Spotify {
         }
 
         try {
-            const authorizationCode = await this.api.authorizationCodeGrant(code);
+            let authorizationCode = await this.api.authorizationCodeGrant(code);
 
             if (authorizationCode.body.expires_in < 1500) {
                 logger.info({
-                    method: 'authorizationCode',
-                    message: 'Token too short, renewing...',
+                    method: 'Spotify.auth',
+                    message: 'Token lifetime short, renewing',
+                    metadata: { expiresIn: authorizationCode.body.expires_in },
                 });
 
                 authorizationCode = await this.api.refreshAccessToken();
@@ -130,11 +129,11 @@ class Spotify {
             this.setRefreshToken(refreshToken);
 
             logger.info({
-                method: 'auth',
-                message: `Successfully retrieved access token. Expires in ${expiresIn} s.`,
+                method: 'Spotify.auth',
+                message: 'OAuth tokens stored',
                 metadata: {
-                    accessToken,
-                    refreshToken,
+                    expiresIn,
+                    hasRefreshToken: Boolean(refreshToken),
                 },
             });
 
@@ -154,16 +153,13 @@ class Spotify {
                         this.setAccessToken(accessToken);
 
                         logger.info({
-                            method: 'auth',
-                            message: 'The access token has been refreshed',
-                            metadata: {
-                                accessToken,
-                            },
+                            method: 'Spotify.auth',
+                            message: 'Access token refreshed on interval',
                         });
                     } catch (error) {
                         logger.error({
-                            method: 'auth',
-                            message: 'Error refreshing access token',
+                            method: 'Spotify.auth',
+                            message: 'Interval token refresh failed',
                             error,
                         });
                     }
@@ -172,11 +168,11 @@ class Spotify {
             );
         } catch (error) {
             logger.error({
-                method: 'auth',
-                message: 'Error getting tokens',
+                method: 'Spotify.auth',
+                message: 'OAuth token exchange failed',
                 error,
                 metadata: {
-                    code,
+                    hasAuthCode: Boolean(code),
                 },
             });
 
@@ -199,7 +195,10 @@ class Spotify {
         if (this.#refreshInterval) {
             clearInterval(this.#refreshInterval);
             this.#refreshInterval = null;
-            logger.info('Spotify token refresh interval cleared');
+            logger.info({
+                method: 'Spotify.cleanup',
+                message: 'Token refresh interval cleared',
+            });
         }
     }
 
@@ -233,17 +232,14 @@ class Spotify {
             this.api.setAccessToken(token.body.access_token);
 
             logger.info({
-                method: 'refreshAccessToken',
-                message: 'Access token refreshed successfully',
+                method: 'Spotify.refreshAccessToken',
+                message: 'Access token refreshed',
             });
         } catch (error) {
             logger.error({
-                method: 'refreshAccessToken',
-                message: 'Failed to refresh access token',
+                method: 'Spotify.refreshAccessToken',
+                message: 'Refresh access token failed',
                 error,
-                metadata: {
-                    token,
-                },
             });
         }
 
@@ -296,14 +292,13 @@ class Spotify {
             }
         } catch (error) {
             logger.error({
-                method: 'searchTracksWithCache',
-                message: 'Cache fetching failed',
+                method: 'Spotify.searchTracksWithCache',
+                message: 'Spotify search cache failed',
                 error,
                 metadata: {
-                    args: [...arguments],
-                    query,
+                    limit,
                     normalizedQuery,
-                    searchTracks,
+                    cacheKey,
                 },
             });
 
@@ -463,10 +458,12 @@ class Spotify {
         }
 
         logger.info({
-            method: 'addTracksToPlaylist',
-            message: 'Adding trackIDs to a playlist',
+            method: 'Spotify.addTracksToPlaylist',
+            message: 'Adding tracks to playlist',
             metadata: {
-                args: [...arguments],
+                playlistID,
+                trackCount: trackIDs.length,
+                position,
             },
         });
 

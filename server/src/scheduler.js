@@ -18,15 +18,12 @@ class Scheduler {
     start() {
         const stationInterval = setInterval(async () => {
             try {
-                let res = await crawlAllStationsToNotifyTrackChanges();
+                await crawlAllStationsToNotifyTrackChanges();
 
                 this.logger.info({
                     method: 'Scheduler.crawlStations',
-                    message: res,
-                });
-
-                this.logger.info({
-                    message: '[AUTO REFRESH] STATIONS 45s',
+                    message: 'Station crawl tick finished',
+                    metadata: { intervalSeconds: 45 },
                 });
             } catch (error) {
                 this.logger.error({
@@ -43,7 +40,9 @@ class Scheduler {
                     await crawlHistoryChartsToNotifyTrackChanges();
 
                     this.logger.info({
-                        message: '[AUTO REFRESH] HISTORY CHARTS - every 5 min',
+                        method: 'Scheduler.crawlHistoryCharts',
+                        message: 'History chart crawl tick finished',
+                        metadata: { intervalMinutes: 5 },
                     });
                 } catch (error) {
                     this.logger.error({
@@ -59,15 +58,12 @@ class Scheduler {
         const playlistInterval = setInterval(
             async () => {
                 try {
-                    let res = await updatePlaylistContentForAllStations();
+                    await updatePlaylistContentForAllStations();
 
                     this.logger.info({
                         method: 'Scheduler.updatePlaylists',
-                        message: res,
-                    });
-
-                    this.logger.info({
-                        message: '[AUTO REFRESH] station playlist - once every 24 hours',
+                        message: 'Playlist update jobs queued',
+                        metadata: { intervalHours: 24 },
                     });
                 } catch (error) {
                     this.logger.error({
@@ -83,15 +79,12 @@ class Scheduler {
         const chartCollectInterval = setInterval(
             async () => {
                 try {
-                    let res = await collectChartDataAll();
+                    await collectChartDataAll();
 
                     this.logger.info({
                         method: 'Scheduler.collectChartData',
-                        message: res,
-                    });
-
-                    this.logger.info({
-                        message: '[AUTO REFRESH] CHART COLLECTION - once every 24 hours (skips if week exists)',
+                        message: 'Chart collection jobs queued',
+                        metadata: { intervalHours: 24 },
                     });
                 } catch (error) {
                     this.logger.error({
@@ -107,15 +100,12 @@ class Scheduler {
         const chartSyncInterval = setInterval(
             async () => {
                 try {
-                    let res = await syncAllChartsToSpotify();
+                    await syncAllChartsToSpotify();
 
                     this.logger.info({
                         method: 'Scheduler.syncChartsToSpotify',
-                        message: res,
-                    });
-
-                    this.logger.info({
-                        message: '[AUTO REFRESH] CHART SPOTIFY SYNC - once every 24 hours',
+                        message: 'Chart Spotify sync jobs queued',
+                        metadata: { intervalHours: 24 },
                     });
                 } catch (error) {
                     this.logger.error({
@@ -153,7 +143,10 @@ class Scheduler {
         }, 4 * 60 * 60 * 1000);
         */
 
-        this.logger.info({ message: 'Scheduler started' });
+        this.logger.info({
+            method: 'Scheduler.start',
+            message: 'Scheduler started',
+        });
 
         return this;
     }
@@ -164,7 +157,10 @@ class Scheduler {
         });
 
         this.intervals = [];
-        this.logger.info({ message: 'Scheduler stopped' });
+        this.logger.info({
+            method: 'Scheduler.stop',
+            message: 'Scheduler stopped',
+        });
     }
 }
 
