@@ -598,7 +598,7 @@ const kzCharts = {
                 [/<br\s*\/?>\s*/gi, '\n'],
                 [/^\d+[:.]\s+/gm, ''],
                 // Feed interleaves "לשיפוטכם:" judge picks; drop whole lines so limit:20 = ranks 1–20 only.
-                [/^\s*לשיפוטכם:\s*.*$/gm, ''],
+                [/^\s*לשיפוטכם:\s*/gm, ''],
                 [/^\s+/, ''],
                 [/\s+$/, ''],
             ]
@@ -608,7 +608,7 @@ const kzCharts = {
             type: 'lines',
 
             options: {
-                limit: 20,
+                limit: 25,
                 // RSS lists 20→1 in source order; reverse shows #1 first in the app.
                 reverse: true,
             },
