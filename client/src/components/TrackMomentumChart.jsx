@@ -2,6 +2,7 @@ import * as d3 from 'd3';
 import { useEffect, useRef } from 'react';
 
 import { MOMENTUM_DIRECTION_DOWN, MOMENTUM_DIRECTION_UP } from '../lib/statsApi.js';
+import { trackDisplayLabel } from '../lib/trackLabel.js';
 
 const MOMENTUM_CHART_HEIGHT = 400;
 /** Max simultaneous lines so the chart stays readable (plan: ~8–10). */
@@ -29,9 +30,7 @@ function seriesLabel(row, entityType) {
     if (entityType === 'artist') {
         return String(row.log_artist ?? '').trim() || '(unknown)';
     }
-    const title = String(row.spotify_track_title ?? '');
-    const artist = String(row.spotify_artist_title ?? '');
-    const s = `${artist} - ${title}`.trim();
+    const s = trackDisplayLabel(row.spotify_artist_title, row.spotify_track_title);
     return s || '(unknown)';
 }
 

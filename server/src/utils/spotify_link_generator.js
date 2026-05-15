@@ -38,8 +38,14 @@ const addSpotifyHyperLinks = async function (data) {
         const hasArtist = field.artist && typeof field.artist === 'string' && field.artist.trim() !== '';
 
         if (hasTitle || hasArtist) {
-            // Create the search query by combining artist and title
-            const searchQuery = `${field.artist} ${field.title}`.trim();
+            const searchQuery = [field.artist, field.title]
+                .filter((x) => x != null && typeof x === 'string' && x.trim() !== '')
+                .join(' ')
+                .trim();
+
+            if (!searchQuery) {
+                return field;
+            }
 
             const spotifySong = await Spotify.searchTracksWithCache(searchQuery, 1);
             const firstTrack = spotifySong?.tracks?.items?.[0];
@@ -65,6 +71,8 @@ const addSpotifyHyperLinks = async function (data) {
 
             return field;
         }
+
+        return field;
     }));
 
     return data;

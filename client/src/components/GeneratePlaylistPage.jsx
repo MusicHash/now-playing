@@ -45,6 +45,7 @@ import {
     PLAYLIST_SORT_RECENT,
 } from '../lib/statsApi.js';
 import { parsePlaylistDecades, PLAYLIST_DECADE_OPTIONS } from '../lib/releaseDecades.js';
+import { trackDisplayLabel } from '../lib/trackLabel.js';
 
 /** Plays-over-time chart always uses this window; not tied to ?days (playlist controls). */
 const PLAYLIST_TRACK_PLAYS_DAYS = 90;
@@ -1079,8 +1080,10 @@ export default function GeneratePlaylistPage() {
                 )}
                 <ol style={{ margin: 0, padding: 0, listStyle: 'none' }}>
                     {displayedTracks.map((row, i) => {
-                        const title = String(row.spotify_track_title ?? row.entry_title ?? '');
-                        const artist = String(row.spotify_artist_title ?? row.entry_artist ?? '');
+                        const label = trackDisplayLabel(
+                            row.spotify_artist_title ?? row.entry_artist,
+                            row.spotify_track_title ?? row.entry_title,
+                        );
                         const plays =
                             row.play_count != null ? ` \u00b7 ${Number(row.play_count)} plays` : '';
                         const last =
@@ -1211,7 +1214,7 @@ export default function GeneratePlaylistPage() {
                                         textOverflow: 'ellipsis',
                                     }}
                                 >
-                                    {artist} - {title}
+                                    {label}
                                     <span style={{ color: '#64748b', fontWeight: 400 }}>
                                         {plays}
                                         {last}

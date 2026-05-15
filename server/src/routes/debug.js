@@ -215,10 +215,21 @@ export default function debugRoutes(logger) {
 
             trackIds = (RPCInfo.fields || []).map(field => field.SPOTIFY_TRACK_ID).filter(Boolean);
 
+            const trackLabel = (artist, title) => {
+                const a = artist == null || artist === '' ? '' : String(artist).trim();
+                const t = title == null || title === '' ? '' : String(title).trim();
+                if (!a) {
+                    return t;
+                }
+                if (!t) {
+                    return a;
+                }
+                return `${a} - ${t}`;
+            };
             songListHTML = `<h2>PlayList</h2><ol id="playlist">${
                 (RPCInfo.fields || []).map((field, i) =>
                     `<li id="track-${i}" class="track_item" data-index="${i}">` +
-                        `${field.artist} - ${field.title} ` +
+                        `${trackLabel(field.artist, field.title)} ` +
                         `${field.SPOTIFY_PLAY_BUTTON || ''} ` +
                         `${field.SPOTIFY_APP_PLAY_DEEPLINK || ''}` +
                     `</li>`

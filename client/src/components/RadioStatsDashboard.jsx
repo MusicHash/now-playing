@@ -35,6 +35,7 @@ import {
     MAX_STATS_LIMIT,
     mergeStationIds,
 } from '../lib/statsApi.js';
+import { trackDisplayLabel } from '../lib/trackLabel.js';
 
 function useChartWidth() {
     const ref = useRef(null);
@@ -142,9 +143,11 @@ export default function RadioStatsDashboard() {
             if (typeof id !== 'string' || !id.trim()) {
                 return;
             }
-            const title = String(row.spotify_track_title ?? '');
-            const artist = String(row.spotify_artist_title ?? row.log_artist ?? '');
-            const label = `${artist} - ${title}`.trim() || id;
+            const label =
+                trackDisplayLabel(
+                    row.spotify_artist_title ?? row.log_artist,
+                    row.spotify_track_title,
+                ) || id;
             const next = patchMetricsDrill(
                 new URLSearchParams(searchParams),
                 { type: 'track', trackId: id.trim(), label },
