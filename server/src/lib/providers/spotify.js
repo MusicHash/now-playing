@@ -334,27 +334,48 @@ class Spotify {
     async searchTracks(query, limit = 1) {
         const q = cleanNames(String(query ?? ''));
         try {
-            const searchTracks = await this.api.searchTracks(q, {
+            const apiStart = Date.now();
+            const res = await this.api.searchTracks(q, {
                 limit,
             });
+            const body = res.body;
+            const items = body?.tracks?.items ?? [];
+            const top = items[0];
+            const tracksPage = body?.tracks ?? {};
 
             logger.debug({
                 method: 'searchTracks',
                 message: 'Search API called successfully',
                 metadata: {
-                    args: [...arguments],
-                    searchTracks,
+                    query: String(query ?? ''),
+                    normalizedQuery: q,
+                    limit,
+                    requestLimit: tracksPage.limit,
+                    offset: tracksPage.offset,
+                    apiDurationMs: Date.now() - apiStart,
+                    trackCountReturned: items.length,
+                    tracksTotalAvailable: tracksPage.total,
+                    topResult:
+                        top != null
+                            ? {
+                                  id: top.id,
+                                  name: top.name,
+                                  artists: top.artists?.map((a) => a.name).join(', ') || undefined,
+                              }
+                            : null,
                 },
             });
 
-            return searchTracks.body;
+            return body;
         } catch (error) {
             logger.error({
                 method: 'searchTracks',
                 message: 'Search API failed',
                 error,
                 metadata: {
-                    args: [...arguments],
+                    query: String(query ?? ''),
+                    normalizedQuery: q,
+                    limit,
                 },
             });
 
