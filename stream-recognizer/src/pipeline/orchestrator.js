@@ -182,7 +182,10 @@ async function copyDebugWavIfEnabled(
                 await writeFile(companionTxtPath, `${body}\n`, 'utf8');
             } catch (e) {
                 log.warn(
-                    { err: e, companionTxtPath, stationID: stationId },
+                    {
+                        err: e,
+                        metadata: { companionTxtPath, stationID: stationId },
+                    },
                     'Debug capture companion txt write failed',
                 );
                 companionTxtPath = undefined;
@@ -193,7 +196,7 @@ async function copyDebugWavIfEnabled(
             : { wavPath: debugCopyPath };
     } catch (e) {
         log.warn(
-            { err: e, stationID: stationId, debugDir },
+            { err: e, metadata: { stationID: stationId, debugDir } },
             'Debug capture WAV copy failed',
         );
         return undefined;
@@ -217,10 +220,7 @@ export async function runStationTick(station, store, logger, options = {}) {
             : randomUUID();
     const recognitionBlacklistPhrases = options.recognitionBlacklist;
     const log = logger.child({ requestID, component: 'orchestrator' });
-    log.info(
-        { stationID: station.id },
-        'Station tick started',
-    );
+    log.info({ metadata: { stationID: station.id } }, 'Station tick started');
 
     const tickStart = Date.now();
     /** @type {string | null} */
@@ -250,7 +250,13 @@ export async function runStationTick(station, store, logger, options = {}) {
     const prevKey = previous
         ? normalizeTrackKey(previous.artist, previous.title)
         : null;
-    const prevFp = previous?.fingerprint || null;
+    const prevMeta =
+        previous?.metadata &&
+        typeof previous.metadata === 'object' &&
+        !Array.isArray(previous.metadata)
+            ? /** @type {{ fingerprint?: unknown }} */ (previous.metadata)
+            : null;
+    const prevFp = (prevMeta?.fingerprint ?? previous?.fingerprint) || null;
 
     let wavPath = null;
     try {
@@ -270,11 +276,13 @@ export async function runStationTick(station, store, logger, options = {}) {
             try {
                 log.info(
                     {
-                        stationID: station.id,
-                        captureSec,
-                        captureAttempt: cAttempt + 1,
-                        captureMaxAttempts,
-                        httpProxy: proxyHostForLog(httpProxy),
+                        metadata: {
+                            stationID: station.id,
+                            captureSec,
+                            captureAttempt: cAttempt + 1,
+                            captureMaxAttempts,
+                            httpProxy: proxyHostForLog(httpProxy),
+                        },
                     },
                     'Station tick: ffmpeg capture started',
                 );
@@ -297,10 +305,12 @@ export async function runStationTick(station, store, logger, options = {}) {
                 if (cAttempt > 0) {
                     log.info(
                         {
-                            stationID: station.id,
-                            captureAttempt: cAttempt + 1,
-                            httpProxy: proxyHostForLog(httpProxy),
-                            captureProxiesTried,
+                            metadata: {
+                                stationID: station.id,
+                                captureAttempt: cAttempt + 1,
+                                httpProxy: proxyHostForLog(httpProxy),
+                                captureProxiesTried,
+                            },
                         },
                         'ffmpeg capture succeeded after retry',
                     );
@@ -322,11 +332,13 @@ export async function runStationTick(station, store, logger, options = {}) {
                     log.error(
                         {
                             err: e,
-                            stationID: station.id,
-                            captureAttempt: cAttempt + 1,
-                            captureMaxAttempts,
-                            captureProxiesTried,
-                            retryable,
+                            metadata: {
+                                stationID: station.id,
+                                captureAttempt: cAttempt + 1,
+                                captureMaxAttempts,
+                                captureProxiesTried,
+                                retryable,
+                            },
                         },
                         'ffmpeg capture failed',
                     );
@@ -335,11 +347,13 @@ export async function runStationTick(station, store, logger, options = {}) {
                 log.warn(
                     {
                         err: e,
-                        stationID: station.id,
-                        captureAttempt: cAttempt + 1,
-                        captureMaxAttempts,
-                        httpProxy: proxyHostForLog(httpProxy),
-                        captureProxiesTried,
+                        metadata: {
+                            stationID: station.id,
+                            captureAttempt: cAttempt + 1,
+                            captureMaxAttempts,
+                            httpProxy: proxyHostForLog(httpProxy),
+                            captureProxiesTried,
+                        },
                     },
                     'ffmpeg capture failed (retryable); retrying with next proxy',
                 );
@@ -367,7 +381,10 @@ export async function runStationTick(station, store, logger, options = {}) {
         });
 
         if (gates.silence) {
-            log.debug({ stationID: station.id, meanDb: gates.meanDb }, 'skip: silence');
+            log.debug(
+                { metadata: { stationID: station.id, meanDb: gates.meanDb } },
+                'skip: silence',
+            );
             tickOutcome = 'skipped_silence';
             await store.setLastRun(
                 station.id,
@@ -379,7 +396,12 @@ export async function runStationTick(station, store, logger, options = {}) {
         }
         if (gates.speechHeavy) {
             log.debug(
-                { stationID: station.id, speechFrameRatio: gates.speechFrameRatio },
+                {
+                    metadata: {
+                        stationID: station.id,
+                        speechFrameRatio: gates.speechFrameRatio,
+                    },
+                },
                 'skip: speech-heavy',
             );
             tickOutcome = 'skipped_speech_heavy';
@@ -400,7 +422,7 @@ export async function runStationTick(station, store, logger, options = {}) {
 
         if (prevFp && fingerprint === prevFp) {
             log.debug(
-                { stationID: station.id },
+                { metadata: { stationID: station.id } },
                 'fingerprint unchanged; skip audio recognition APIs and Redis',
             );
             tickOutcome = 'skipped_fingerprint_unchanged';
@@ -430,7 +452,13 @@ export async function runStationTick(station, store, logger, options = {}) {
                 if (!isShazamEnabled()) {
                     const msg = `${name} was not used (SHAZAM_DISABLED=1).`;
                     log.info(
-                        { stationID: station.id, provider: id, outcome: 'skipped' },
+                        {
+                            metadata: {
+                                stationID: station.id,
+                                provider: id,
+                                outcome: 'skipped',
+                            },
+                        },
                         `audio recognition: ${msg}`,
                     );
                     priorSteps.push(msg);
@@ -455,10 +483,12 @@ export async function runStationTick(station, store, logger, options = {}) {
                     : `${name} did not identify (${sh.reason}).`;
                 log.info(
                     {
-                        stationID: station.id,
-                        provider: id,
-                        outcome: 'no_match',
-                        reason: sh.ok ? undefined : sh.reason,
+                        metadata: {
+                            stationID: station.id,
+                            provider: id,
+                            outcome: 'no_match',
+                            ...(sh.ok ? {} : { reason: sh.reason }),
+                        },
                     },
                     `audio recognition: ${msg}`,
                 );
@@ -477,15 +507,17 @@ export async function runStationTick(station, store, logger, options = {}) {
             const debugCopyPath = debugCopy?.wavPath;
             log.info(
                 {
-                    stationID: station.id,
-                    capturePath: wavPath,
-                    debugCopyPath,
-                    captureDurationSec: duration,
-                    fingerprintLength: fingerprint.length,
-                    fingerprintPrefix: fingerprint.slice(0, 72),
-                    order,
-                    priorSteps,
-                    outcome: 'no_match_any_provider',
+                    metadata: {
+                        stationID: station.id,
+                        capturePath: wavPath,
+                        debugCopyPath,
+                        captureDurationSec: duration,
+                        fingerprintLength: fingerprint.length,
+                        fingerprintPrefix: fingerprint.slice(0, 72),
+                        order,
+                        priorSteps,
+                        outcome: 'no_match_any_provider',
+                    },
                 },
                 priorSteps.length > 0
                     ? `audio recognition: no provider identified a track. Steps: ${priorSteps.join(' ')}`
@@ -514,13 +546,15 @@ export async function runStationTick(station, store, logger, options = {}) {
                 .join(' — ');
             log.info(
                 {
-                    stationID: station.id,
-                    provider: matchSource,
-                    outcome: 'blacklisted_skipped',
-                    blacklistMatch: blacklistHit,
-                    artist: match.artist,
-                    title: match.title,
-                    displayName,
+                    metadata: {
+                        stationID: station.id,
+                        provider: matchSource,
+                        outcome: 'blacklisted_skipped',
+                        blacklistMatch: blacklistHit,
+                        artist: match.artist,
+                        title: match.title,
+                        displayName,
+                    },
                 },
                 'recognition matched global blacklist phrase; not updating recognition',
             );
@@ -539,7 +573,10 @@ export async function runStationTick(station, store, logger, options = {}) {
         }
 
         if (prevKey === key) {
-            log.debug({ stationID: station.id }, 'same track key as Redis; skip write');
+            log.debug(
+                { metadata: { stationID: station.id } },
+                'same track key as Redis; skip write',
+            );
             tickOutcome = 'skipped_same_track_as_cache';
             await store.setLastRun(
                 station.id,
@@ -548,16 +585,20 @@ export async function runStationTick(station, store, logger, options = {}) {
             return;
         }
 
-        const payload = {
-            artist: match.artist,
-            title: match.title,
+        const metadata = {
+            stationID: station.id,
             provider: matchSource,
             fingerprint,
             updatedAt: new Date().toISOString(),
         };
         if (matchSource === 'shazam' && match.key) {
-            payload.shazamKey = match.key;
+            metadata.shazamKey = match.key;
         }
+        const payload = {
+            artist: match.artist,
+            title: match.title,
+            metadata,
+        };
         await store.setResult(station.id, payload);
         await store.setLastRun(
             station.id,
@@ -588,22 +629,27 @@ export async function runStationTick(station, store, logger, options = {}) {
         tickOutcome = 'saved_audio';
         log.info(
             {
-                stationID: station.id,
-                provider: matchSource,
-                outcome: 'saved',
-                winner,
-                priorSteps,
-                artist: match.artist,
-                title: match.title,
-                displayName,
-                sampleWavCopyPath,
-                sampleTrackTxtPath,
+                metadata: {
+                    stationID: station.id,
+                    provider: matchSource,
+                    outcome: 'saved',
+                    winner,
+                    priorSteps,
+                    artist: match.artist,
+                    title: match.title,
+                    displayName,
+                    sampleWavCopyPath,
+                    sampleTrackTxtPath,
+                },
             },
             'Recognition saved to Redis',
         );
     } catch (e) {
         tickOutcome = 'error';
-        log.error({ err: e, stationID: station.id }, 'Station tick failed');
+        log.error(
+            { err: e, metadata: { stationID: station.id } },
+            'Station tick failed',
+        );
         try {
             await store.setLastRun(
                 station.id,

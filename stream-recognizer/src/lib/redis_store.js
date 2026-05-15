@@ -168,7 +168,7 @@ export async function pingRedis(logger) {
         return { ok: true };
     } catch (e) {
         logger.error(
-            { err: e, component: 'redis', operation: 'ping' },
+            { err: e, metadata: { component: 'redis', operation: 'ping' } },
             'Redis ping failed',
         );
         return { ok: false, reason: String(e?.message || e) };

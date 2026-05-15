@@ -257,13 +257,13 @@ function logNoMatch(logger, body, reason) {
             ? JSON.stringify(body).slice(0, 4000)
             : String(body);
     logger.info(
-        { reason, responsePreview: preview },
+        { metadata: { reason, responsePreview: preview } },
         'shazam: no usable track (set SHAZAM_DEBUG_RESPONSE=1 for full body on miss)',
     );
     if (process.env.SHAZAM_DEBUG_RESPONSE === '1') {
         try {
             logger.info(
-                { full: JSON.stringify(body).slice(0, 12_000) },
+                { metadata: { full: JSON.stringify(body).slice(0, 12_000) } },
                 'shazam: raw response (truncated)',
             );
         } catch {
@@ -283,6 +283,7 @@ function logNoMatch(logger, body, reason) {
  * @param {string | undefined} proxyUrl
  * @param {number} segmentIndex
  * @param {DiscoveryAttemptInfo | undefined} attemptInfo
+ * @param {string | undefined} stationId Logged under metadata.stationID when set.
  * @returns {Promise<Response>}
  */
 async function fetchDiscoveryOnce(
@@ -292,6 +293,7 @@ async function fetchDiscoveryOnce(
     proxyUrl,
     segmentIndex,
     attemptInfo,
+    stationId,
 ) {
     const timeoutMs = envInt('SHAZAM_FETCH_TIMEOUT_MS', 28_000);
     const ac = new AbortController();
@@ -303,20 +305,23 @@ async function fetchDiscoveryOnce(
     const dispatcher = getProxyDispatcher(proxyUrl);
     logger.info(
         {
-            proxy: proxyHostForLog(proxyUrl),
-            segmentIndex,
-            ...(attemptInfo
-                ? {
-                      discoveryAttempt: attemptInfo.attempt,
-                      discoveryMaxAttempts: attemptInfo.max,
-                  }
-                : {}),
-            shazamUrl: redactDiscoveryUrl(url),
-            language,
-            endpointCountry,
-            device,
-            userAgent: ua,
-            viaProxy: Boolean(proxyUrl),
+            metadata: {
+                ...(stationId != null ? { stationID: String(stationId) } : {}),
+                proxy: proxyHostForLog(proxyUrl),
+                segmentIndex,
+                ...(attemptInfo
+                    ? {
+                          discoveryAttempt: attemptInfo.attempt,
+                          discoveryMaxAttempts: attemptInfo.max,
+                      }
+                    : {}),
+                shazamUrl: redactDiscoveryUrl(url),
+                language,
+                endpointCountry,
+                device,
+                userAgent: ua,
+                viaProxy: Boolean(proxyUrl),
+            },
         },
         'shazam: discovery POST',
     );
@@ -347,9 +352,17 @@ async function fetchDiscoveryOnce(
  * @param {import('pino').Logger} logger
  * @param {string | undefined} initialProxyUrl Same proxy as stream capture for attempt 1; later attempts advance HTTP_PROXY round-robin when a pool is configured.
  * @param {number} segmentIndex
+ * @param {string | undefined} stationId Forwarded to discovery POST logs as metadata.stationID.
  * @returns {Promise<unknown>}
  */
-async function postDiscovery(url, json, logger, initialProxyUrl, segmentIndex) {
+async function postDiscovery(
+    url,
+    json,
+    logger,
+    initialProxyUrl,
+    segmentIndex,
+    stationId,
+) {
     const maxAttempts = Math.max(1, envInt('SHAZAM_DISCOVERY_MAX_ATTEMPTS', 3));
     const retryDelayMs = envInt('SHAZAM_DISCOVERY_RETRY_MS', 500);
     const proxyList = parseHttpProxyList();
@@ -381,16 +394,20 @@ async function postDiscovery(url, json, logger, initialProxyUrl, segmentIndex) {
                 proxyUrl,
                 segmentIndex,
                 attemptInfo,
+                stationId,
             );
             if (res.status === 429) {
                 const retryAfter = envInt('SHAZAM_429_RETRY_MS', 2500);
                 logger.warn(
                     {
-                        status: res.status,
-                        retryAfterMs: retryAfter,
-                        segmentIndex,
-                        discoveryAttempt: attemptInfo.attempt,
-                        proxy: proxyHostForLog(proxyUrl),
+                        metadata: {
+                            ...(stationId != null ? { stationID: String(stationId) } : {}),
+                            status: res.status,
+                            retryAfterMs: retryAfter,
+                            segmentIndex,
+                            discoveryAttempt: attemptInfo.attempt,
+                            proxy: proxyHostForLog(proxyUrl),
+                        },
                     },
                     'shazam: rate limited (429); backing off once on same proxy',
                 );
@@ -402,6 +419,7 @@ async function postDiscovery(url, json, logger, initialProxyUrl, segmentIndex) {
                     proxyUrl,
                     segmentIndex,
                     attemptInfo,
+                    stationId,
                 );
             }
             if (!res.ok) {
@@ -417,13 +435,16 @@ async function postDiscovery(url, json, logger, initialProxyUrl, segmentIndex) {
                 if (canRetry) {
                     logger.warn(
                         {
-                            segmentIndex,
-                            discoveryAttempt: attemptInfo.attempt,
-                            discoveryMaxAttempts: maxAttempts,
-                            httpStatus: res.status,
-                            proxy: proxyHostForLog(proxyUrl),
-                            proxiesTried: proxiesTriedHosts,
-                            errSummary: discoveryErrSummary(httpErr),
+                            metadata: {
+                                ...(stationId != null ? { stationID: String(stationId) } : {}),
+                                segmentIndex,
+                                discoveryAttempt: attemptInfo.attempt,
+                                discoveryMaxAttempts: maxAttempts,
+                                httpStatus: res.status,
+                                proxy: proxyHostForLog(proxyUrl),
+                                proxiesTried: proxiesTriedHosts,
+                                errSummary: discoveryErrSummary(httpErr),
+                            },
                         },
                         `shazam: discovery HTTP error; will retry (${attempt + 1}/${maxAttempts})`,
                     );
@@ -436,10 +457,13 @@ async function postDiscovery(url, json, logger, initialProxyUrl, segmentIndex) {
             if (attempt > 0) {
                 logger.info(
                     {
-                        segmentIndex,
-                        discoveryAttempt: attemptInfo.attempt,
-                        proxy: proxyHostForLog(proxyUrl),
-                        proxiesTried: proxiesTriedHosts,
+                        metadata: {
+                            ...(stationId != null ? { stationID: String(stationId) } : {}),
+                            segmentIndex,
+                            discoveryAttempt: attemptInfo.attempt,
+                            proxy: proxyHostForLog(proxyUrl),
+                            proxiesTried: proxiesTriedHosts,
+                        },
                     },
                     'shazam: discovery succeeded after retry',
                 );
@@ -457,12 +481,15 @@ async function postDiscovery(url, json, logger, initialProxyUrl, segmentIndex) {
             logger.warn(
                 {
                     err: e,
-                    segmentIndex,
-                    discoveryAttempt: attemptInfo.attempt,
-                    discoveryMaxAttempts: maxAttempts,
-                    proxy: proxyHostForLog(proxyUrl),
-                    proxiesTried: proxiesTriedHosts,
-                    errSummary: summary,
+                    metadata: {
+                        ...(stationId != null ? { stationID: String(stationId) } : {}),
+                        segmentIndex,
+                        discoveryAttempt: attemptInfo.attempt,
+                        discoveryMaxAttempts: maxAttempts,
+                        proxy: proxyHostForLog(proxyUrl),
+                        proxiesTried: proxiesTriedHosts,
+                        errSummary: summary,
+                    },
                 },
                 `shazam: discovery transport error; will retry (${attempt + 1}/${maxAttempts})`,
             );
@@ -567,7 +594,10 @@ export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
     try {
         buffer = await readFile(wavPath);
     } catch (e) {
-        log.error({ err: e, wavPath }, 'shazam: failed to read audio file');
+        log.error(
+            { err: e, metadata: { wavPath } },
+            'shazam: failed to read audio file',
+        );
         report([
             { key: 'success', value: 0 },
             { key: 'matched', value: 0 },
@@ -648,7 +678,14 @@ export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
         /** @type {unknown} */
         let data;
         try {
-            data = await postDiscovery(url, body, log, proxyUrl, i);
+            data = await postDiscovery(
+                url,
+                body,
+                log,
+                proxyUrl,
+                i,
+                options.stationId,
+            );
         } catch (e) {
             discoveryRequestFailures += 1;
             const meta =
@@ -659,8 +696,12 @@ export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
             log.error(
                 {
                     err: e,
-                    segmentIndex: i,
-                    discoveryMeta: meta,
+                    metadata: {
+                        segmentIndex: i,
+                        ...(meta !== undefined && meta !== null
+                            ? { discoveryMeta: meta }
+                            : {}),
+                    },
                 },
                 meta?.exhaustedRetries
                     ? 'shazam: discovery failed after retries (see discoveryMeta.proxiesTried and prior warn logs)'

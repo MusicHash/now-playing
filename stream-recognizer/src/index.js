@@ -35,9 +35,11 @@ const server = listenHost
 
 function onListen() {
     logger.info(
-        listenHost
-            ? { port, host: listenHost, component: 'bootstrap' }
-            : { port, component: 'bootstrap' },
+        {
+            metadata: listenHost
+                ? { port, host: listenHost, component: 'bootstrap' }
+                : { port, component: 'bootstrap' },
+        },
         'HTTP listening',
     );
     metrics.report('StreamRecognizerStarted', [
@@ -47,13 +49,13 @@ function onListen() {
     if (anyStationEnabled) {
         if (!probeBinary(ffmpegBin)) {
             logger.warn(
-                { bin: ffmpegBin, component: 'bootstrap' },
+                { metadata: { bin: ffmpegBin, component: 'bootstrap' } },
                 `ffmpeg not found. ${missingBinaryHint('ffmpeg', 'FFMPEG_BIN')}`,
             );
         }
         if (!probeBinary(fpcalcBin)) {
             logger.warn(
-                { bin: fpcalcBin, component: 'bootstrap' },
+                { metadata: { bin: fpcalcBin, component: 'bootstrap' } },
                 `fpcalc not found. ${missingBinaryHint('fpcalc', 'FPCALC_BIN')}`,
             );
         }
@@ -77,7 +79,10 @@ for (const station of stations) {
             recognitionBlacklist,
         }).catch((e) => {
             logger.error(
-                { err: e, stationID: station.id, component: 'bootstrap' },
+                {
+                    err: e,
+                    metadata: { stationID: station.id, component: 'bootstrap' },
+                },
                 'Initial station tick failed',
             );
         });
@@ -86,7 +91,10 @@ for (const station of stations) {
                 recognitionBlacklist,
             }).catch((e) => {
                 logger.error(
-                    { err: e, stationID: station.id, component: 'bootstrap' },
+                    {
+                        err: e,
+                        metadata: { stationID: station.id, component: 'bootstrap' },
+                    },
                     'Scheduled station tick failed',
                 );
             });
@@ -96,7 +104,7 @@ for (const station of stations) {
 }
 
 function shutdown() {
-    logger.info({ component: 'bootstrap' }, 'Shutting down');
+    logger.info({ metadata: { component: 'bootstrap' } }, 'Shutting down');
     for (const t of timers) {
         clearInterval(t);
     }
