@@ -17,6 +17,7 @@ import Spotify from './lib/providers/spotify.js';
 
 import createRoutes from './routes/index.js';
 import Scheduler from './scheduler.js';
+import requestIdMiddleware from './middleware/request_id.js';
 
 /**
  * NowPlaying
@@ -32,6 +33,7 @@ class NowPlaying {
         this.app = express();
         
         this.app.disable('x-powered-by');
+        this.app.use(requestIdMiddleware());
 
         this.scheduler = new Scheduler(this.logger);
 

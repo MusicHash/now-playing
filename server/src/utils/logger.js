@@ -2,6 +2,7 @@ import newrelic from 'newrelic';
 import pino from 'pino';
 
 import { isPlainObject, sanitizeLogValue } from './log_sanitize.js';
+import { getRequestContextStore } from './request_context.js';
 
 /**
  * Logger
@@ -144,6 +145,8 @@ class Logger {
             return arg;
         });
 
+        this._mergeRequestContextIntoProcessed(processed);
+
         const pinoArgs = this._pinoArgsFromProcessed(processed);
         this._loggerInstance[severity](...pinoArgs);
         this._forwardLogToNewRelic(severity, pinoArgs);
@@ -181,6 +184,50 @@ class Logger {
         }
 
         return processed;
+    }
+
+    /**
+     * Adds `requestId` from HTTP AsyncLocalStorage to every emitted log line when inside a request.
+     *
+     * @param {unknown[]} processed
+     */
+    _mergeRequestContextIntoProcessed(processed) {
+        const rid = getRequestContextStore()?.requestId;
+        if (!rid || typeof rid !== 'string') {
+            return;
+        }
+
+        const attachToPlainObject = (obj) => {
+            if (!isPlainObject(obj) || ('requestId' in obj && obj.requestId !== undefined)) {
+                return;
+            }
+            obj.requestId = rid;
+        };
+
+        const sole = processed[0];
+
+        if (processed.length === 1) {
+            if (typeof sole === 'string' || sole instanceof Error) {
+                processed.unshift({ requestId: rid });
+                return;
+            }
+            attachToPlainObject(sole);
+            return;
+        }
+
+        if (processed.length >= 2) {
+            const first = processed[0];
+            const firstIsBindings =
+                first !== null &&
+                typeof first === 'object' &&
+                !(first instanceof Error) &&
+                isPlainObject(first);
+            if (firstIsBindings) {
+                attachToPlainObject(first);
+            } else {
+                processed.unshift({ requestId: rid });
+            }
+        }
     }
 
     _nrPrimitiveAttributes(obj) {
