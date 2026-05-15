@@ -589,8 +589,8 @@ const kzCharts = {
             type: 'get',
             url: 'aHR0cHM6Ly93d3cua3pyYWRpby5uZXQvc2hvd3Mvd2Vla2x5LWFsdGVybmF0aXZlLWNoYXJ0L2ZlZWQ=',
             regExp: [
-                /<item>([\s\S]*?)<\/item>/,
-                /<description>\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*<\/description>/,
+                // First <item> under <channel>, first <description> CDATA (latest episode).
+                /<channel>[\s\S]*?<item>[\s\S]*?<description>\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*<\/description>/i,
                 /^\s*<p>([\s\S]*?)<\/p>\s*<p>The post/i,
             ],
             replacements: [
