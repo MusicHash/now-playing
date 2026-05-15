@@ -8,81 +8,74 @@
         {
           "title": "Station Scrape Latency P95 (ms)",
           "layout": { "column": 1, "row": 1, "width": 8, "height": 3 },
-          "linkedEntityGuids": null,
           "visualization": { "id": "viz.line" },
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
             "legend": { "enabled": true },
-            "nrqlQueries": [{ "accountIds": [0], "query": "SELECT percentile(durationMs, 95) FROM ServerMetric WHERE measurement = 'SourceScrape' FACET sourceId TIMESERIES AUTO LIMIT 50" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT percentile(durationMs, 95) FROM ServerMetric WHERE measurement = 'SourceScrape' FACET sourceId TIMESERIES AUTO LIMIT 50" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
         {
           "title": "Station Scrape Error Rate (%)",
           "layout": { "column": 9, "row": 1, "width": 4, "height": 3 },
-          "linkedEntityGuids": null,
           "visualization": { "id": "viz.bar" },
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
-            "nrqlQueries": [{ "accountIds": [0], "query": "SELECT percentage(count(*), WHERE success = 0) AS 'Error %' FROM ServerMetric WHERE measurement = 'SourceScrape' FACET sourceId SINCE 1 hour ago LIMIT 50" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT percentage(count(*), WHERE success = 0) AS 'Error %' FROM ServerMetric WHERE measurement = 'SourceScrape' FACET sourceId SINCE 1 hour ago LIMIT 50" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
         {
           "title": "Track Updated Events per Station",
           "layout": { "column": 1, "row": 4, "width": 8, "height": 3 },
-          "linkedEntityGuids": null,
           "visualization": { "id": "viz.area" },
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
             "legend": { "enabled": true },
-            "nrqlQueries": [{ "accountIds": [0], "query": "SELECT count(*) FROM ServerMetric WHERE measurement = 'StationTrackUpdated' FACET station TIMESERIES AUTO LIMIT 50" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT count(*) FROM ServerMetric WHERE measurement = 'StationTrackUpdated' FACET station TIMESERIES AUTO LIMIT 50" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
         {
           "title": "Station Crawl Cycle Duration (ms)",
           "layout": { "column": 9, "row": 4, "width": 4, "height": 3 },
-          "linkedEntityGuids": null,
           "visualization": { "id": "viz.line" },
           "rawConfiguration": {
             "legend": { "enabled": true },
-            "nrqlQueries": [{ "accountIds": [0], "query": "SELECT average(durationMs) AS 'avg', max(durationMs) AS 'max' FROM ServerMetric WHERE measurement = 'StationCrawlCycle' TIMESERIES AUTO" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT average(durationMs) AS 'avg', max(durationMs) AS 'max' FROM ServerMetric WHERE measurement = 'StationCrawlCycle' TIMESERIES AUTO" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
         {
           "title": "Crawl Cycle – Updated vs Errors",
           "layout": { "column": 1, "row": 7, "width": 6, "height": 3 },
-          "linkedEntityGuids": null,
           "visualization": { "id": "viz.area" },
           "rawConfiguration": {
             "legend": { "enabled": true },
-            "nrqlQueries": [{ "accountIds": [0], "query": "SELECT sum(updatedCount) AS 'Updated', sum(errorCount) AS 'Errors' FROM ServerMetric WHERE measurement = 'StationCrawlCycle' TIMESERIES AUTO" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT sum(updatedCount) AS 'Updated', sum(errorCount) AS 'Errors' FROM ServerMetric WHERE measurement = 'StationCrawlCycle' TIMESERIES AUTO" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
         {
           "title": "Scrape Retry Rate (avg attempts)",
           "layout": { "column": 7, "row": 7, "width": 6, "height": 3 },
-          "linkedEntityGuids": null,
           "visualization": { "id": "viz.line" },
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
             "legend": { "enabled": true },
-            "nrqlQueries": [{ "accountIds": [0], "query": "SELECT average(attempts) FROM ServerMetric WHERE measurement = 'SourceScrape' FACET sourceId TIMESERIES AUTO LIMIT 50" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT average(attempts) FROM ServerMetric WHERE measurement = 'SourceScrape' FACET sourceId TIMESERIES AUTO LIMIT 50" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
         {
           "title": "History Chart New Tracks Discovered",
           "layout": { "column": 1, "row": 10, "width": 12, "height": 3 },
-          "linkedEntityGuids": null,
           "visualization": { "id": "viz.area" },
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
             "legend": { "enabled": true },
-            "nrqlQueries": [{ "accountIds": [0], "query": "SELECT sum(newTrackCount) FROM ServerMetric WHERE measurement = 'HistoryChartNewTracks' FACET station TIMESERIES AUTO LIMIT 50" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT sum(newTrackCount) FROM ServerMetric WHERE measurement = 'HistoryChartNewTracks' FACET station TIMESERIES AUTO LIMIT 50" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         }
@@ -94,79 +87,72 @@
         {
           "title": "Spotify API Latency P95 per Method (ms)",
           "layout": { "column": 1, "row": 1, "width": 8, "height": 3 },
-          "linkedEntityGuids": null,
           "visualization": { "id": "viz.line" },
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
             "legend": { "enabled": true },
-            "nrqlQueries": [{ "accountIds": [0], "query": "SELECT percentile(durationMs, 95) FROM ServerMetric WHERE measurement = 'SpotifyApiCall' FACET method TIMESERIES AUTO LIMIT 20" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT percentile(durationMs, 95) FROM ServerMetric WHERE measurement = 'SpotifyApiCall' FACET method TIMESERIES AUTO LIMIT 20" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
         {
           "title": "Spotify API Error Rate per Method (%)",
           "layout": { "column": 9, "row": 1, "width": 4, "height": 3 },
-          "linkedEntityGuids": null,
           "visualization": { "id": "viz.bar" },
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
-            "nrqlQueries": [{ "accountIds": [0], "query": "SELECT percentage(count(*), WHERE success = 0) AS 'Error %' FROM ServerMetric WHERE measurement = 'SpotifyApiCall' FACET method SINCE 1 hour ago LIMIT 20" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT percentage(count(*), WHERE success = 0) AS 'Error %' FROM ServerMetric WHERE measurement = 'SpotifyApiCall' FACET method SINCE 1 hour ago LIMIT 20" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
         {
           "title": "Spotify API Call Volume per Method",
           "layout": { "column": 1, "row": 4, "width": 6, "height": 3 },
-          "linkedEntityGuids": null,
           "visualization": { "id": "viz.area" },
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
             "legend": { "enabled": true },
-            "nrqlQueries": [{ "accountIds": [0], "query": "SELECT count(*) FROM ServerMetric WHERE measurement = 'SpotifyApiCall' FACET method TIMESERIES AUTO LIMIT 20" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT count(*) FROM ServerMetric WHERE measurement = 'SpotifyApiCall' FACET method TIMESERIES AUTO LIMIT 20" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
         {
           "title": "Search Cache Hit Rate (%)",
           "layout": { "column": 7, "row": 4, "width": 3, "height": 3 },
-          "linkedEntityGuids": null,
           "visualization": { "id": "viz.billboard" },
           "rawConfiguration": {
-            "nrqlQueries": [{ "accountIds": [0], "query": "SELECT percentage(count(*), WHERE hit = 1) AS 'Cache Hit %' FROM ServerMetric WHERE measurement = 'SpotifySearchCache' SINCE 1 hour ago" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT percentage(count(*), WHERE hit = 1) AS 'Cache Hit %' FROM ServerMetric WHERE measurement = 'SpotifySearchCache' SINCE 1 hour ago" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
         {
           "title": "Search Cache Hits vs Misses",
           "layout": { "column": 10, "row": 4, "width": 3, "height": 3 },
-          "linkedEntityGuids": null,
           "visualization": { "id": "viz.pie" },
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
-            "nrqlQueries": [{ "accountIds": [0], "query": "SELECT count(*) FROM ServerMetric WHERE measurement = 'SpotifySearchCache' FACET cases(WHERE hit = 1 AS 'Hit', WHERE hit = 0 AS 'Miss') SINCE 1 hour ago" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT count(*) FROM ServerMetric WHERE measurement = 'SpotifySearchCache' FACET cases(WHERE hit = 1 AS 'Hit', WHERE hit = 0 AS 'Miss') SINCE 1 hour ago" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
         {
           "title": "Cache Lookup Latency – Hit vs Miss (ms)",
           "layout": { "column": 1, "row": 7, "width": 6, "height": 3 },
-          "linkedEntityGuids": null,
           "visualization": { "id": "viz.line" },
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
             "legend": { "enabled": true },
-            "nrqlQueries": [{ "accountIds": [0], "query": "SELECT average(durationMs) FROM ServerMetric WHERE measurement = 'SpotifySearchCache' FACET cases(WHERE hit = 1 AS 'Hit', WHERE hit = 0 AS 'Miss') TIMESERIES AUTO" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT average(durationMs) FROM ServerMetric WHERE measurement = 'SpotifySearchCache' FACET cases(WHERE hit = 1 AS 'Hit', WHERE hit = 0 AS 'Miss') TIMESERIES AUTO" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
         {
           "title": "Spotify API Avg Latency per Method (ms)",
           "layout": { "column": 7, "row": 7, "width": 6, "height": 3 },
-          "linkedEntityGuids": null,
           "visualization": { "id": "viz.bar" },
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
-            "nrqlQueries": [{ "accountIds": [0], "query": "SELECT average(durationMs) FROM ServerMetric WHERE measurement = 'SpotifyApiCall' FACET method SINCE 1 hour ago LIMIT 20" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT average(durationMs) FROM ServerMetric WHERE measurement = 'SpotifyApiCall' FACET method SINCE 1 hour ago LIMIT 20" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         }
@@ -178,92 +164,84 @@
         {
           "title": "Chart Collection Latency (ms)",
           "layout": { "column": 1, "row": 1, "width": 8, "height": 3 },
-          "linkedEntityGuids": null,
           "visualization": { "id": "viz.line" },
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
             "legend": { "enabled": true },
-            "nrqlQueries": [{ "accountIds": [0], "query": "SELECT average(durationMs) FROM ServerMetric WHERE measurement = 'ChartCollection' FACET chartKey TIMESERIES AUTO LIMIT 30" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT average(durationMs) FROM ServerMetric WHERE measurement = 'ChartCollection' FACET chartKey TIMESERIES AUTO LIMIT 30" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
         {
           "title": "Chart Collection Success Rate (%)",
           "layout": { "column": 9, "row": 1, "width": 4, "height": 3 },
-          "linkedEntityGuids": null,
           "visualization": { "id": "viz.bar" },
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
-            "nrqlQueries": [{ "accountIds": [0], "query": "SELECT percentage(count(*), WHERE success = 1) AS 'Success %' FROM ServerMetric WHERE measurement = 'ChartCollection' FACET chartKey SINCE 7 days ago LIMIT 30" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT percentage(count(*), WHERE success = 1) AS 'Success %' FROM ServerMetric WHERE measurement = 'ChartCollection' FACET chartKey SINCE 7 days ago LIMIT 30" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
         {
           "title": "Tracks Collected vs Spotify Resolved",
           "layout": { "column": 1, "row": 4, "width": 6, "height": 3 },
-          "linkedEntityGuids": null,
           "visualization": { "id": "viz.bar" },
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
-            "nrqlQueries": [{ "accountIds": [0], "query": "SELECT sum(trackCount) AS 'Total Tracks', sum(spotifyResolvedCount) AS 'Spotify Resolved' FROM ServerMetric WHERE measurement = 'ChartCollection' FACET chartKey SINCE 30 days ago LIMIT 30" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT sum(trackCount) AS 'Total Tracks', sum(spotifyResolvedCount) AS 'Spotify Resolved' FROM ServerMetric WHERE measurement = 'ChartCollection' FACET chartKey SINCE 30 days ago LIMIT 30" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
         {
           "title": "Spotify Resolution Rate per Chart (%)",
           "layout": { "column": 7, "row": 4, "width": 6, "height": 3 },
-          "linkedEntityGuids": null,
           "visualization": { "id": "viz.bar" },
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
-            "nrqlQueries": [{ "accountIds": [0], "query": "SELECT sum(spotifyResolvedCount) / sum(trackCount) * 100 AS 'Resolution %' FROM ServerMetric WHERE measurement = 'ChartCollection' AND trackCount > 0 FACET chartKey SINCE 30 days ago LIMIT 30" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT sum(spotifyResolvedCount) / sum(trackCount) * 100 AS 'Resolution %' FROM ServerMetric WHERE measurement = 'ChartCollection' AND trackCount > 0 FACET chartKey SINCE 30 days ago LIMIT 30" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
         {
           "title": "Chart Spotify Sync Latency (ms)",
           "layout": { "column": 1, "row": 7, "width": 8, "height": 3 },
-          "linkedEntityGuids": null,
           "visualization": { "id": "viz.line" },
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
             "legend": { "enabled": true },
-            "nrqlQueries": [{ "accountIds": [0], "query": "SELECT average(durationMs) FROM ServerMetric WHERE measurement = 'ChartSpotifySync' FACET chartKey TIMESERIES AUTO LIMIT 30" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT average(durationMs) FROM ServerMetric WHERE measurement = 'ChartSpotifySync' FACET chartKey TIMESERIES AUTO LIMIT 30" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
         {
           "title": "Chart Sync – Tracks Pushed to Spotify",
           "layout": { "column": 9, "row": 7, "width": 4, "height": 3 },
-          "linkedEntityGuids": null,
           "visualization": { "id": "viz.bar" },
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
-            "nrqlQueries": [{ "accountIds": [0], "query": "SELECT latest(trackCount) AS 'Tracks Synced' FROM ServerMetric WHERE measurement = 'ChartSpotifySync' AND success = 1 FACET chartKey SINCE 7 days ago LIMIT 30" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT latest(trackCount) AS 'Tracks Synced' FROM ServerMetric WHERE measurement = 'ChartSpotifySync' AND success = 1 FACET chartKey SINCE 7 days ago LIMIT 30" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
         {
           "title": "Chart Collection Skipped (week exists)",
           "layout": { "column": 1, "row": 10, "width": 6, "height": 3 },
-          "linkedEntityGuids": null,
           "visualization": { "id": "viz.area" },
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
             "legend": { "enabled": true },
-            "nrqlQueries": [{ "accountIds": [0], "query": "SELECT count(*) FROM ServerMetric WHERE measurement = 'ChartCollectionSkipped' FACET chartKey TIMESERIES AUTO LIMIT 30" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT count(*) FROM ServerMetric WHERE measurement = 'ChartCollectionSkipped' FACET chartKey TIMESERIES AUTO LIMIT 30" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         },
         {
           "title": "Chart Sync Errors",
           "layout": { "column": 7, "row": 10, "width": 6, "height": 3 },
-          "linkedEntityGuids": null,
           "visualization": { "id": "viz.area" },
           "rawConfiguration": {
             "facet": { "showOtherSeries": false },
             "legend": { "enabled": true },
-            "nrqlQueries": [{ "accountIds": [0], "query": "SELECT count(*) FROM ServerMetric WHERE measurement = 'ChartSpotifySync' AND success = 0 FACET chartKey TIMESERIES AUTO LIMIT 30" }],
+            "nrqlQueries": [{ "accountId": 0, "query": "SELECT count(*) FROM ServerMetric WHERE measurement = 'ChartSpotifySync' AND success = 0 FACET chartKey TIMESERIES AUTO LIMIT 30" }],
             "platformOptions": { "ignoreTimeRange": false }
           }
         }
