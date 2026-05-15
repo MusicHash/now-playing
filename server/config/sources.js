@@ -606,7 +606,7 @@ const kzCharts = {
             type: 'lines',
 
             options: {
-                limit: 20,
+                limit: 25,
                 reverse: true,
             },
 
