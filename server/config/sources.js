@@ -573,6 +573,49 @@ const europaPlusCharts = {
     },
 };
 
+const kzCharts = {
+    'kz-weekly-alternative': {
+        spotify: {
+            playlist: 'https://spoti.fi/',
+        },
+
+        now_playing: {
+            title: 'KZradio - Weekly Alternative Chart (#Music)',
+            description: 'Weekly chart tracks. LAST UPDATE: {now}',
+            refresh_rate_ms: 6 * 60 * 60 * 1000,
+        },
+
+        scraper: {
+            type: 'get',
+            url: 'aHR0cHM6Ly93d3cua3pyYWRpby5uZXQvc2hvd3Mvd2Vla2x5LWFsdGVybmF0aXZlLWNoYXJ0L2ZlZWQ=',
+            regExp: [
+                /<item>([\s\S]*?)<\/item>/,
+                /<description>\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*<\/description>/,
+                /^\s*<p>([\s\S]*?)<\/p>\s*<p>The post/i,
+            ],
+            replacements: [
+                [/<br\s*\/?>\s*/gi, '\n'],
+                [/^\d+[:.]\s+/gm, ''],
+                [/^\s+/, ''],
+                [/\s+$/, ''],
+            ]
+        },
+
+        parser: {
+            type: 'lines',
+
+            options: {
+                limit: 20,
+                reverse: true,
+            },
+
+            fields: {
+                title: '{Iterator}',
+            },
+        },
+    },
+};
+
 
 // stations
 const capitalfmStations = {
@@ -1480,6 +1523,7 @@ const charts = {
     // IL
     ...shzmCharts,
     ...makoCharts,
+    ...kzCharts,
 
     // World
     ...bigtopCharts,
