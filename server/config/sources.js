@@ -589,14 +589,16 @@ const kzCharts = {
             type: 'get',
             url: 'aHR0cHM6Ly93d3cua3pyYWRpby5uZXQvc2hvd3Mvd2Vla2x5LWFsdGVybmF0aXZlLWNoYXJ0L2ZlZWQ=',
             regExp: [
-                // First <item> under <channel>, first <description> CDATA (latest episode).
+                // First <item> (newest episode): first <description> CDATA block only.
                 /<channel>[\s\S]*?<item>[\s\S]*?<description>\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*<\/description>/i,
+                // Strip WP boilerplate; chart lines are the first <p> before "The post".
                 /^\s*<p>([\s\S]*?)<\/p>\s*<p>The post/i,
             ],
             replacements: [
                 [/<br\s*\/?>\s*/gi, '\n'],
                 [/^\d+[:.]\s+/gm, ''],
-                [/^\s*לשיפוטכם:\s*/gm, ''],
+                // Feed interleaves "לשיפוטכם:" judge picks; drop whole lines so limit:20 = ranks 1–20 only.
+                [/^\s*לשיפוטכם:\s*.*$/gm, ''],
                 [/^\s+/, ''],
                 [/\s+$/, ''],
             ]
@@ -607,6 +609,7 @@ const kzCharts = {
 
             options: {
                 limit: 20,
+                // RSS lists 20→1 in source order; reverse shows #1 first in the app.
                 reverse: true,
             },
 
