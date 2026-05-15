@@ -220,7 +220,10 @@ export async function runStationTick(station, store, logger, options = {}) {
             : randomUUID();
     const recognitionBlacklistPhrases = options.recognitionBlacklist;
     const log = logger.child({ requestID, component: 'orchestrator' });
-    log.info({ metadata: { stationID: station.id } }, 'Station tick started');
+    log.info(
+        { method: 'runStationTick', metadata: { stationID: station.id } },
+        'Station tick started',
+    );
 
     const tickStart = Date.now();
     /** @type {string | null} */
@@ -629,6 +632,7 @@ export async function runStationTick(station, store, logger, options = {}) {
         tickOutcome = 'saved_audio';
         log.info(
             {
+                method: 'runStationTick',
                 metadata: {
                     stationID: station.id,
                     provider: matchSource,

@@ -305,6 +305,7 @@ async function fetchDiscoveryOnce(
     const dispatcher = getProxyDispatcher(proxyUrl);
     logger.info(
         {
+            method: 'fetchDiscoveryOnce',
             metadata: {
                 ...(stationId != null ? { stationID: String(stationId) } : {}),
                 proxy: proxyHostForLog(proxyUrl),
