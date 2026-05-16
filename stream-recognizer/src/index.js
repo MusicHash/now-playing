@@ -36,6 +36,7 @@ const server = listenHost
 function onListen() {
     logger.info(
         {
+            method: 'bootstrap.onListen',
             metadata: listenHost
                 ? { port, host: listenHost, component: 'bootstrap' }
                 : { port, component: 'bootstrap' },
@@ -49,13 +50,19 @@ function onListen() {
     if (anyStationEnabled) {
         if (!probeBinary(ffmpegBin)) {
             logger.warn(
-                { metadata: { bin: ffmpegBin, component: 'bootstrap' } },
+                {
+                    method: 'bootstrap.checkBinary',
+                    metadata: { bin: ffmpegBin, component: 'bootstrap' },
+                },
                 `ffmpeg not found. ${missingBinaryHint('ffmpeg', 'FFMPEG_BIN')}`,
             );
         }
         if (!probeBinary(fpcalcBin)) {
             logger.warn(
-                { metadata: { bin: fpcalcBin, component: 'bootstrap' } },
+                {
+                    method: 'bootstrap.checkBinary',
+                    metadata: { bin: fpcalcBin, component: 'bootstrap' },
+                },
                 `fpcalc not found. ${missingBinaryHint('fpcalc', 'FPCALC_BIN')}`,
             );
         }
@@ -80,6 +87,7 @@ for (const station of stations) {
         }).catch((e) => {
             logger.error(
                 {
+                    method: 'bootstrap.initialStationTick',
                     err: e,
                     metadata: { stationID: station.id, component: 'bootstrap' },
                 },
@@ -92,6 +100,7 @@ for (const station of stations) {
             }).catch((e) => {
                 logger.error(
                     {
+                        method: 'bootstrap.scheduledStationTick',
                         err: e,
                         metadata: { stationID: station.id, component: 'bootstrap' },
                     },
@@ -104,7 +113,10 @@ for (const station of stations) {
 }
 
 function shutdown() {
-    logger.info({ metadata: { component: 'bootstrap' } }, 'Shutting down');
+    logger.info(
+        { method: 'bootstrap.shutdown', metadata: { component: 'bootstrap' } },
+        'Shutting down',
+    );
     for (const t of timers) {
         clearInterval(t);
     }

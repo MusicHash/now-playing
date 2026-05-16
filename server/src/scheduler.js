@@ -138,6 +138,7 @@ class Scheduler {
             });
 
             this.logger.info({
+                method: 'Scheduler.slicePlaylists',
                 message: '[AUTO REFRESH] SHORTEN ALL PLAYLISTS, every 4 hours',
             });
         }, 4 * 60 * 60 * 1000);

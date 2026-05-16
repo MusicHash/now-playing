@@ -47,7 +47,11 @@ const terminate = function(server, options = { coredump: false, timeout: 500 }, 
         // https://nodejs.org/api/net.html#net_server_close_callback
         server.close(error => {
             if (error) {
-                logger.error(error);
+                logger.error({
+                    method: 'terminate',
+                    message: 'HTTP server close failed',
+                    error,
+                });
                 return exit(1);
             }
 

@@ -183,6 +183,7 @@ async function copyDebugWavIfEnabled(
             } catch (e) {
                 log.warn(
                     {
+                        method: 'copyDebugWavIfEnabled',
                         err: e,
                         metadata: { companionTxtPath, stationID: stationId },
                     },
@@ -196,7 +197,11 @@ async function copyDebugWavIfEnabled(
             : { wavPath: debugCopyPath };
     } catch (e) {
         log.warn(
-            { err: e, metadata: { stationID: stationId, debugDir } },
+            {
+                method: 'copyDebugWavIfEnabled',
+                err: e,
+                metadata: { stationID: stationId, debugDir },
+            },
             'Debug capture WAV copy failed',
         );
         return undefined;
@@ -309,6 +314,7 @@ export async function runStationTick(station, store, logger, options = {}) {
                 if (cAttempt > 0) {
                     log.info(
                         {
+                            method: 'runStationTick',
                             metadata: {
                                 stationID: station.id,
                                 captureAttempt: cAttempt + 1,
@@ -335,6 +341,7 @@ export async function runStationTick(station, store, logger, options = {}) {
                     ]);
                     log.error(
                         {
+                            method: 'runStationTick',
                             err: e,
                             metadata: {
                                 stationID: station.id,
@@ -350,6 +357,7 @@ export async function runStationTick(station, store, logger, options = {}) {
                 }
                 log.warn(
                     {
+                        method: 'runStationTick',
                         err: e,
                         metadata: {
                             stationID: station.id,
@@ -386,7 +394,10 @@ export async function runStationTick(station, store, logger, options = {}) {
 
         if (gates.silence) {
             log.debug(
-                { metadata: { stationID: station.id, meanDb: gates.meanDb } },
+                {
+                    method: 'runStationTick',
+                    metadata: { stationID: station.id, meanDb: gates.meanDb },
+                },
                 'skip: silence',
             );
             tickOutcome = 'skipped_silence';
@@ -401,6 +412,7 @@ export async function runStationTick(station, store, logger, options = {}) {
         if (gates.speechHeavy) {
             log.debug(
                 {
+                    method: 'runStationTick',
                     metadata: {
                         stationID: station.id,
                         speechFrameRatio: gates.speechFrameRatio,
@@ -426,7 +438,10 @@ export async function runStationTick(station, store, logger, options = {}) {
 
         if (prevFp && fingerprint === prevFp) {
             log.debug(
-                { metadata: { stationID: station.id } },
+                {
+                    method: 'runStationTick',
+                    metadata: { stationID: station.id },
+                },
                 'fingerprint unchanged; skip audio recognition APIs and Redis',
             );
             tickOutcome = 'skipped_fingerprint_unchanged';
@@ -457,6 +472,7 @@ export async function runStationTick(station, store, logger, options = {}) {
                     const msg = `${name} was not used (SHAZAM_DISABLED=1).`;
                     log.info(
                         {
+                            method: 'runStationTick',
                             metadata: {
                                 stationID: station.id,
                                 provider: id,
@@ -512,6 +528,7 @@ export async function runStationTick(station, store, logger, options = {}) {
             const debugCopyPath = debugCopy?.wavPath;
             log.info(
                 {
+                    method: 'runStationTick',
                     metadata: {
                         stationID: station.id,
                         capturePath: wavPath,
@@ -551,6 +568,7 @@ export async function runStationTick(station, store, logger, options = {}) {
                 .join(' — ');
             log.info(
                 {
+                    method: 'runStationTick',
                     metadata: {
                         stationID: station.id,
                         provider: matchSource,
@@ -579,7 +597,10 @@ export async function runStationTick(station, store, logger, options = {}) {
 
         if (prevKey === key) {
             log.debug(
-                { metadata: { stationID: station.id } },
+                {
+                    method: 'runStationTick',
+                    metadata: { stationID: station.id },
+                },
                 'same track key as Redis; skip write',
             );
             tickOutcome = 'skipped_same_track_as_cache';
@@ -653,7 +674,11 @@ export async function runStationTick(station, store, logger, options = {}) {
     } catch (e) {
         tickOutcome = 'error';
         log.error(
-            { err: e, metadata: { stationID: station.id } },
+            {
+                method: 'runStationTick',
+                err: e,
+                metadata: { stationID: station.id },
+            },
             'Station tick failed',
         );
         try {

@@ -257,13 +257,19 @@ function logNoMatch(logger, body, reason) {
             ? JSON.stringify(body).slice(0, 4000)
             : String(body);
     logger.info(
-        { metadata: { reason, responsePreview: preview } },
+        {
+            method: 'logNoMatch',
+            metadata: { reason, responsePreview: preview },
+        },
         'shazam: no usable track (set SHAZAM_DEBUG_RESPONSE=1 for full body on miss)',
     );
     if (process.env.SHAZAM_DEBUG_RESPONSE === '1') {
         try {
             logger.info(
-                { metadata: { full: JSON.stringify(body).slice(0, 12_000) } },
+                {
+                    method: 'logNoMatch',
+                    metadata: { full: JSON.stringify(body).slice(0, 12_000) },
+                },
                 'shazam: raw response (truncated)',
             );
         } catch {
@@ -401,6 +407,7 @@ async function postDiscovery(
                 const retryAfter = envInt('SHAZAM_429_RETRY_MS', 2500);
                 logger.warn(
                     {
+                        method: 'postDiscovery',
                         metadata: {
                             ...(stationId != null ? { stationID: String(stationId) } : {}),
                             status: res.status,
@@ -436,6 +443,7 @@ async function postDiscovery(
                 if (canRetry) {
                     logger.warn(
                         {
+                            method: 'postDiscovery',
                             metadata: {
                                 ...(stationId != null ? { stationID: String(stationId) } : {}),
                                 segmentIndex,
@@ -458,6 +466,7 @@ async function postDiscovery(
             if (attempt > 0) {
                 logger.info(
                     {
+                        method: 'postDiscovery',
                         metadata: {
                             ...(stationId != null ? { stationID: String(stationId) } : {}),
                             segmentIndex,
@@ -481,6 +490,7 @@ async function postDiscovery(
             }
             logger.warn(
                 {
+                    method: 'postDiscovery',
                     err: e,
                     metadata: {
                         ...(stationId != null ? { stationID: String(stationId) } : {}),
@@ -577,7 +587,10 @@ export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
     };
 
     if (!isShazamEnabled()) {
-        log.debug('shazam: skipped (SHAZAM_DISABLED=1)');
+        log.debug(
+            { method: 'shazamIdentifyFromFile' },
+            'shazam: skipped (SHAZAM_DISABLED=1)',
+        );
         report([
             { key: 'success', value: 1 },
             { key: 'matched', value: 0 },
@@ -596,7 +609,11 @@ export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
         buffer = await readFile(wavPath);
     } catch (e) {
         log.error(
-            { err: e, metadata: { wavPath } },
+            {
+                method: 'shazamIdentifyFromFile',
+                err: e,
+                metadata: { wavPath },
+            },
             'shazam: failed to read audio file',
         );
         report([
@@ -617,7 +634,10 @@ export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
     try {
         signatures = recognizeBytes(bytes);
     } catch (e) {
-        log.error({ err: e }, 'shazam: recognizeBytes failed');
+        log.error(
+            { method: 'shazamIdentifyFromFile', err: e },
+            'shazam: recognizeBytes failed',
+        );
         report([
             { key: 'success', value: 0 },
             { key: 'matched', value: 0 },
@@ -631,7 +651,10 @@ export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
     }
 
     if (!Array.isArray(signatures) || signatures.length === 0) {
-        log.info({}, 'shazam: no signatures from recognizeBytes');
+        log.info(
+            { method: 'shazamIdentifyFromFile' },
+            'shazam: no signatures from recognizeBytes',
+        );
         report([
             { key: 'success', value: 1 },
             { key: 'matched', value: 0 },
@@ -696,6 +719,7 @@ export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
                     : undefined;
             log.error(
                 {
+                    method: 'shazamIdentifyFromFile',
                     err: e,
                     metadata: {
                         segmentIndex: i,
