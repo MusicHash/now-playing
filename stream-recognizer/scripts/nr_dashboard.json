@@ -292,6 +292,22 @@
             ],
             "platformOptions": { "ignoreTimeRange": false }
           }
+        },
+        {
+          "title": "Shazam discovery: proxy errors & blocks (429 / HTTP / transport)",
+          "layout": { "column": 1, "row": 13, "width": 12, "height": 3 },
+          "visualization": { "id": "viz.area" },
+          "rawConfiguration": {
+            "facet": { "showOtherSeries": false },
+            "legend": { "enabled": true },
+            "nrqlQueries": [
+              {
+                "accountId": 0,
+                "query": "SELECT count(*) FROM Log WHERE entity.name = 'stream-recognizer' AND (message = 'shazam: rate limited (429); backing off once on same proxy' OR message LIKE 'shazam: discovery HTTP error; will retry%' OR message LIKE 'shazam: discovery transport error; will retry%') FACET `metadata.proxy` TIMESERIES AUTO LIMIT 30"
+              }
+            ],
+            "platformOptions": { "ignoreTimeRange": false }
+          }
         }
       ]
     }
