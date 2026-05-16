@@ -276,6 +276,22 @@
             ],
             "platformOptions": { "ignoreTimeRange": false }
           }
+        },
+        {
+          "title": "Shazam discovery: HTTP requests by proxy (logs)",
+          "layout": { "column": 1, "row": 10, "width": 12, "height": 3 },
+          "visualization": { "id": "viz.area" },
+          "rawConfiguration": {
+            "facet": { "showOtherSeries": false },
+            "legend": { "enabled": true },
+            "nrqlQueries": [
+              {
+                "accountId": 0,
+                "query": "SELECT count(*) FROM Log WHERE entity.name = 'stream-recognizer' AND message = 'shazam: discovery POST' FACET `metadata.proxy` TIMESERIES AUTO LIMIT 30"
+              }
+            ],
+            "platformOptions": { "ignoreTimeRange": false }
+          }
         }
       ]
     }
