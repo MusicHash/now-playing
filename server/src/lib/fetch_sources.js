@@ -174,7 +174,11 @@ const getChartInfo = async function (chartID, props) {
     return chartInfo;
 };
 
+const STATION_CRAWL_MAX_MS = 60 * 1000;
+
 let crawlAllStationsInFlight = false;
+let crawlAllStationsRunId = 0;
+let crawlAllStationsWatchdog = null;
 
 /** Updated while a full station crawl runs — used when overlapping ticks log diagnostics. */
 let crawlAllStationsProgress = {
@@ -182,43 +186,140 @@ let crawlAllStationsProgress = {
     currentStation: null,
 };
 
+const clearCrawlAllStationsWatchdog = function () {
+    if (crawlAllStationsWatchdog) {
+        clearTimeout(crawlAllStationsWatchdog);
+        crawlAllStationsWatchdog = null;
+    }
+};
+
+const terminateCrawlAllStationsRun = function (runId, reason, metadata = {}) {
+    if (runId !== crawlAllStationsRunId || !crawlAllStationsInFlight) {
+        return false;
+    }
+
+    crawlAllStationsRunId++;
+    crawlAllStationsInFlight = false;
+    crawlAllStationsProgress.startedAtMs = null;
+    crawlAllStationsProgress.currentStation = null;
+    clearCrawlAllStationsWatchdog();
+
+    logger.warn({
+        method: 'crawlAllStationsToNotifyTrackChanges',
+        message: reason,
+        metadata: {
+            maxDurationMs: STATION_CRAWL_MAX_MS,
+            runId,
+            ...metadata,
+        },
+    });
+
+    return true;
+};
+
+const armCrawlAllStationsWatchdog = function (runId, cycleStart) {
+    clearCrawlAllStationsWatchdog();
+
+    crawlAllStationsWatchdog = setTimeout(() => {
+        terminateCrawlAllStationsRun(runId, 'Station crawl exceeded max duration — terminating run so scheduler can retry', {
+            elapsedMsSinceRunStart: Date.now() - cycleStart,
+            blockingStationID: crawlAllStationsProgress.currentStation,
+        });
+    }, STATION_CRAWL_MAX_MS);
+
+    if (typeof crawlAllStationsWatchdog.unref === 'function') {
+        crawlAllStationsWatchdog.unref();
+    }
+};
+
+const isCrawlAllStationsRunActive = function (runId, cycleStart) {
+    return runId === crawlAllStationsRunId && Date.now() - cycleStart < STATION_CRAWL_MAX_MS;
+};
+
+const withStationCrawlTimeout = function (promise, timeoutMs, stationID) {
+    if (timeoutMs <= 0) {
+        return Promise.reject(new Error(`Station crawl timed out before ${stationID} could start`));
+    }
+
+    return Promise.race([
+        promise,
+        new Promise((_, reject) => {
+            setTimeout(() => {
+                reject(new Error(`Station crawl timed out after ${timeoutMs}ms while fetching ${stationID}`));
+            }, timeoutMs);
+        }),
+    ]);
+};
+
 const crawlAllStationsToNotifyTrackChanges = async function () {
     if (crawlAllStationsInFlight) {
         const startedAt = crawlAllStationsProgress.startedAtMs;
-        logger.warn({
-            method: 'crawlAllStationsToNotifyTrackChanges',
-            message:
-                'Skipping overlapping station crawl — previous run still in progress (scheduler is 45s, crawl may be slower)',
-            metadata: {
-                schedulerIntervalSec: 45,
-                runStartedAtMs: startedAt,
-                elapsedMsSinceRunStart: startedAt != null ? Date.now() - startedAt : null,
+        const elapsedMsSinceRunStart = startedAt != null ? Date.now() - startedAt : null;
+
+        if (elapsedMsSinceRunStart != null && elapsedMsSinceRunStart < STATION_CRAWL_MAX_MS) {
+            logger.warn({
+                method: 'crawlAllStationsToNotifyTrackChanges',
+                message:
+                    'Skipping overlapping station crawl — previous run still in progress (scheduler is 45s, max crawl duration is 60s)',
+                metadata: {
+                    schedulerIntervalSec: 45,
+                    maxDurationMs: STATION_CRAWL_MAX_MS,
+                    runStartedAtMs: startedAt,
+                    elapsedMsSinceRunStart,
+                    blockingStationID: crawlAllStationsProgress.currentStation,
+                },
+            });
+            return;
+        }
+
+        terminateCrawlAllStationsRun(
+            crawlAllStationsRunId,
+            'Terminating stale station crawl — previous run exceeded max duration, starting fresh run',
+            {
+                elapsedMsSinceRunStart,
                 blockingStationID: crawlAllStationsProgress.currentStation,
             },
-        });
-        return;
+        );
     }
 
+    const runId = ++crawlAllStationsRunId;
     crawlAllStationsInFlight = true;
     const cycleStart = Date.now();
     crawlAllStationsProgress.startedAtMs = cycleStart;
     crawlAllStationsProgress.currentStation = null;
+    armCrawlAllStationsWatchdog(runId, cycleStart);
 
     let successCount = 0;
     let errorCount = 0;
     let updatedCount = 0;
+    let aborted = false;
 
     try {
         for (let station in stations) {
+            if (!isCrawlAllStationsRunActive(runId, cycleStart)) {
+                aborted = true;
+                break;
+            }
+
             crawlAllStationsProgress.currentStation = station;
             let props = stations[station];
 
             try {
-                const tracks = await getCurrentTracks({
-                    stationID: station,
-                    scraperProps: props.scraper,
-                    parserProps: props.parser,
-                });
+                const remainingMs = STATION_CRAWL_MAX_MS - (Date.now() - cycleStart);
+                const tracks = await withStationCrawlTimeout(
+                    getCurrentTracks({
+                        stationID: station,
+                        scraperProps: props.scraper,
+                        parserProps: props.parser,
+                    }),
+                    remainingMs,
+                    station,
+                );
+
+                if (!isCrawlAllStationsRunActive(runId, cycleStart)) {
+                    aborted = true;
+                    break;
+                }
 
                 const payload = {
                     station: station,
@@ -226,6 +327,11 @@ const crawlAllStationsToNotifyTrackChanges = async function () {
                 };
 
                 const shouldSendUpdate = await didSourceChange(station, payload);
+
+                if (!isCrawlAllStationsRunActive(runId, cycleStart)) {
+                    aborted = true;
+                    break;
+                }
 
                 if (shouldSendUpdate && payload?.result?.total > 0) {
                     await eventEmitterWrapper.emit(SYSTEM_EVENTS.ON_STATION_TRACK_UPDATED, payload);
@@ -235,6 +341,11 @@ const crawlAllStationsToNotifyTrackChanges = async function () {
 
                 successCount++;
             } catch (error) {
+                if (!isCrawlAllStationsRunActive(runId, cycleStart)) {
+                    aborted = true;
+                    break;
+                }
+
                 logger.error({
                     method: 'crawlAllStationsToNotifyTrackChanges',
                     message: 'Failed to refresh station',
@@ -247,17 +358,22 @@ const crawlAllStationsToNotifyTrackChanges = async function () {
             }
         }
     } finally {
-        metricsWrapper.report('StationCrawlCycle', [
-            { key: 'durationMs', value: Date.now() - cycleStart },
-            { key: 'totalStations', value: Object.keys(stations).length },
-            { key: 'successCount', value: successCount },
-            { key: 'errorCount', value: errorCount },
-            { key: 'updatedCount', value: updatedCount },
-        ]);
+        clearCrawlAllStationsWatchdog();
 
-        crawlAllStationsInFlight = false;
-        crawlAllStationsProgress.startedAtMs = null;
-        crawlAllStationsProgress.currentStation = null;
+        if (runId === crawlAllStationsRunId) {
+            metricsWrapper.report('StationCrawlCycle', [
+                { key: 'durationMs', value: Date.now() - cycleStart },
+                { key: 'totalStations', value: Object.keys(stations).length },
+                { key: 'successCount', value: successCount },
+                { key: 'errorCount', value: errorCount },
+                { key: 'updatedCount', value: updatedCount },
+                { key: 'aborted', value: aborted ? 1 : 0 },
+            ]);
+
+            crawlAllStationsInFlight = false;
+            crawlAllStationsProgress.startedAtMs = null;
+            crawlAllStationsProgress.currentStation = null;
+        }
     }
 };
 
