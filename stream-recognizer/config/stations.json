@@ -21,7 +21,7 @@
     "rmsSilenceDb": null
   },
   "97.5fm_gimel-kan": {
-    "streamUrl": "b64:aHR0cHM6Ly9uLTEyMS0xMS5pbC5jZG4tcmVkZ2UubWVkaWEvbGl2ZWRhc2gvb2lsL2thbmNkbi1saXZlL2xpdmUvcmFkaW8va2FuX2dpbWVsL2xpdmUubGl2eD9pbmRleE1vZGUmZnV0YyZkdnI9NzIwMDAwMA==",
+    "streamUrl": "b64:aHR0cHM6Ly9rYW5jZG4ubWVkb25lY2RuLm5ldC9saXZlZGFzaC9vaWwva2FuY2RuLWxpdmUvbGl2ZS9yYWRpby9rYW5fZ2ltZWwvbGl2ZS5saXZ4P2luZGV4TW9kZSZmdXRjJmR2cj03MjAwMDAw",
     "enabled": true,
     "intervalMs": null,
     "vadAggressive": 2,
