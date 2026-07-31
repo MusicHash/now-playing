@@ -49,7 +49,7 @@
     "rmsSilenceDb": null
   },
   "102fm-tlv": {
-    "streamUrl": "b64:aHR0cHM6Ly9jZG44OC5tZWRpYWNhc3QuY28uaWwvMTAyZm0tdGx2LzEwMmZtX2FhYy9pY2VjYXN0LmF1ZGlv",
+    "streamUrl": "b64:aHR0cHM6Ly9jZG44OC5tZWRpYWNhc3QuY28uaWwvMTAyLXRsdi1saXZlLzEwMmZtX2FhYy9pY2VjYXN0LmF1ZGlv",
     "enabled": true,
     "intervalMs": null,
     "vadAggressive": 2,
