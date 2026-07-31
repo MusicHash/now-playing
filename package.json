@@ -7,7 +7,6 @@
     "stream-recognizer"
   ],
   "scripts": {
-    "postinstall": "patch-package",
     "start": "npm start -w server",
     "dev:server": "npm run debug -w server",
     "dev:client": "npm run dev -w client",
@@ -17,8 +16,5 @@
     "backfill:spotify-release-dates": "screen -dmS spotify-release-dates python3 ./scripts/spotify_release_dates_backfill/backfill_dates.py",
     "backfill:spotify-track-genres-kaggle": "screen -dmS spotify-track-genres-kaggle python3 ./scripts/spotify_audio_features_backfill/backfill_track_genres_kaggle.py",
     "backfill:lastfm-genres": "screen -dmS lastfm-genres python3 ./scripts/spotify_audio_features_backfill/backfill_lastfm_genres.py"
-  },
-  "devDependencies": {
-    "patch-package": "^8.0.1"
   }
 }
