@@ -11,7 +11,6 @@ import { ProxyAgent, fetch as undiciFetch } from 'undici';
 import {
     pickNextHttpProxy,
     proxyHostForLog,
-    parseHttpProxyList,
 } from '../lib/http_proxy.js';
 import metrics from '../lib/metrics.js';
 import { SHAZAM_USER_AGENTS } from './shazam_user_agents.js';
@@ -357,9 +356,10 @@ async function fetchDiscoveryOnce(
  * @param {string} url
  * @param {object} json
  * @param {import('pino').Logger} logger
- * @param {string | undefined} initialProxyUrl Same proxy as stream capture for attempt 1; later attempts advance HTTP_PROXY round-robin when a pool is configured.
+ * @param {string | undefined} initialProxyUrl Same proxy as stream capture for attempt 1; later attempts advance the station/global proxy pool when configured.
+ * @param {string | undefined} proxyMatch Station allowlist by hostname domain/TLD (e.g. `co.il`).
  * @param {number} segmentIndex
- * @param {string | undefined} stationId Forwarded to discovery POST logs as metadata.stationID.
+ * @param {string | undefined} stationId Forwarded to discovery POST logs as metadata.stationID; also keys proxy round-robin.
  * @returns {Promise<unknown>}
  */
 async function postDiscovery(
@@ -367,12 +367,13 @@ async function postDiscovery(
     json,
     logger,
     initialProxyUrl,
+    proxyMatch,
     segmentIndex,
     stationId,
 ) {
     const maxAttempts = Math.max(1, envInt('SHAZAM_DISCOVERY_MAX_ATTEMPTS', 3));
     const retryDelayMs = envInt('SHAZAM_DISCOVERY_RETRY_MS', 500);
-    const proxyList = parseHttpProxyList();
+    const proxyPoolKey = stationId ? `station:${stationId}` : 'global';
     /** @type {string[]} */
     const proxiesTriedHosts = [];
     /** @type {unknown} */
@@ -382,8 +383,10 @@ async function postDiscovery(
         const proxyUrl =
             attempt === 0
                 ? initialProxyUrl
-                : proxyList.length > 0 ? pickNextHttpProxy()
-                  : initialProxyUrl;
+                : pickNextHttpProxy({
+                      domainMatch: proxyMatch,
+                      poolKey: proxyPoolKey,
+                  }) ?? initialProxyUrl;
         proxiesTriedHosts.push(proxyHostForLog(proxyUrl));
         const attemptInfo = { attempt: attempt + 1, max: maxAttempts };
         const metaBase = {
@@ -562,7 +565,7 @@ function buildSearchBody(uri, samplems) {
  *
  * @param {string} wavPath
  * @param {import('pino').Logger} logger
- * @param {{ httpProxy?: string; stationId?: string }} [options] If `httpProxy` is present (including `undefined`), use it as the first discovery attempt; otherwise pick from `HTTP_PROXY`. Further attempts use `SHAZAM_DISCOVERY_MAX_ATTEMPTS` / `SHAZAM_DISCOVERY_RETRY_MS` and rotate the proxy pool. Pass the same value as ffmpeg for a given tick. `stationId` sets `stationID` on logs and metrics.
+ * @param {{ httpProxy?: string; proxyMatch?: string; stationId?: string }} [options] If `httpProxy` is present (including `undefined`), use it as the first discovery attempt; otherwise pick from `HTTP_PROXY` (optionally filtered by `proxyMatch`). Further attempts use `SHAZAM_DISCOVERY_MAX_ATTEMPTS` / `SHAZAM_DISCOVERY_RETRY_MS` and rotate within the same pool. Pass the same value as ffmpeg for a given tick. `stationId` sets `stationID` on logs and metrics.
  * @returns {Promise<ShazamOk | ShazamFail>}
  */
 export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
@@ -599,10 +602,20 @@ export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
         return { ok: false, reason: 'disabled', detail: {} };
     }
 
+    const proxyMatch =
+        options && typeof options === 'object' ? options.proxyMatch : undefined;
+    const proxyPoolKey =
+        options && typeof options === 'object' && options.stationId != null
+            ? `station:${options.stationId}`
+            : 'global';
+
     const proxyUrl =
         options && typeof options === 'object' && 'httpProxy' in options
             ? options.httpProxy
-            : pickNextHttpProxy();
+            : pickNextHttpProxy({
+                  domainMatch: proxyMatch,
+                  poolKey: proxyPoolKey,
+              });
 
     let buffer;
     try {
@@ -707,6 +720,7 @@ export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {
                 body,
                 log,
                 proxyUrl,
+                proxyMatch,
                 i,
                 options.stationId,
             );

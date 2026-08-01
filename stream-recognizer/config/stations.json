@@ -114,6 +114,7 @@
   "radio-beat": {
     "streamUrl": "b64:aHR0cDovL2xpdmUucmFkaW8tYmVhdC5jb20vc3RyZWFtMS8=",
     "enabled": true,
+    "proxyMatch": "co.il",
     "intervalMs": null,
     "vadAggressive": 2,
     "rmsSilenceDb": null

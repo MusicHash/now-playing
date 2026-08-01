@@ -20,7 +20,7 @@ import {
 import {
     pickNextHttpProxy,
     proxyHostForLog,
-    parseHttpProxyList,
+    proxyListForDomainMatch,
 } from '../lib/http_proxy.js';
 import { nowLocalDebugFileStamp } from '../lib/local_time.js';
 import metrics from '../lib/metrics.js';
@@ -248,9 +248,14 @@ export async function runStationTick(station, store, logger, options = {}) {
 
     const captureMaxAttempts = Math.max(1, envInt('FFMPEG_CAPTURE_MAX_ATTEMPTS', 3));
     const captureRetryMs = envInt('FFMPEG_CAPTURE_RETRY_MS', 500);
-    const proxyList = parseHttpProxyList();
+    const proxyMatch = station.proxyMatch;
+    const proxyPoolKey = `station:${station.id}`;
+    const stationProxyList = proxyListForDomainMatch(proxyMatch);
     /** Proxy used for successful capture; same value passed to Shazam first attempt. */
-    let captureHttpProxy = pickNextHttpProxy();
+    let captureHttpProxy = pickNextHttpProxy({
+        domainMatch: proxyMatch,
+        poolKey: proxyPoolKey,
+    });
 
     const state = await store.getState(station.id);
     /** Last saved track; `lastRun` must not affect duplicate / change detection. */
@@ -277,8 +282,11 @@ export async function runStationTick(station, store, logger, options = {}) {
             const httpProxy =
                 cAttempt === 0
                     ? captureHttpProxy
-                    : proxyList.length > 0
-                      ? pickNextHttpProxy()
+                    : stationProxyList.length > 0
+                      ? pickNextHttpProxy({
+                            domainMatch: proxyMatch,
+                            poolKey: proxyPoolKey,
+                        })
                       : captureHttpProxy;
             captureProxiesTried.push(proxyHostForLog(httpProxy));
             try {
@@ -291,6 +299,7 @@ export async function runStationTick(station, store, logger, options = {}) {
                             captureAttempt: cAttempt + 1,
                             captureMaxAttempts,
                             httpProxy: proxyHostForLog(httpProxy),
+                            ...(proxyMatch ? { proxyMatch } : {}),
                         },
                     },
                     'Station tick: ffmpeg capture started',
@@ -486,6 +495,7 @@ export async function runStationTick(station, store, logger, options = {}) {
                 }
                 const sh = await shazamIdentifyFromFile(wavPath, log, {
                     httpProxy: captureHttpProxy,
+                    proxyMatch,
                     stationId: station.id,
                 });
                 if (sh.ok && (sh.artist || sh.title)) {

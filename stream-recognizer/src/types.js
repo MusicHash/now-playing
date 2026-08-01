@@ -6,6 +6,7 @@
  * @property {number|null} [intervalMs]
  * @property {number} [vadAggressive] 0-3 for webrtcvad-style; mapped to heuristic strictness
  * @property {number|null} [rmsSilenceDb] override env RMS_SILENCE_DB
+ * @property {string} [proxyMatch] hostname domain/TLD hint (e.g. `co.il`); allowlist proxies from `HTTP_PROXY` whose host matches
  */
 
 /**

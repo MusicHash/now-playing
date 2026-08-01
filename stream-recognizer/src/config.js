@@ -1,6 +1,10 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+    parseHttpProxyList,
+    proxyListForDomainMatch,
+} from './lib/http_proxy.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -32,6 +36,33 @@ function decodeStreamUrl(raw, stationId) {
 }
 
 /**
+ * @param {unknown} proxyMatch
+ * @param {string} stationId
+ */
+function validateProxyMatch(proxyMatch, stationId) {
+    if (proxyMatch === undefined) {
+        return;
+    }
+    if (typeof proxyMatch !== 'string' || !proxyMatch.trim()) {
+        throw new Error(
+            `stations.${stationId}: proxyMatch must be a non-empty string (e.g. co.il)`,
+        );
+    }
+    const pool = parseHttpProxyList();
+    if (pool.length === 0) {
+        throw new Error(
+            `stations.${stationId}: proxyMatch set but HTTP_PROXY is empty`,
+        );
+    }
+    const matched = proxyListForDomainMatch(proxyMatch);
+    if (matched.length === 0) {
+        throw new Error(
+            `stations.${stationId}: proxyMatch "${proxyMatch.trim()}" matched no HTTP_PROXY hosts`,
+        );
+    }
+}
+
+/**
  * @returns {import('./types.js').StationConfig[]}
  */
 export function loadStations() {
@@ -55,6 +86,7 @@ export function loadStations() {
         }
         const { recognitionBlacklist: _legacyRecognitionBlacklist, ...rest } =
             /** @type {Record<string, unknown>} */ (props);
+        validateProxyMatch(rest.proxyMatch, id);
         const streamUrl = decodeStreamUrl(
             /** @type {{ streamUrl?: string }} */ (rest).streamUrl,
             id,
