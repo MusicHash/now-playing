@@ -295,6 +295,7 @@ export async function runStationTick(station, store, logger, options = {}) {
                         method: 'runStationTick',
                         metadata: {
                             stationID: station.id,
+                            streamUrl: station.streamUrl,
                             captureSec,
                             captureAttempt: cAttempt + 1,
                             captureMaxAttempts,
@@ -354,8 +355,10 @@ export async function runStationTick(station, store, logger, options = {}) {
                             err: e,
                             metadata: {
                                 stationID: station.id,
+                                streamUrl: station.streamUrl,
                                 captureAttempt: cAttempt + 1,
                                 captureMaxAttempts,
+                                httpProxy: proxyHostForLog(httpProxy),
                                 captureProxiesTried,
                                 retryable,
                             },
@@ -370,6 +373,7 @@ export async function runStationTick(station, store, logger, options = {}) {
                         err: e,
                         metadata: {
                             stationID: station.id,
+                            streamUrl: station.streamUrl,
                             captureAttempt: cAttempt + 1,
                             captureMaxAttempts,
                             httpProxy: proxyHostForLog(httpProxy),
@@ -687,7 +691,10 @@ export async function runStationTick(station, store, logger, options = {}) {
             {
                 method: 'runStationTick',
                 err: e,
-                metadata: { stationID: station.id },
+                metadata: {
+                    stationID: station.id,
+                    streamUrl: station.streamUrl,
+                },
             },
             'Station tick failed',
         );

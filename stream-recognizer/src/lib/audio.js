@@ -104,7 +104,7 @@ export async function captureStreamToWav(ffmpegBin, streamUrl, seconds, options 
             }
             reject(
                 new Error(
-                    `ffmpeg capture timed out after ${timeoutMs}ms (stream may be DASH/HLS or unreachable; set FFMPEG_CAPTURE_TIMEOUT_MS or use a direct Icecast/MP3 URL). stderr tail: ${err.slice(-400)}`,
+                    `ffmpeg capture timed out after ${timeoutMs}ms for ${streamUrl} (stream may be DASH/HLS or unreachable; set FFMPEG_CAPTURE_TIMEOUT_MS or use a direct Icecast/MP3 URL). stderr tail: ${err.slice(-400)}`,
                 ),
             );
         }, timeoutMs);
@@ -117,7 +117,11 @@ export async function captureStreamToWav(ffmpegBin, streamUrl, seconds, options 
             if (code === 0) {
                 resolve();
             } else {
-                reject(new Error(`ffmpeg exit ${code}: ${err.slice(-500)}`));
+                reject(
+                    new Error(
+                        `ffmpeg exit ${code} for ${streamUrl}: ${err.slice(-500)}`,
+                    ),
+                );
             }
         });
     });
