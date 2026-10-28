@@ -7,8 +7,10 @@
  *   http://proxy-a:8080,http://proxy-b:8080
  *   ["http://proxy-a:8080","http://proxy-b:8080"]
  *
- * Stations may set `proxyMatch` (e.g. `co.il`) to allowlist proxies whose hostname
- * equals or ends with that domain suffix; round-robin and retries stay in that subset.
+ * Stations may set `proxyMatch` (e.g. `co.il`) to prefer proxies whose hostname
+ * equals or ends with that domain suffix. The first pick stays in that subset.
+ * A retry that passes `excludeHosts` skips those hosts, then uses the rest of
+ * `HTTP_PROXY` once every preferred host has already been tried.
  */
 
 /** @type {Map<string, number>} */
@@ -106,20 +108,91 @@ export function proxyListForDomainMatch(domainMatch) {
 }
 
 /**
+ * @param {string[] | undefined} hosts
+ * @returns {Set<string>}
+ */
+function excludeHostSet(hosts) {
+    /** @type {Set<string>} */
+    const set = new Set();
+    if (!Array.isArray(hosts)) {
+        return set;
+    }
+    for (const host of hosts) {
+        if (typeof host !== 'string') {
+            continue;
+        }
+        const normalized = host.trim().toLowerCase();
+        if (!normalized || normalized === '(direct)' || normalized === '[proxy]') {
+            continue;
+        }
+        set.add(normalized);
+    }
+    return set;
+}
+
+/**
+ * Next unused entry in `list`, starting at this pool's round-robin cursor.
+ * Does not move the cursor when every entry is excluded.
+ *
+ * @param {string[]} list
+ * @param {string} poolKey
+ * @param {Set<string>} exclude
+ * @returns {string | undefined}
+ */
+function pickFromList(list, poolKey, exclude) {
+    if (list.length === 0) {
+        return undefined;
+    }
+    const start = roundRobinByKey.get(poolKey) ?? 0;
+    for (let step = 0; step < list.length; step++) {
+        const i = (start + step) % list.length;
+        const url = list[i];
+        const host = proxyHostname(url);
+        if (host && exclude.has(host.toLowerCase())) {
+            continue;
+        }
+        roundRobinByKey.set(poolKey, i + 1);
+        return url;
+    }
+    return undefined;
+}
+
+/**
  * Next proxy for load distribution (round-robin). Undefined when unset/empty.
  *
- * @param {{ domainMatch?: string; poolKey?: string }} [options]
- *   `domainMatch` — station allowlist by hostname suffix (e.g. `co.il`); omit for full pool.
+ * @param {{ domainMatch?: string; poolKey?: string; excludeHosts?: string[] }} [options]
+ *   `domainMatch` — station preference by hostname suffix (e.g. `co.il`); omit for full pool.
  *   `poolKey` — separate round-robin cursor per key (e.g. `station:radio-beat`).
+ *   `excludeHosts` — hostnames already tried in this retry sequence. Preferred matches
+ *   are skipped first; if none remain, another host from the full pool is used.
+ *   A host is repeated only after every pool host has been excluded.
  * @returns {string | undefined}
  */
 export function pickNextHttpProxy(options = {}) {
     const poolKey = options.poolKey || 'global';
-    const list = proxyListForDomainMatch(options.domainMatch);
-    if (list.length === 0) {
+    const preferred = proxyListForDomainMatch(options.domainMatch);
+    if (preferred.length === 0) {
         return undefined;
     }
-    const i = (roundRobinByKey.get(poolKey) ?? 0) % list.length;
-    roundRobinByKey.set(poolKey, i + 1);
-    return list[i];
+    const exclude = excludeHostSet(options.excludeHosts);
+    const fromPreferred = pickFromList(preferred, poolKey, exclude);
+    if (fromPreferred) {
+        return fromPreferred;
+    }
+
+    const full = parseHttpProxyList();
+    const preferredIsFull =
+        full.length === preferred.length &&
+        full.every((url, i) => url === preferred[i]);
+    if (!preferredIsFull) {
+        const fromFull = pickFromList(full, poolKey, exclude);
+        if (fromFull) {
+            return fromFull;
+        }
+    }
+
+    if (exclude.size === 0) {
+        return undefined;
+    }
+    return pickFromList(full.length > 0 ? full : preferred, poolKey, new Set());
 }

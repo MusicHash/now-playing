@@ -356,7 +356,7 @@ async function fetchDiscoveryOnce(
  * @param {string} url
  * @param {object} json
  * @param {import('pino').Logger} logger
- * @param {string | undefined} initialProxyUrl Same proxy as stream capture for attempt 1; later attempts advance the station/global proxy pool when configured.
+ * @param {string | undefined} initialProxyUrl Same proxy as stream capture for attempt 1; later attempts advance the station/global proxy pool and skip hosts already tried.
  * @param {string | undefined} proxyMatch Station allowlist by hostname domain/TLD (e.g. `co.il`).
  * @param {number} segmentIndex
  * @param {string | undefined} stationId Forwarded to discovery POST logs as metadata.stationID; also keys proxy round-robin.
@@ -386,6 +386,7 @@ async function postDiscovery(
                 : pickNextHttpProxy({
                       domainMatch: proxyMatch,
                       poolKey: proxyPoolKey,
+                      excludeHosts: proxiesTriedHosts,
                   }) ?? initialProxyUrl;
         proxiesTriedHosts.push(proxyHostForLog(proxyUrl));
         const attemptInfo = { attempt: attempt + 1, max: maxAttempts };
@@ -565,7 +566,7 @@ function buildSearchBody(uri, samplems) {
  *
  * @param {string} wavPath
  * @param {import('pino').Logger} logger
- * @param {{ httpProxy?: string; proxyMatch?: string; stationId?: string }} [options] If `httpProxy` is present (including `undefined`), use it as the first discovery attempt; otherwise pick from `HTTP_PROXY` (optionally filtered by `proxyMatch`). Further attempts use `SHAZAM_DISCOVERY_MAX_ATTEMPTS` / `SHAZAM_DISCOVERY_RETRY_MS` and rotate within the same pool. Pass the same value as ffmpeg for a given tick. `stationId` sets `stationID` on logs and metrics.
+ * @param {{ httpProxy?: string; proxyMatch?: string; stationId?: string }} [options] If `httpProxy` is present (including `undefined`), use it as the first discovery attempt; otherwise pick from `HTTP_PROXY` (preferring `proxyMatch` when set). Further attempts use `SHAZAM_DISCOVERY_MAX_ATTEMPTS` / `SHAZAM_DISCOVERY_RETRY_MS` and skip hosts already tried. Pass the same value as ffmpeg for a given tick. `stationId` sets `stationID` on logs and metrics.
  * @returns {Promise<ShazamOk | ShazamFail>}
  */
 export async function shazamIdentifyFromFile(wavPath, logger, options = {}) {

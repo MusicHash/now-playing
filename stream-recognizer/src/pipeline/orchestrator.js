@@ -17,11 +17,7 @@ import {
     defaultPollIntervalMs,
     getAudioRecognitionOrder,
 } from '../config.js';
-import {
-    pickNextHttpProxy,
-    proxyHostForLog,
-    proxyListForDomainMatch,
-} from '../lib/http_proxy.js';
+import { pickNextHttpProxy, proxyHostForLog } from '../lib/http_proxy.js';
 import { nowLocalDebugFileStamp } from '../lib/local_time.js';
 import metrics from '../lib/metrics.js';
 
@@ -250,7 +246,6 @@ export async function runStationTick(station, store, logger, options = {}) {
     const captureRetryMs = envInt('FFMPEG_CAPTURE_RETRY_MS', 500);
     const proxyMatch = station.proxyMatch;
     const proxyPoolKey = `station:${station.id}`;
-    const stationProxyList = proxyListForDomainMatch(proxyMatch);
     /** Proxy used for successful capture; same value passed to Shazam first attempt. */
     let captureHttpProxy = pickNextHttpProxy({
         domainMatch: proxyMatch,
@@ -282,12 +277,11 @@ export async function runStationTick(station, store, logger, options = {}) {
             const httpProxy =
                 cAttempt === 0
                     ? captureHttpProxy
-                    : stationProxyList.length > 0
-                      ? pickNextHttpProxy({
-                            domainMatch: proxyMatch,
-                            poolKey: proxyPoolKey,
-                        })
-                      : captureHttpProxy;
+                    : pickNextHttpProxy({
+                          domainMatch: proxyMatch,
+                          poolKey: proxyPoolKey,
+                          excludeHosts: captureProxiesTried,
+                      }) ?? captureHttpProxy;
             captureProxiesTried.push(proxyHostForLog(httpProxy));
             try {
                 log.info(
